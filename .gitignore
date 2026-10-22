@@ -1,0 +1,35 @@
+# Secretos y credenciales
+.env
+*.pem
+*.key
+*.crt
+*.cer
+
+# Binarios móviles (APK de terceros no se versionan)
+*.apk
+*.aab
+*.ipa
+
+# Dependencias y builds
+node_modules/
+dist/
+.astro/
+.dart_tool/
+build/
+*.log
+
+# Sistema
+.DS_Store
+
+# Contenido fuente pesado del himnario (fotos + PDF)
+content/himnario/source/
+
+# Grabaciones grandes del laboratorio de reversa
+reverse-lab/**/evidence/recordings/
+
+# Datos locales de bases de datos
+*.pgdata
+
+# Python
+.venv/
+__pycache__/
