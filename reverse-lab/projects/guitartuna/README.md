@@ -26,4 +26,4 @@ Se usará [REA](https://github.com/morluto/rea) (licencia MIT), clonada en `reve
 
 ## Límites éticos
 
-Solo análisis autorizado. Prohibido robar credenciales, extraer secretos, eludir pagos o acceder a datos privados. Ver `reverse-lab/README.md`. El análisis se limita al comportamiento del afinador/analizador; no se tocarán los mecanismos de suscripción o pago de la app.
+Solo análisis autorizado. Ver `reverse-lab/README.md`.
