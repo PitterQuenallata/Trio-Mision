@@ -27,6 +27,13 @@ content/himnario/source/
 # Grabaciones grandes del laboratorio de reversa
 reverse-lab/**/evidence/recordings/
 
+# Herramientas de terceros clonadas (no se vendorean)
+reverse-lab/tools/rea/
+
+# Versiones v1 de referencia (clones independientes con su propio .git)
+legacy/*
+!legacy/README.md
+
 # Datos locales de bases de datos
 *.pgdata
 

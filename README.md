@@ -14,6 +14,7 @@ services/       Servicios de backend
   worker/       Tareas en segundo plano (pendiente)
 content/        Contenido versionado
   himnario/     Acordes .cho del Himnario Adventista + fuentes
+legacy/         Clones v1 de referencia (app y panel; fuera de git)
 reverse-lab/    Laboratorio de análisis de apps (con límites éticos)
 database/       Migraciones y seeds (pendiente)
 infra/          Infraestructura: docker, gotrue, deploy (pendiente)
