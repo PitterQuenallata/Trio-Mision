@@ -15,11 +15,9 @@ services/       Servicios de backend
 content/        Contenido versionado
   himnario/     Acordes .cho del Himnario Adventista + fuentes
 reverse-lab/    Laboratorio de análisis de apps (con límites éticos)
-packages/       Librerías compartidas (pendiente)
 database/       Migraciones y seeds (pendiente)
 infra/          Infraestructura: docker, gotrue, deploy (pendiente)
 docs/           Documentación: arquitectura, desarrollo, despliegue, pagos, decisiones
-scripts/        Scripts de utilidad del monorepo
 ```
 
 ## Estado de los componentes
@@ -32,7 +30,7 @@ scripts/        Scripts de utilidad del monorepo
 | `services/api` | Pendiente (Go)              |
 | `services/worker` | Pendiente                |
 | `content/himnario` | 1228 archivos `.cho` migrados |
-| `packages`, `database`, `infra` | Pendientes   |
+| `database`, `infra` | Pendientes   |
 
 ## Requisitos
 

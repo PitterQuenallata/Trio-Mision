@@ -17,6 +17,7 @@ El ecosistema Trio Misión (web pública, futura app móvil, panel de administra
 
 ## Consecuencias
 
-- Un solo clon para trabajar en todo el ecosistema; CI y tooling se centralizan en `.github/`, `Makefile` y `scripts/`.
+- Un solo clon para trabajar en todo el ecosistema; CI y tooling se centralizan en `.github/` y `Makefile`.
+- `packages/` y `scripts/` no se crean: se añadirán solo cuando exista una necesidad real de código compartido o automatización.
 - El historial completo de la web sigue disponible en el log del monorepo.
 - Clones nuevos no incluyen los ~564 MB del material fuente del himnario; quien lo necesite lo copia manualmente (procedimiento documentado en `content/himnario/README.md`).
