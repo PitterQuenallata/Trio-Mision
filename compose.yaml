@@ -1,0 +1,31 @@
+# Servicios de desarrollo del monorepo Trio Misión.
+# Uso: cp .env.example .env && make up
+#
+# Pendiente de agregar:
+#   - gotrue   (autenticación, ver infra/gotrue/)
+#   - api      (servicio Go, services/api/)
+#   - worker   (tareas en segundo plano, services/worker/)
+#   - smtp     (servidor de correo de desarrollo, p. ej. Mailpit)
+#   - s3       (almacenamiento compatible con S3, p. ej. MinIO)
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-triomision}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-triomision}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
