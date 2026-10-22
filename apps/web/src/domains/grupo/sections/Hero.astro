@@ -1,0 +1,462 @@
+---
+// Configuración individual por persona (principalmente para móvil):
+//   m.scale → escala extra de la foto (ej. 1.1)
+//   m.x / m.y → desplazamiento fino (ej. '2%', '-1vh')
+//   m.op    → object-position del recorte a busto (ej. 'center 10%')
+// Ejemplo: ['Gerson', 'gerson', { scale: 1.08, op: 'center 8%' }]
+type AjusteMovil = { scale?: number; x?: string; y?: string; op?: string }
+type Persona = { nombre: string; foto: string; m?: AjusteMovil }
+
+// Genera el style inline solo si la persona tiene ajustes definidos
+const estiloMovil = (p: Persona) =>
+  p.m
+    ? `--m-scale:${p.m.scale ?? 1};--m-x:${p.m.x ?? '0'};--m-y:${p.m.y ?? '0'};--m-op:${p.m.op ?? 'center 15%'}`
+    : undefined
+
+const actual: Persona[] = [
+  { nombre: 'Alex', foto: '/assets/integrantes/actual/alex.png' },
+  { nombre: 'Gabriel', foto: '/assets/integrantes/actual/gabriel.png' },
+  { nombre: 'Pitter', foto: '/assets/integrantes/actual/pitter.png' },
+]
+
+const nuevaGeneracion: Persona[] = [
+  { nombre: 'Arturo', foto: '/assets/integrantes/nueva-generacion/arturo.png' },
+  { nombre: 'Josué', foto: '/assets/integrantes/nueva-generacion/josue.png' },
+  { nombre: 'César', foto: '/assets/integrantes/nueva-generacion/cesar.png' },
+]
+
+const antiguos: Persona[] = [
+  ['Abraam', 'abraam'], ['Alcides', 'alcides'], ['Efraím', 'efraim'], ['Freddy', 'freddy'],
+  ['José Luis', 'jose-luis'], ['Abdías', 'abdias'], ['Edgar Romero', 'edgar-romero'],
+  ['Erick', 'erick'], ['Gerson', 'gerson'], ['Hernán', 'hernan'],
+  ['Justiniano', 'justiniano'], ['Miqui', 'miqui'],
+].map(([nombre, archivo]) => ({ nombre: nombre as string, foto: `/assets/integrantes/antiguos/${archivo}.png` }))
+---
+
+<section id="inicio" class="hero" aria-labelledby="hero-title">
+  <!-- CAPA 0: fondo cinematográfico (variación tonal + viñeta) -->
+  <div class="hero-base" aria-hidden="true"></div>
+
+  <!-- CAPA 1: iluminación ambiental (izquierda / derecha / centro) -->
+  <div class="light-left" aria-hidden="true"></div>
+  <div class="light-right" aria-hidden="true"></div>
+  <div class="light-center" aria-hidden="true"></div>
+  <div class="hero-haze" aria-hidden="true"></div>
+
+  <!-- CAPA 2: humo de fondo (detrás de toda la formación) -->
+  <div class="smoke-back" aria-hidden="true"></div>
+
+  <!-- CAPAS 3-6: formación por planos de profundidad -->
+  <div class="formation" aria-label="Generaciones de Trio Misión Bolivia">
+    <!-- PLANO LEJANO: rama femenina (foto grupal) — extremo atrás-izquierda -->
+    <div class="group group-female">
+      <img src="/assets/integrantes/femenino/femenino.png" alt="Rama femenina de Trio Misión" loading="eager" fetchpriority="low" decoding="async" />
+    </div>
+
+    <!-- PLANO LEJANO: antiguos, fila posterior (los 6 más atrás, derecha) -->
+    <div class="group group-legacy-back" aria-label="Antiguos integrantes, fila posterior">
+      {antiguos.slice(6).map((persona) => (
+        <img src={persona.foto} alt={`${persona.nombre}, antiguo integrante de Trio Misión`} loading="eager" fetchpriority="low" decoding="async" style={estiloMovil(persona)} />
+      ))}
+    </div>
+
+    <!-- PLANO LEJANO: antiguos, fila frontal (6 adelante de la fila posterior) -->
+    <div class="group group-legacy-front" aria-label="Antiguos integrantes, fila frontal">
+      {antiguos.slice(0, 6).map((persona) => (
+        <img src={persona.foto} alt={`${persona.nombre}, antiguo integrante de Trio Misión`} loading="eager" fetchpriority="low" decoding="async" style={estiloMovil(persona)} />
+      ))}
+    </div>
+
+    <!-- CAPA 4: velo atmosférico ENTRE los históricos y el resto (profundidad) -->
+    <div class="haze-mid" aria-hidden="true"></div>
+
+    <!-- CAPA 4b: humo medio (entre históricos y grupos principales) -->
+    <div class="smoke-mid" aria-hidden="true"></div>
+
+    <!-- PLANO MEDIO: nueva generación (Arturo, Josué, César) — atrás-izquierda -->
+    <div class="group group-new" aria-label="Misión Nueva Generación">
+      {nuevaGeneracion.map((persona) => (
+        <img src={persona.foto} alt={`${persona.nombre}, Misión Nueva Generación`} loading="eager" fetchpriority="low" decoding="async" style={estiloMovil(persona)} />
+      ))}
+    </div>
+
+    <!-- PLANO PRINCIPAL: trío actual (Alex, Gabriel, Pitter) — frente, centro.
+         img:nth-child(2) = Gabriel (el del medio, más alto y adelante). -->
+    <div class="group group-current" aria-label="Formación actual">
+      {actual.map((persona) => (
+        <img src={persona.foto} alt={`${persona.nombre}, formación actual de Trio Misión`} loading="eager" fetchpriority="high" decoding="async" style={estiloMovil(persona)} />
+      ))}
+    </div>
+  </div>
+
+  <!-- CAPA 7: escenario / piso -->
+  <div class="stage" aria-hidden="true"></div>
+
+  <!-- CAPA 8: humo frontal (niebla de piso, delante de la formación, nunca caras) -->
+  <div class="smoke-front" aria-hidden="true"></div>
+
+  <!-- CAPA 9: velo inferior (funde el hero con el fondo negro de la página) -->
+  <div class="hero-fade" aria-hidden="true"></div>
+
+  <!-- CAPA 10: marca — kicker + título + país -->
+  <div class="hero-brand">
+    <p class="hero-kicker">Tres generaciones · Una misión</p>
+    <h1 id="hero-title" class="title-gradient">Trio Misión</h1>
+    <div class="country"><span></span><strong>Bolivia</strong><span></span></div>
+  </div>
+</section>
+
+<style>
+  .hero { position: relative; min-height: 100svh; overflow: hidden; isolation: isolate; background: #070706; }
+
+  /* ── CAPA 0: FONDO ──────────────────────────────────────────── */
+  .hero-base {
+    position: absolute; inset: 0; z-index: 0;
+    background:
+      radial-gradient(90% 70% at 50% 42%, rgb(24 19 14 / .55), transparent 65%),
+      radial-gradient(130% 100% at 50% 40%, transparent 52%, rgb(0 0 0 / .6) 100%),
+      linear-gradient(180deg, #0a0908 0%, #070706 45%, #050404 100%);
+  }
+
+  /* ── CAPA 1: LUCES AMBIENTALES ──────────────────────────────── */
+  .light-left {
+    position: absolute; inset: 0; z-index: 1;
+    background: radial-gradient(48% 68% at 2% 32%, rgb(11 108 115 / .24), transparent 66%);
+  }
+  .light-right {
+    position: absolute; inset: 0; z-index: 1;
+    background: radial-gradient(48% 68% at 98% 32%, rgb(122 25 25 / .22), transparent 66%);
+  }
+  .light-center {
+    position: absolute; inset: 0; z-index: 1;
+    background: radial-gradient(38% 52% at 50% 44%, rgb(244 228 201 / .08), transparent 72%);
+  }
+  .hero-haze { position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgb(9 26 27 / .38), transparent 30% 70%, rgb(31 10 10 / .34)); }
+
+  /* ── FORMACIÓN (DESKTOP ≥901px) ─────────────────────────────── */
+  .formation { position: absolute; inset: 4.5rem 0 0; z-index: 10; translate: 0 -8vh; transform-origin: 50% 70%; }
+  .group { position: absolute; display: flex; align-items: flex-end; justify-content: center; }
+  /* Iluminación NATURAL en todos los planos (piel y trajes reales).
+     La profundidad viene de posición, escala, bruma, humo y sombras
+     de contacto — NO de desaturar ni apagar a las personas. */
+  .group img { display: block; flex: 0 0 auto; width: auto; max-width: none; object-fit: contain; object-position: bottom; filter: saturate(1.02) brightness(.98) drop-shadow(0 1rem 1.25rem rgb(0 0 0 / .72)); }
+
+  /* Sombra de contacto con el suelo — elipse suave bajo cada grupo.
+     Más fuerte al frente, más débil en planos posteriores. */
+  .group::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: -1.5%;
+    z-index: -1;
+    width: 95%;
+    height: 9%;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgb(0 0 0 / .55), transparent 70%);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     POSICIONES DE GRUPOS (DESKTOP) — ajusta aquí manualmente:
+       · left/right  → posición horizontal del grupo
+       · bottom      → qué tan arriba "pisa" (más % = más atrás/arriba)
+       · z-index     → quién tapa a quién (mayor = más al frente)
+       · height/width/max-height → tamaño de las personas del grupo
+       · margin-left negativo en img → qué tan encimadas van las personas
+     ══════════════════════════════════════════════════════════════ */
+
+  /* ── PLANO LEJANO ── */
+
+  /* GRUPO: RAMA FEMENINA (foto grupal) — extremo atrás-izquierda */
+  .group-female { left: 20%; bottom: 50%; z-index: 8; }
+  .group-female img {
+    width: clamp(15rem, 20vw, 25rem); height: auto; max-height: 35vh;
+  }
+  .group-female::after { background: radial-gradient(ellipse, rgb(0 0 0 / .3), transparent 70%); }
+
+  /* GRUPO: ANTIGUOS — FILA POSTERIOR */
+  .group-legacy-back { right: 12%; bottom: 51%; z-index: 9; }
+  .group-legacy-back img {
+    height: 32vh; width: auto; margin-left: -1vw;
+  }
+  .group-legacy-back img:first-child { margin-left: 0; }
+  .group-legacy-back::after { background: radial-gradient(ellipse, rgb(0 0 0 / .28), transparent 70%); }
+
+  /* GRUPO: ANTIGUOS — FILA FRONTAL */
+  .group-legacy-front { right: 8%; bottom: 40%; z-index: 12; }
+  .group-legacy-front img {
+    height: 35vh; width: auto; margin-left: -1.2vw;
+  }
+  .group-legacy-front img:first-child { margin-left: 0; }
+  .group-legacy-front::after { background: radial-gradient(ellipse, rgb(0 0 0 / .35), transparent 70%); }
+
+  /* ── CAPA 4: BRUMA ENTRE PLANOS ── */
+  .haze-mid {
+    position: absolute; inset: 0; z-index: 13; pointer-events: none;
+    background:
+      radial-gradient(46% 52% at 80% 36%, rgb(8 8 7 / .34), transparent 72%),
+      radial-gradient(30% 40% at 22% 40%, rgb(8 8 7 / .22), transparent 70%);
+  }
+
+  /* ── PLANO MEDIO ── */
+
+  /* GRUPO: NUEVA GENERACIÓN — atrás-izquierda */
+  .group-new { left: 12%; bottom: 14%; z-index: 16; }
+  .group-new img {
+    height: 52vh; margin-left: -3vw;
+  }
+  .group-new img:first-child { margin-left: 0; }
+  .group-new::after { background: radial-gradient(ellipse, rgb(0 0 0 / .45), transparent 70%); }
+
+  /* ── PLANO PRINCIPAL ── */
+
+  /* GRUPO: TRÍO ACTUAL — frente, centro */
+  .group-current { left: 50%; bottom: 3%; z-index: 20; transform: translateX(-50%); }
+  .group-current img {
+    position: relative; height: 69vh; margin-left: -5vw;
+    filter: saturate(1.06) brightness(1.03) contrast(1.04) drop-shadow(0 1.25rem 1.5rem rgb(0 0 0 / .8));
+  }
+  .group-current img:first-child { margin-left: 0; }
+  .group-current img:nth-child(2) { z-index: 2; height: 73vh; transform: translateY(1.2vh); }
+  .group-current::after {
+    width: 105%; height: 10%;
+    background: radial-gradient(ellipse, rgb(0 0 0 / .68), transparent 70%);
+  }
+
+  /* ── CAPA 7: ESCENARIO ── */
+  .stage { position: absolute; z-index: 2; left: 50%; bottom: 5%; width: min(84rem, 92vw); height: 18%; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(ellipse, #2a241d 0%, #121110 52%, transparent 72%); box-shadow: inset 0 1px rgb(199 168 107 / .26); }
+  .stage::after {
+    content: '';
+    position: absolute; inset: 0; border-radius: 50%;
+    background: radial-gradient(45% 60% at 50% 55%, rgb(244 228 201 / .08), transparent 70%);
+  }
+
+  /* CAPA 9: velo inferior */
+  .hero-fade { position: absolute; z-index: 25; inset: auto 0 0; height: 25%; background: linear-gradient(to top, #070706 8%, rgb(7 7 6 / .88) 38%, transparent); }
+
+  /* ── CAPAS 2/4b/8: ATMÓSFERA (humo) ───────────────────────────
+     3 capas de humo pre-renderizadas con gradientes (sin assets).
+     Reglas: solo transform/opacity, ciclos 18-32s, baja opacidad,
+     nunca sobre caras. En la Fase 11 se conectan al motionMode. */
+  .smoke-back,
+  .smoke-mid,
+  .smoke-front { position: absolute; pointer-events: none; }
+
+  /* Humo de fondo: dos masas suaves detrás de la formación */
+  .smoke-back {
+    inset: 0; z-index: 2;
+    background:
+      radial-gradient(42% 48% at 28% 62%, rgb(205 195 175 / .05), transparent 70%),
+      radial-gradient(38% 42% at 72% 55%, rgb(205 195 175 / .045), transparent 70%);
+  }
+
+  /* Humo medio: entre históricos y el resto (zona derecha + lateral izq.) */
+  .smoke-mid {
+    inset: 0; z-index: 14;
+    background:
+      radial-gradient(40% 46% at 80% 40%, rgb(200 190 170 / .055), transparent 72%),
+      radial-gradient(26% 36% at 18% 46%, rgb(200 190 170 / .04), transparent 70%);
+  }
+
+  /* Humo frontal: niebla de PISO, delante de la formación, bajo el velo */
+  .smoke-front {
+    inset: 0; z-index: 22;
+    background:
+      radial-gradient(72% 20% at 50% 103%, rgb(215 205 185 / .07), transparent 72%),
+      radial-gradient(40% 14% at 20% 100%, rgb(215 205 185 / .05), transparent 70%);
+  }
+
+  /* Respiración de luces + deriva de humo — solo si el usuario permite movimiento.
+     Las animaciones continuas se DECLARAN COMBINADAS con la entrada más abajo
+     (una sola lista `animation` por elemento; si se declaran por separado,
+     la entrada sobrescribiría el ciclo infinito). */
+
+  @keyframes breathe-a { 50% { opacity: .78; transform: scale(1.04); } }
+  @keyframes breathe-b { 50% { opacity: .8; transform: scale(1.035); } }
+  @keyframes breathe-c { 50% { opacity: .72; transform: scale(1.03); } }
+
+  @keyframes smoke-drift-a { 50% { transform: translate3d(2.5%, -2%, 0) scale(1.05); } }
+  @keyframes smoke-drift-b { 50% { transform: translate3d(-2%, 1.5%, 0) scale(1.04); } }
+  @keyframes smoke-drift-c { 50% { transform: translate3d(3%, 0, 0) scale(1.03); } }
+
+  /* ── ENTRADA CINEMATOGRÁFICA (Fase 5) ─────────────────────────
+     Secuencia: ambiente → profundos → secundarios → trío → título.
+     Total ~1.2s. Sin pantalla negra: todo entra con fade sutil.
+     Se usan las propiedades individuales translate/scale (NO
+     transform) para no pisar los posicionamientos de los grupos.
+     Con prefers-reduced-motion: la escena aparece completa, quieta. */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Ambiente: entrada + respiración/deriva continua en UNA sola lista */
+    .hero-base, .hero-haze { animation: hero-fade-in .6s ease-out both; }
+    .light-left { animation: hero-fade-in .6s ease-out both, breathe-a 17s ease-in-out .7s infinite; }
+    .light-right { animation: hero-fade-in .6s ease-out both, breathe-b 21s ease-in-out .7s infinite; }
+    .light-center { animation: hero-fade-in .6s ease-out both, breathe-c 14s ease-in-out .7s infinite; }
+    .smoke-back {
+      animation: hero-fade-in .6s ease-out both, smoke-drift-a 32s ease-in-out .7s infinite;
+      will-change: transform;
+    }
+    .stage { animation: hero-fade-in .55s ease-out .1s both; }
+
+    /* Planos profundos */
+    .group-female, .group-legacy-back, .group-legacy-front {
+      animation: hero-enter .5s cubic-bezier(.22, .61, .36, 1) .2s both;
+    }
+    .haze-mid { animation: hero-fade-in .5s ease-out .3s both; }
+    .smoke-mid {
+      animation: hero-fade-in .5s ease-out .3s both, smoke-drift-b 26s ease-in-out .9s infinite;
+      will-change: transform;
+    }
+
+    /* Plano medio */
+    .group-new { animation: hero-enter .5s cubic-bezier(.22, .61, .36, 1) .32s both; }
+
+    /* Plano principal */
+    .group-current { animation: hero-enter-main .55s cubic-bezier(.22, .61, .36, 1) .45s both; }
+
+    /* Niebla de piso y velo */
+    .smoke-front {
+      animation: hero-fade-in .5s ease-out .5s both, smoke-drift-c 19s ease-in-out 1.1s infinite;
+      will-change: transform;
+    }
+    .hero-fade { animation: hero-fade-in .5s ease-out .4s both; }
+
+    /* Título */
+    .hero-brand { animation: hero-enter-title .6s cubic-bezier(.22, .61, .36, 1) .65s both; }
+  }
+
+  @keyframes hero-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes hero-enter {
+    from { opacity: 0; translate: 0 12px; scale: .99; }
+    to { opacity: 1; translate: 0 0; scale: 1; }
+  }
+
+  @keyframes hero-enter-main {
+    from { opacity: 0; translate: 0 16px; scale: .98; }
+    to { opacity: 1; translate: 0 0; scale: 1; }
+  }
+
+  @keyframes hero-enter-title {
+    from { opacity: 0; translate: 0 10px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  /* ── CAPA 10: MARCA ── */  .hero-brand { position: absolute; z-index: 40; left: 50%; bottom: 2.2rem; width: min(92vw, 60rem); transform: translateX(-50%); text-align: center; }
+  .hero-brand::before {
+    content: '';
+    position: absolute; left: 50%; top: 50%; z-index: -1;
+    width: 115%; height: 170%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(50% 55% at 50% 55%, rgb(199 168 107 / .13), transparent 72%);
+  }
+  .hero-kicker { margin: 0 0 .25rem; color: rgb(244 228 201 / .7); font-size: clamp(.55rem, .7vw, .72rem); letter-spacing: .35em; text-transform: uppercase; text-shadow: 0 1px 8px rgb(0 0 0 / .8); }
+  .hero-brand h1 { margin: 0; font-size: clamp(2.8rem, 6.4vw, 6.5rem); font-weight: 900; line-height: .95; letter-spacing: .08em; text-transform: uppercase; }
+  .country { display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: .55rem; color: var(--color-theme-gold); }
+  .country span { width: clamp(2.5rem, 6vw, 6rem); height: 1px; background: linear-gradient(90deg, transparent, currentColor); }
+  .country span:last-child { background: linear-gradient(90deg, currentColor, transparent); }
+  .country strong { font-size: clamp(.6rem, 1vw, .9rem); font-weight: 500; letter-spacing: .48em; text-transform: uppercase; text-shadow: 0 1px 8px rgb(0 0 0 / .8); }
+
+  /* ══════════════════════════════════════════════════════════════
+     TABLET (561–900px) — COMPOSICIÓN PROPIA.
+     Nadie se oculta: las 5 generaciones presentes, más compactas.
+     Antiguos en 2 filas más pequeñas a la derecha, femenino pequeña
+     a la izquierda, trío protagonista al centro.
+     ══════════════════════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .formation { inset: calc(4rem + env(safe-area-inset-top, 0px)) 0 0; translate: 0 -4vh; }
+
+    /* Femenino: pequeña, atrás-izquierda */
+    .group-female { left: 5%; bottom: 42%; }
+    .group-female img { width: auto; height: 20vh; max-height: 22vh; }
+
+    /* Antiguos: dos filas compactas, atrás-derecha */
+    .group-legacy-back { right: 5%; bottom: 45%; }
+    .group-legacy-back img { height: 20vh; margin-left: -1.5vw; }
+    .group-legacy-front { right: 2%; bottom: 35%; }
+    .group-legacy-front img { height: 24vh; margin-left: -1.8vw; }
+
+    /* Nueva generación: media, atrás-izquierda */
+    .group-new { left: 3%; bottom: 11%; }
+    .group-new img { height: 34vh; margin-left: -4vw; }
+
+    /* Trío actual: protagonista */
+    .group-current img { height: 54vh; margin-left: -5vw; }
+    .group-current img:nth-child(2) { height: 57vh; }
+
+    .haze-mid { background: radial-gradient(48% 48% at 80% 34%, rgb(8 8 7 / .3), transparent 72%); }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     MÓVIL (≤560px) — COMPOSICIÓN PROPIA (crowd background).
+     NO se mete la composición desktop en pequeño:
+
+               [6 bustos oscuros]      ← fila posterior (más pequeña)
+              [6 bustos]               ← fila frontal (reconocibles)
+        [femenino]        [nueva gen]  ← laterales tenues
+             TRÍO ACTUAL               ← protagonista absoluto
+               TÍTULO
+
+     Los históricos se recortan a BUSTO (object-fit: cover + position top),
+     más oscuros pero reconocibles. Nadie desaparece con display:none.
+
+     Ajuste fino por persona: edita el objeto en los datos de arriba
+     (m.scale / m.x / m.y / m.op) — ver comentario "AjusteMovil".
+     ══════════════════════════════════════════════════════════════ */
+  @media (max-width: 560px) {
+    .formation { inset: calc(4.5rem + env(safe-area-inset-top, 0px)) 0 0; translate: 0 -2vh; }
+
+    /* Históricos → crowd de bustos centrado arriba */
+    .group-legacy-back,
+    .group-legacy-front { left: 50%; right: auto; transform: translateX(-50%); }
+    .group-legacy-back { bottom: 57%; }
+    .group-legacy-front { bottom: 50.5%; }
+    .group-legacy-back img,
+    .group-legacy-front img {
+      object-fit: cover;
+      object-position: var(--m-op, center 15%);
+      border-radius: 2px;
+      transform: translate(var(--m-x, 0), var(--m-y, 0)) scale(var(--m-scale, 1));
+    }
+    .group-legacy-back img {
+      height: 8.5vh; width: 11vw; margin-left: -3.5vw;
+      filter: saturate(.9) brightness(.82);
+    }
+    .group-legacy-front img {
+      height: 10vh; width: 13vw; margin-left: -3vw;
+      filter: saturate(.98) brightness(.9);
+    }
+    /* Sin sombra de suelo en el crowd (flotan como multitud de fondo) */
+    .group-legacy-back::after,
+    .group-legacy-front::after { content: none; }
+
+    /* Femenino: lateral derecho, tenue */
+    .group-female { left: auto; right: 1%; bottom: 36%; }
+    .group-female img { width: auto; height: 15vh; max-height: 15vh; }
+
+    /* Nueva generación: lateral izquierdo, detrás del trío */
+    .group-new { left: 1%; bottom: 33%; }
+    .group-new img {
+      height: 20vh; margin-left: -4vw;
+      filter: saturate(1) brightness(.94) drop-shadow(0 .75rem 1rem rgb(0 0 0 / .55));
+    }
+
+    /* Trío actual: protagonista absoluto */
+    .group-current img { height: 45vh; margin-left: -7vw; }
+    .group-current img:nth-child(2) { height: 48vh; }
+
+    /* Bruma sobre el crowd */
+    .haze-mid { background: radial-gradient(72% 42% at 50% 30%, rgb(8 8 7 / .32), transparent 72%); }
+
+    /* Móvil: menos atmósfera — sin humo medio, fondo y frente más tenues */
+    .smoke-mid { display: none; }
+    .smoke-back,
+    .smoke-front { opacity: .55; }
+
+    /* Marca con safe-area inferior */
+    .hero-brand { bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px)); }
+    .hero-kicker { display: none; }
+  }
+</style>

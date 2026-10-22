@@ -1,0 +1,189 @@
+---
+// Historia narrada por etapas, con registros de integrantes como apoyo editorial.
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import RosterTable from '@/domains/grupo/components/RosterTable.astro'
+
+const etapasSantaCruz = [
+  { periodo: 'Desde 2019', integrantes: 'Gabriel Quenallata', funcion: 'Director general y primera voz' },
+  { periodo: '2021', integrantes: 'Abraham Osco', funcion: 'Tercera voz y guitarra' },
+  { periodo: '2021', integrantes: 'Justiniano Arojas', funcion: 'Guitarra y coros' },
+  { periodo: '2022', integrantes: 'Maguiber Cuevas', funcion: 'Primera guitarra y coros' },
+  { periodo: '2022', integrantes: 'Ephraim Quenta', funcion: 'Guitarra y coros' },
+  { periodo: 'Desde 2023', integrantes: 'Pitter Kevin Quenallata Quispe', funcion: 'Tenor y guitarra' },
+  { periodo: 'Desde 2026', integrantes: 'Alexander Gabriel Quenallata Quispe', funcion: 'Primera guitarra y segunda voz' },
+  { periodo: 'Desde 2026', integrantes: 'Josias Fidel Quenallata Quispe', funcion: 'Hijo menor del director fundador · guitarra y coros' },
+]
+
+const etapasLaPaz = [
+  { periodo: 'Desde 2021', integrantes: 'Alexander Gabriel Quenallata Quispe', funcion: 'Director, segunda voz y primera guitarra' },
+  { periodo: 'Desde 2021', integrantes: 'Arturo López Barrios', funcion: 'Primera guitarra' },
+  { periodo: 'Desde 2021', integrantes: 'Josué Colque', funcion: 'Primera voz y acompañamiento de guitarra' },
+  { periodo: '2022', integrantes: 'José Luis Condori Echeverría', funcion: 'Tercera voz' },
+  { periodo: '2022', integrantes: 'Cristian Chipana Espinosa', funcion: 'Primera guitarra y coros' },
+  { periodo: 'Desde 2023', integrantes: 'Juan Daniel Condori Quispe', funcion: 'Primera voz y acompañamiento de guitarra' },
+]
+
+const integrantesHistoricos = [
+  { nombre: 'Alcides Ávalos', periodo: 'Desde 1988', rol: 'Primera voz y coros' },
+  { nombre: 'Luis Hernán Colque', periodo: 'Desde 1996', rol: 'Bajo de guitarra y coros' },
+  { nombre: 'Juan Julio Apaza', periodo: 'Desde 1998', rol: 'Acompañamiento de guitarra y coros' },
+  { nombre: 'Eric Apaza Q.', periodo: 'Desde 2004', rol: 'Primera voz y bajo de guitarra · Q. E. P. D.' },
+  { nombre: 'Edgar Romero', periodo: 'Desde 2004', rol: 'Primera guitarra' },
+  { nombre: 'Gerson Apaza Q.', periodo: 'Desde 2007', rol: 'Trio Misión Infantil; luego pasó al grupo principal' },
+  { nombre: 'Abdías Apaza Caso', periodo: 'Desde 2007', rol: 'Trio Misión Infantil' },
+  { nombre: 'Pitter Kevin Quenallata Quispe', periodo: 'Desde 2007', rol: 'Trio Misión Infantil; después tenor y guitarra' },
+  { nombre: 'Alexander Gabriel Quenallata Quispe', periodo: 'Desde 2007', rol: 'Trio Misión Infantil; luego primera guitarra y director' },
+  { nombre: 'Miguel Apaza Q.', periodo: 'Desde 2010', rol: 'Primera guitarra y voz' },
+  { nombre: 'Fredy Casu Quispe', periodo: 'Desde 2013', rol: 'Primera guitarra y coros' },
+  { nombre: 'Cristian Chipana Espinosa', periodo: '2022', rol: 'Primera guitarra y coros' },
+]
+---
+
+<Layout title="Historia — Trio Misión Bolivia" description="La historia de Trio Misión desde sus comienzos en 1988 hasta sus formaciones actuales en Santa Cruz y La Paz.">
+  <Header />
+  <main class="history-page mx-auto w-full max-w-6xl flex-1 px-6 pb-28 pt-32">
+    <header class="history-intro" data-reveal>
+      <SectionTitle eyebrow="1988–2026 · Bolivia" title="Historia de Trio Misión" />
+      <p>Una historia de música, servicio y generaciones que llevaron el mensaje desde El Choro a nuevas comunidades y ciudades.</p>
+    </header>
+
+    <article class="story">
+      <section class="story-chapter" data-reveal>
+        <span class="chapter-years">1988–1994</span>
+        <div class="chapter-copy">
+          <h2>Los comienzos en El Choro</h2>
+          <p>Trio Misión nació en 1988 en El Choro, provincia de Caranavi, departamento de La Paz. Sus primeros integrantes fueron Alcides Ávalos y Gabriel Quenallata. Después de compartir algunos años en el ministerio de alabanza, el grupo hizo una pausa de cuatro años por motivos de trabajo y estudio.</p>
+          <p>En 1993 retomaron la actividad musical en La Paz. Al año siguiente grabaron sus primeros cánticos e himnos, dando inicio a una trayectoria discográfica que acompañaría las siguientes etapas del grupo.</p>
+        </div>
+      </section>
+
+      <section class="story-chapter" data-reveal>
+        <span class="chapter-years">1996–2004</span>
+        <div class="chapter-copy">
+          <h2>Nuevas voces y grabaciones</h2>
+          <p>La formación creció junto con sus producciones. Luis Hernán Colque se incorporó para grabar el quinto volumen en 1996, y Juan Julio Apaza se sumó durante la producción del sexto volumen, en 1998. En 2004 se integraron Eric Apaza y Edgar Romero.</p>
+        </div>
+      </section>
+
+      <section class="story-chapter" data-reveal>
+        <span class="chapter-years">2007–2017</span>
+        <div class="chapter-copy">
+          <h2>La música pasa a otra generación</h2>
+          <p>En 2007, los hijos de los integrantes formaron Trio Misión Infantil y grabaron su primera producción. El grupo estaba integrado por Alexander Gabriel Quenallata, Pitter Kevin Quenallata Quispe, Abdías Apaza Caso y Gerson Apaza Q. En 2008 publicaron un segundo disco. En 2012, al crecer, la agrupación pasó a llamarse Trio Misión Junior.</p>
+          <p>La continuidad también tomó forma en Trio Misión Femenino. Fundado en 2011, reunió a Julia Quispe de Quenallata, Ana María Romero de Colque, Rosa Caso de Apaza y Beatriz Sosa de Casu.</p>
+          <p>Durante esos años se incorporaron Miguel Apaza Q., Fredy Casu Quispe, José Luis Condori Echeverría, Alexander Gabriel Quenallata —quien asumió la primera guitarra a los 16 años—, Cristian Chipana Espinosa, Gerson Apaza Q. y Arturo López Barrios.</p>
+        </div>
+      </section>
+
+      <section class="division-story" data-reveal>
+        <span class="chapter-years">2019</span>
+        <h2>El grupo continúa en dos ciudades</h2>
+        <p>En 2019, Gabriel Quenallata, director de Trio Misión, se trasladó a Santa Cruz de la Sierra por motivos de salud. El grupo continuó su camino entre Santa Cruz y La Paz. En La Paz, su hijo Alexander Gabriel Quenallata asumió la dirección de la nueva generación.</p>
+      </section>
+
+      <div class="city-branch" aria-hidden="true">
+        <svg viewBox="0 0 1000 100" preserveAspectRatio="none">
+          <path d="M500 0 V38 M250 38 H750 M250 38 V100 M750 38 V100" />
+        </svg>
+      </div>
+
+      <section class="city-stories" aria-label="Etapas de Trio Misión en Santa Cruz y La Paz">
+        <article class="city-story city-santa" data-reveal>
+          <span class="city-eyebrow">Trio Misión</span>
+          <h2>Santa Cruz</h2>
+          <p>Tras el traslado de Gabriel Quenallata a Santa Cruz en 2019, se sumaron Abraham Osco y Justiniano Arojas en 2021, y Maguiber Cuevas y Ephraim Quenta en 2022. En 2023 se incorporó Pitter Kevin Quenallata Quispe. Desde 2026, la formación actual es también una familia: Gabriel Quenallata, sus hijos Pitter Kevin y Alexander Gabriel, y Josias Fidel Quenallata Quispe, el menor, en guitarra y coros.</p>
+          <RosterTable rows={etapasSantaCruz} label="Trio Misión en Santa Cruz · formación familiar actual" accent="gold" />
+        </article>
+
+        <article class="city-story" data-reveal>
+          <span class="city-eyebrow">Trio Misión Nueva Generación</span>
+          <h2>La Paz</h2>
+          <p>En 2021 se consolidó la formación de Trio Misión Nueva Generación con Alexander Gabriel Quenallata, Arturo López Barrios y Josué Colque. En 2022 se sumaron José Luis Condori Echeverría y Cristian Chipana Espinosa. Al año siguiente se incorporó Juan Daniel Condori Quispe.</p>
+          <RosterTable rows={etapasLaPaz} label="Integrantes de Trio Misión Nueva Generación en La Paz" accent="gold" />
+        </article>
+      </section>
+
+      <section class="recordings-note" data-reveal>
+        <span class="chapter-years">Grabaciones hasta 2025</span>
+        <p>Trio Misión registra 31 discos, incluidos cuatro de Infantil y Junior, además de un disco de Trio Misión Femenino: 34 producciones en total.</p>
+      </section>
+
+      <section class="members-record" data-reveal aria-labelledby="members-record-title">
+        <header>
+          <span class="chapter-years">Integrantes</span>
+          <h2 id="members-record-title">Músicos de estas etapas</h2>
+        </header>
+        <div class="table-scroll" tabindex="0" aria-label="Tabla desplazable de integrantes históricos">
+          <table>
+            <thead><tr><th>Nombre</th><th>Año o periodo</th><th>Participación</th></tr></thead>
+            <tbody>
+              {integrantesHistoricos.map((integrante) => (
+                <tr><th scope="row">{integrante.nombre}</th><td>{integrante.periodo}</td><td>{integrante.rol}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </article>
+
+    <nav class="page-links" aria-label="Más sobre Trio Misión" data-reveal>
+      <a href="/giras">Ver giras, encuentros y presentaciones <span aria-hidden="true">→</span></a>
+      <a href="/integrantes">Conocer a los integrantes <span aria-hidden="true">→</span></a>
+    </nav>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .history-page { overflow: hidden; }
+  .history-intro { max-width: 52rem; margin: 0 auto 5rem; text-align: center; }
+  .history-intro > p { max-width: 39rem; margin: 1.5rem auto 0; color: rgb(244 228 201 / 60%); font-family: system-ui, sans-serif; line-height: 1.8; }
+  .story { max-width: 58rem; margin: 0 auto; }
+  .story-chapter { display: grid; gap: 1rem; padding: 2.3rem 0; border-top: 1px solid rgb(199 168 107 / 17%); }
+  .chapter-years { color: var(--color-theme-gold); font-size: .68rem; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; }
+  .chapter-copy h2, .members-record h2, .division-story h2 { margin: .3rem 0 1rem; color: var(--color-theme-cream); font-size: clamp(1.35rem, 3vw, 1.9rem); font-weight: 900; letter-spacing: .055em; }
+  .chapter-copy p, .division-story p, .city-story > p, .recordings-note p { margin: .8rem 0 0; color: rgb(244 228 201 / 65%); font-family: system-ui, sans-serif; font-size: .95rem; line-height: 1.85; }
+  .members-record { margin: 1.8rem 0 4rem; padding: 1.5rem; background: linear-gradient(145deg, rgb(199 168 107 / 6%), rgb(20 17 16 / 72%)); box-shadow: inset 0 1px rgb(199 168 107 / 26%); }
+  .members-record header { margin-bottom: 1rem; }
+  .members-record h2 { margin-bottom: 0; }
+  .table-scroll { overflow-x: auto; outline-color: var(--color-theme-gold); }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  th { padding: .7rem .8rem; color: var(--color-theme-gold); font-size: .62rem; letter-spacing: .15em; text-transform: uppercase; }
+  td { padding: .72rem .8rem; border-top: 1px solid rgb(244 228 201 / 9%); color: rgb(244 228 201 / 68%); font-family: system-ui, sans-serif; font-size: .82rem; line-height: 1.55; }
+  td:first-child { min-width: 13rem; color: var(--color-theme-cream); font-weight: 700; }
+  .division-story { position: relative; margin: 5rem auto 0; padding: 1rem 0 0; text-align: center; }
+  .division-story::before { content: ''; display: block; width: min(100%, 58rem); height: 1px; margin: 0 auto 2rem; background: linear-gradient(90deg, transparent, rgb(199 168 107 / 32%), transparent); }
+  .division-story::after { content: ''; position: absolute; top: -5rem; left: 50%; width: 1px; height: 5rem; background: linear-gradient(to bottom, transparent, rgb(199 168 107 / 32%)); }
+  .division-story h2 { margin-top: .55rem; }
+  .division-story p { max-width: 48rem; margin-right: auto; margin-left: auto; }
+  .city-branch { height: 3.5rem; margin: 0 1.5rem; }
+  .city-branch svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .city-branch path { fill: none; stroke: rgb(199 168 107 / 30%); stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .city-stories { display: grid; gap: 2rem; }
+  .city-story { min-width: 0; padding: 1.5rem; background: linear-gradient(145deg, rgb(244 228 201 / 3%), transparent 72%); box-shadow: inset 0 1px rgb(199 168 107 / 23%); }
+  .city-eyebrow { color: var(--color-theme-gold); font-size: .62rem; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; }
+  .city-story h2 { margin: .55rem 0 1rem; color: var(--color-theme-cream); font-size: 1.55rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+  .city-story > p { margin-bottom: 1.5rem; font-size: .88rem; }
+  .recordings-note { margin-top: 4rem; padding: 1.4rem 1.6rem; border-top: 1px solid rgb(199 168 107 / 24%); border-bottom: 1px solid rgb(199 168 107 / 24%); }
+  .recordings-note p { margin-top: .55rem; }
+  .page-links { display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem 2rem; margin: 4rem auto 0; }
+  .page-links a { color: var(--color-theme-gold); font-size: .7rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; transition: color .2s ease; }
+  .page-links a:hover { color: var(--color-theme-cream); }
+  @media (min-width: 760px) {
+    .story-chapter { grid-template-columns: 9rem minmax(0, 1fr); gap: 2rem; padding: 3rem 0; }
+    .chapter-years { padding-top: .7rem; }
+    .members-record { margin-left: 0; }
+    .city-stories { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.5rem; }
+  }
+  @media (max-width: 759px) {
+    .city-branch { height: 2.5rem; margin: 0 1rem; }
+    .city-branch path { d: path('M500 0 V100'); }
+  }
+  @media (min-width: 1100px) {
+    .members-record { width: min(66rem, calc(100vw - 4rem)); max-width: none; margin-left: 50%; transform: translateX(-50%); }
+  }
+  @media (prefers-reduced-motion: reduce) { .page-links a { transition: none; } }
+</style>

@@ -1,0 +1,10 @@
+.git
+.reference
+.astro
+node_modules
+dist
+.DS_Store
+.env
+.env.*
+!.env.example
+logo-fallecido.png

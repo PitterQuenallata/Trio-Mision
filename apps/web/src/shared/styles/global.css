@@ -1,0 +1,255 @@
+@import 'tailwindcss';
+@import 'tailwind-animations';
+
+@theme {
+  /* Tipografía */
+  --font-cinzel: 'Cinzel';
+  --font-fallback:
+    'Cinzel Fallback', georgia, 'Times New Roman', times, serif;
+
+  /* Colores — CONTEXT.md 6.1 */
+  --color-theme-cream: #f4e4c9;
+  --color-theme-gold: #c7a86b;
+  --color-theme-ink: #0a0908;
+  --color-theme-ink-2: #141110;
+  --color-theme-teal: #3fc9be;
+
+  /* Radios */
+  --radius-card: 0.375rem;
+  --radius-pill: 9999px;
+}
+
+/* Cinzel variable (Google Fonts) — cubre los pesos 500 y 900 en un solo archivo */
+@font-face {
+  font-family: 'Cinzel';
+  src: url('/fonts/cinzel-latin.woff2') format('woff2');
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cinzel';
+  src: url('/fonts/cinzel-latin-ext.woff2') format('woff2');
+  font-weight: 500 900;
+  font-style: normal;
+  font-display: swap;
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Fallback métricamente compatible mientras carga Cinzel */
+@font-face {
+  font-family: 'Cinzel Fallback';
+  src: local(georgia);
+  size-adjust: 103%;
+}
+
+@layer base {
+  html,
+  body {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    width: 100%;
+    min-height: 100%;
+    overscroll-behavior: none;
+    overscroll-behavior-y: none;
+  }
+
+  html {
+    scrollbar-gutter: stable;
+    background: var(--color-theme-ink);
+    scroll-behavior: smooth;
+    font-family: var(--font-cinzel), var(--font-fallback);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background: var(--color-theme-ink);
+    color: var(--color-theme-cream);
+  }
+
+  /* Scrollbar dorada sobre fondo ink — Webkit */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-theme-ink);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-theme-gold);
+    border-radius: 5px;
+    border: 2px solid color-mix(in srgb, var(--color-theme-gold) 40%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-theme-cream);
+  }
+
+  /* Scrollbar — Firefox */
+  * {
+    scrollbar-color: var(--color-theme-gold) var(--color-theme-ink);
+    scrollbar-width: thin;
+  }
+}
+
+/* Cinzel en mayúsculas con rendering óptimo */
+.font-cinzel {
+  text-transform: uppercase;
+  text-rendering: optimizeLegibility;
+}
+
+/* Título con gradiente cream→gold (receta La Velada) */
+@utility title-gradient {
+  color: var(--color-theme-cream);
+  background: linear-gradient(
+    180deg,
+    var(--color-theme-cream) 0%,
+    var(--color-theme-cream) 50%,
+    color-mix(in srgb, var(--color-theme-gold) 95%, var(--color-theme-cream)) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--color-theme-cream) 60%, transparent),
+    0 2px 18px color-mix(in srgb, var(--color-theme-gold) 55%, transparent),
+    0 6px 40px color-mix(in srgb, var(--color-theme-gold) 25%, transparent);
+}
+
+/* Dorado metálico para CTAs y badges (receta La Velada) */
+@utility gold-metallic {
+  color: var(--color-theme-ink);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--color-theme-gold) 92%, white) 0%,
+    var(--color-theme-gold) 55%,
+    color-mix(in srgb, var(--color-theme-gold) 72%, #6b4f1e) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 35%, transparent),
+    0 4px 14px color-mix(in srgb, var(--color-theme-gold) 45%, transparent);
+}
+
+/* Fundido inferior para fusionar fotos/secciones con el negro */
+@utility mask-fade-bottom {
+  mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+}
+
+/* Ring dorado de card: 24% en reposo → 70% + glow en hover (box-shadow, sin reflow) */
+@utility ring-card-gold {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 24%, transparent),
+    0 10px 30px color-mix(in srgb, black 60%, transparent);
+  transition:
+    box-shadow 300ms ease,
+    translate 300ms ease;
+
+  &:hover {
+    translate: 0 -4px;
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 70%, transparent),
+      0 0 32px color-mix(in srgb, var(--color-theme-gold) 30%, transparent),
+      0 10px 30px color-mix(in srgb, black 60%, transparent);
+  }
+}
+
+/* Grano de cine (feTurbulence, 6%, overlay) — aplicar a un overlay fixed o sección */
+@utility film-grain {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.06;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* Prosa legal (páginas /privacidad y /terminos) */
+@utility legal-prose {
+  font-family: system-ui, sans-serif;
+  color: color-mix(in srgb, var(--color-theme-cream) 70%, transparent);
+  line-height: 1.8;
+  font-size: 0.9rem;
+
+  & h1 {
+    font-family: var(--font-cinzel), var(--font-fallback);
+    text-transform: uppercase;
+    color: var(--color-theme-cream);
+    font-weight: 900;
+    font-size: 1.6rem;
+    letter-spacing: 0.08em;
+    margin-bottom: 0.5rem;
+  }
+
+  & h2 {
+    font-family: var(--font-cinzel), var(--font-fallback);
+    text-transform: uppercase;
+    color: var(--color-theme-gold);
+    font-weight: 900;
+    font-size: 0.95rem;
+    letter-spacing: 0.12em;
+    margin-top: 2.25rem;
+    margin-bottom: 0.5rem;
+  }
+
+  & p {
+    margin-bottom: 0.9rem;
+  }
+
+  & ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 0.9rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  & strong {
+    color: var(--color-theme-cream);
+  }
+}
+
+/* Reveal global (fade-in-up al entrar en viewport).
+   Uso: data-reveal en el elemento + style="--delay:Nms" opcional.
+   El estado inicial solo aplica si JS está activo (clase .reveal-ready en <html>),
+   así el contenido nunca queda invisible sin JavaScript. */
+html.reveal-ready [data-reveal] {
+  opacity: 0;
+  translate: 0 1.25rem;
+  transition:
+    opacity 0.6s ease var(--delay, 0ms),
+    translate 0.6s ease var(--delay, 0ms);
+}
+
+html.reveal-ready [data-reveal].revealed {
+  opacity: 1;
+  translate: 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  html.reveal-ready [data-reveal] {
+    opacity: 1;
+    translate: none;
+    transition: none;
+  }
+
+  .ring-card-gold,
+  .ring-card-gold:hover {
+    transition: none;
+    translate: none;
+  }
+}

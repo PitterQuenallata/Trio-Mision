@@ -1,0 +1,182 @@
+---
+// Header fijo del sitio del grupo — nav completo, efecto glass al hacer scroll
+// y menú hamburguesa en móvil.
+import { navGrupo, site } from '@/shared/config'
+---
+
+<header
+  id="site-header"
+  class="fixed inset-x-0 top-0 z-40 transition-colors duration-300 data-[scrolled=true]:bg-theme-ink/60 data-[scrolled=true]:backdrop-blur-md data-[scrolled=true]:backdrop-contrast-125"
+>
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <a href="/#inicio" class="text-sm font-black tracking-[0.24em] text-theme-gold">
+      {site.nombre}
+    </a>
+
+    <!-- Desktop -->
+    <ul class="hidden items-center gap-6 md:flex lg:gap-8">
+      {
+        navGrupo.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="nav-link relative text-xs tracking-[0.2em] text-theme-cream/80 transition-colors hover:text-theme-cream"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+
+    <!-- Botón hamburguesa (móvil) -->
+    <button
+      id="menu-toggle"
+      class="flex h-10 w-10 flex-col items-center justify-center gap-[5px] md:hidden"
+      aria-label="Abrir menú"
+      aria-expanded="false"
+      aria-controls="mobile-menu"
+    >
+      <span class="menu-bar" aria-hidden="true"></span>
+      <span class="menu-bar" aria-hidden="true"></span>
+      <span class="menu-bar" aria-hidden="true"></span>
+    </button>
+  </nav>
+
+  <!-- Panel móvil -->
+  <div id="mobile-menu" class="mobile-menu md:hidden" hidden>
+    <ul class="flex flex-col gap-1 px-6 py-4">
+      {
+        navGrupo.map((link) => (
+          <li>
+            <a href={link.href} class="mobile-link">
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</header>
+
+<script>
+  let menuController: AbortController | undefined
+
+  function initHeader() {
+    menuController?.abort()
+    menuController = new AbortController()
+    const { signal } = menuController
+    const header = document.getElementById('site-header')
+    const toggle = document.getElementById('menu-toggle')
+    const menu = document.getElementById('mobile-menu')
+    if (!header) return
+
+    const closeMenu = () => {
+      menu?.setAttribute('hidden', '')
+      toggle?.setAttribute('aria-expanded', 'false')
+      toggle?.setAttribute('aria-label', 'Abrir menú')
+      header.removeAttribute('data-menu-open')
+    }
+
+    const onScroll = () => header.setAttribute('data-scrolled', String(window.scrollY > 24))
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true, signal })
+
+    toggle?.addEventListener('click', () => {
+      if (toggle.getAttribute('aria-expanded') === 'true') {
+        closeMenu()
+      } else {
+        menu?.removeAttribute('hidden')
+        toggle.setAttribute('aria-expanded', 'true')
+        toggle.setAttribute('aria-label', 'Cerrar menú')
+        header.setAttribute('data-menu-open', 'true')
+      }
+    }, { signal })
+
+    menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu, { signal }))
+    header.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMenu()
+    }, { signal })
+  }
+
+  initHeader()
+  document.addEventListener('astro:page-load', initHeader)
+</script>
+
+<style>
+  /* Underline dorado animado en los links */
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 100%;
+    height: 1px;
+    background: var(--color-theme-gold);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 300ms ease;
+  }
+
+  .nav-link:hover::after {
+    transform: scaleX(1);
+  }
+
+  /* Barras de la hamburguesa */
+  .menu-bar {
+    display: block;
+    width: 1.4rem;
+    height: 1.5px;
+    background: var(--color-theme-gold);
+    transition: transform 300ms ease, opacity 300ms ease;
+  }
+
+  #menu-toggle[aria-expanded='true'] .menu-bar:nth-child(1) {
+    transform: translateY(6.5px) rotate(45deg);
+  }
+
+  #menu-toggle[aria-expanded='true'] .menu-bar:nth-child(2) {
+    opacity: 0;
+  }
+
+  #menu-toggle[aria-expanded='true'] .menu-bar:nth-child(3) {
+    transform: translateY(-6.5px) rotate(-45deg);
+  }
+
+  /* Panel móvil: glass sólido bajo el header */
+  .mobile-menu {
+    background: color-mix(in srgb, var(--color-theme-ink) 92%, transparent);
+    backdrop-filter: blur(14px);
+    border-top: 1px solid color-mix(in srgb, var(--color-theme-gold) 15%, transparent);
+  }
+
+  /* Con el menú abierto el header siempre tiene fondo */
+  #site-header[data-menu-open='true'] {
+    background: color-mix(in srgb, var(--color-theme-ink) 92%, transparent);
+    backdrop-filter: blur(14px);
+  }
+
+  .mobile-link {
+    display: block;
+    padding: 0.8rem 0;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--color-theme-cream) 80%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--color-theme-gold) 10%, transparent);
+    transition: color 200ms ease;
+  }
+
+  .mobile-link:hover {
+    color: var(--color-theme-gold);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-link::after,
+    .menu-bar,
+    .mobile-link {
+      transition: none;
+    }
+  }
+</style>

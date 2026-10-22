@@ -1,0 +1,144 @@
+---
+// Timeline reutilizable para la página de giras y actividades.
+interface Hito {
+  anio: string
+  titulo: string
+  texto: string
+  agrupacion?: string
+}
+
+interface Props {
+  hitos: ReadonlyArray<Hito>
+  vertical?: boolean
+  accent?: 'gold' | 'teal'
+}
+
+const { hitos, vertical = false, accent = 'gold' } = Astro.props
+---
+
+<div class:list={['timeline relative', vertical && 'timeline-vertical']} data-accent={accent}>
+  {
+    hitos.map((hito, index) => (
+      <div class="timeline-item" data-reveal style={`--delay:${Math.min(index * 70, 210)}ms`}>
+        <div class="timeline-dot" aria-hidden="true" />
+        <span class:list={['text-sm font-black tracking-[0.24em]', accent === 'teal' ? 'text-theme-teal' : 'text-theme-gold']}>
+          {hito.anio}
+        </span>
+        {hito.agrupacion && <span class="group-label">{hito.agrupacion}</span>}
+        <h3 class="mt-2 text-xl font-black tracking-[0.08em] text-theme-cream md:text-2xl">
+          {hito.titulo}
+        </h3>
+        <p class="mt-2 max-w-md font-sans text-sm leading-relaxed text-theme-cream/60">
+          {hito.texto}
+        </p>
+      </div>
+    ))
+  }
+</div>
+
+<style>
+  .timeline {
+    --timeline-accent: var(--color-theme-gold);
+    --timeline-glow: color-mix(in srgb, var(--timeline-accent) 55%, transparent);
+    display: flex;
+    flex-direction: column;
+    gap: 3.5rem;
+    padding-left: 2rem;
+  }
+
+  .timeline[data-accent='teal'] {
+    --timeline-accent: var(--color-theme-teal);
+    --timeline-glow: color-mix(in srgb, var(--timeline-accent) 48%, transparent);
+  }
+
+  /* Línea vertical dorada */
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 1px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      color-mix(in srgb, var(--timeline-accent) 45%, transparent) 15%,
+      color-mix(in srgb, var(--timeline-accent) 45%, transparent) 85%,
+      transparent
+    );
+  }
+
+  .timeline-item {
+    position: relative;
+  }
+
+  .group-label {
+    display: table;
+    margin-top: .65rem;
+    padding: .35rem .55rem;
+    border: 1px solid color-mix(in srgb, var(--timeline-accent) 35%, transparent);
+    color: var(--timeline-accent);
+    font-family: system-ui, sans-serif;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  @media (min-width: 768px) {
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(odd) .group-label {
+      margin-left: auto;
+    }
+  }
+
+  .timeline-dot {
+    position: absolute;
+    left: -2rem;
+    top: 0.45rem;
+    translate: -43% 0;
+    width: 0.65rem;
+    height: 0.65rem;
+    rotate: 45deg;
+    background: var(--timeline-accent);
+    box-shadow: 0 0 12px var(--timeline-glow);
+  }
+
+  /* Desktop: línea al centro, hitos alternados */
+  @media (min-width: 768px) {
+    .timeline:not(.timeline-vertical) {
+      padding-left: 0;
+      gap: 4.5rem;
+    }
+
+    .timeline:not(.timeline-vertical)::before {
+      left: 50%;
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item {
+      width: calc(50% - 3rem);
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(odd) {
+      text-align: right;
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(odd) p {
+      margin-left: auto;
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(even) {
+      margin-left: auto;
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(odd) .timeline-dot {
+      left: auto;
+      right: -3rem;
+      translate: 43% 0;
+    }
+
+    .timeline:not(.timeline-vertical) .timeline-item:nth-child(even) .timeline-dot {
+      left: -3rem;
+      translate: -43% 0;
+    }
+  }
+</style>

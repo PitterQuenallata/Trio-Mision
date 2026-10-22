@@ -1,0 +1,41 @@
+---
+// Botón/enlace "Ver más" — lleva a la página detallada de cada sección.
+interface Props {
+  href: string
+  label?: string
+}
+
+const { href, label = 'Ver más' } = Astro.props
+---
+
+<div class="mt-12 text-center" data-reveal>
+  <a href={href} class="ver-mas">
+    {label} <span aria-hidden="true">→</span>
+  </a>
+</div>
+
+<style>
+  .ver-mas {
+    display: inline-block;
+    border-radius: var(--radius-pill);
+    padding: 0.7rem 1.75rem;
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-theme-gold);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 40%, transparent);
+    transition:
+      transform 0.3s ease,
+      box-shadow 0.3s ease,
+      color 0.3s ease;
+  }
+
+  .ver-mas:hover {
+    transform: translateY(-2px);
+    color: var(--color-theme-cream);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 75%, transparent),
+      0 0 1.5rem color-mix(in srgb, var(--color-theme-gold) 18%, transparent);
+  }
+</style>

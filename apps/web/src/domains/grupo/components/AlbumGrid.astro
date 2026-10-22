@@ -1,0 +1,99 @@
+---
+// Grid de álbumes reutilizable: la principal muestra un resumen,
+// /discografia mostrará los 27 álbumes completos.
+interface Album {
+  titulo: string
+  anio: string
+  pistas?: number
+  portada: string | null
+  enlace: string
+}
+
+interface Props {
+  albumes: ReadonlyArray<Album>
+}
+
+const { albumes } = Astro.props
+---
+
+<div class="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
+  {
+    albumes.map((album, index) => (
+      <a
+        href={album.enlace}
+        class="album-card group"
+        data-reveal
+        style={`--delay:${index * 80}ms`}
+      >
+        {/* Portada (placeholder hasta tener las reales) */}
+        <div class="album-cover">
+          {album.portada ? (
+            <img src={album.portada} alt={`Portada del álbum ${album.titulo}`} loading="lazy" />
+          ) : (
+            <span class="album-note" aria-hidden="true">
+              ♪
+            </span>
+          )}
+        </div>
+        <h3 class="mt-3 text-center text-xs font-black tracking-[0.1em] text-theme-cream transition-colors group-hover:text-theme-gold md:text-sm">
+          {album.titulo}
+        </h3>
+        <p class="mt-1 text-center text-[0.6rem] tracking-[0.2em] text-theme-cream/40">
+          {album.anio}{album.pistas ? ` · ${album.pistas} canciones` : ''}
+        </p>
+      </a>
+    ))
+  }
+</div>
+
+<style>
+  .album-card {
+    display: block;
+  }
+
+  .album-cover {
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-card);
+    background: linear-gradient(160deg, #1c1712 0%, #0b0908 100%);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 22%, transparent),
+      0 1rem 2rem rgb(0 0 0 / 0.45);
+    transition:
+      transform 0.4s ease,
+      box-shadow 0.4s ease;
+    overflow: hidden;
+  }
+
+  .album-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      70% 60% at 50% 20%,
+      color-mix(in srgb, var(--color-theme-gold) 16%, transparent),
+      transparent 65%
+    );
+  }
+
+  .album-card:hover .album-cover {
+    transform: translateY(-6px);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 65%, transparent),
+      0 0 2rem color-mix(in srgb, var(--color-theme-gold) 18%, transparent);
+  }
+
+  .album-note {
+    font-size: 3rem;
+    color: color-mix(in srgb, var(--color-theme-gold) 70%, transparent);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--color-theme-gold) 45%, transparent);
+    transition: transform 0.4s ease;
+  }
+
+  .album-card:hover .album-note {
+    transform: scale(1.15);
+  }
+</style>

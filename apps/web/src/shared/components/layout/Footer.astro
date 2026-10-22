@@ -1,0 +1,83 @@
+---
+// Footer del sitio — nav, redes, legales y crédito del operador.
+import { navGrupo, redes, operador, site, contacto } from '@/shared/config'
+
+const year = new Date().getFullYear()
+---
+
+<footer class="mt-auto border-t border-theme-gold/20">
+  <div class="mx-auto grid max-w-6xl gap-10 px-6 py-14 text-center sm:grid-cols-3 sm:text-left">
+    <!-- Marca -->
+    <div>
+      <p class="text-sm font-black tracking-[0.24em] text-theme-gold">{site.nombre}</p>
+      <p class="mt-1 text-[0.65rem] tracking-[0.3em] text-theme-cream/50">{site.pais}</p>
+      <p class="mt-4 font-sans text-xs leading-relaxed text-theme-cream/45">{site.tagline}</p>
+    </div>
+
+    <!-- Navegación -->
+    <nav aria-label="Navegación del pie de página">
+      <p class="text-[0.65rem] tracking-[0.3em] text-theme-cream/50">Explora</p>
+      <ul class="mt-3 flex flex-col gap-2">
+        {
+          navGrupo.map((link) => (
+            <li>
+              <a
+                href={link.href}
+                class="text-xs tracking-[0.14em] text-theme-cream/70 transition-colors hover:text-theme-gold"
+              >
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+
+    <!-- Redes + contacto -->
+    <div>
+      <p class="text-[0.65rem] tracking-[0.3em] text-theme-cream/50">Síguenos</p>
+      <ul class="mt-3 flex flex-col gap-2">
+        {
+          redes.map((red) => (
+            <li>
+              <a
+                href={red.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-xs tracking-[0.14em] text-theme-cream/70 transition-colors hover:text-theme-gold"
+              >
+                {red.nombre} · {red.grupo}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <ul class="mt-4 flex flex-col gap-3">
+        {contacto.lineas.map((linea) => (
+          <li>
+            <a href={linea.whatsappUrl} class="font-sans text-xs text-theme-gold hover:text-theme-cream" target="_blank" rel="noopener noreferrer">
+              <span class="block text-[0.6rem] text-theme-cream/50">{linea.nombre}</span>
+              {linea.telefono}
+            </a>
+            {linea.correo && <a href={`mailto:${linea.correo}`} class="mt-1 block font-sans text-[0.65rem] text-theme-cream/55 hover:text-theme-gold">{linea.correo}</a>}
+          </li>
+        ))}
+        <li>
+          <a href={`mailto:${contacto.soporte.correo}`} class="font-sans text-xs text-theme-cream/70 hover:text-theme-gold">
+            <span class="block text-[0.6rem] text-theme-cream/50">Soporte web · {contacto.soporte.nombre}</span>
+            {contacto.soporte.correo}
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div
+    class="border-t border-theme-gold/10 px-6 py-5 text-center text-[0.6rem] tracking-[0.2em] text-theme-cream/40"
+  >
+    <p>© {year} {site.nombre} {site.pais} · <a href="/privacidad" class="hover:text-theme-gold">Privacidad</a> · <a href="/terminos" class="hover:text-theme-gold">Términos</a></p>
+    <p class="mt-2 font-sans normal-case tracking-normal">
+      Desarrollado por <a href={operador.url} class="text-theme-gold/80 hover:text-theme-gold" target="_blank" rel="noopener">{operador.nombre}</a>
+    </p>
+  </div>
+</footer>

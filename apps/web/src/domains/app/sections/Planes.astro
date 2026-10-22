@@ -1,0 +1,159 @@
+---
+// Planes Free vs Premium + cómo comprar — contenido de la spec 07.
+// Precios: placeholders hasta definirlos en el panel (tabla subscription_plans).
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import { portal } from '@/shared/config'
+
+const gratis = [
+  'Himnario Adventista completo con acordes',
+  'Mi Música: creá e importá canciones propias',
+  'Repertorios y modo Presentación en vivo',
+  'Transposición y afinador',
+  'Canciones gratuitas del catálogo',
+  '1 dispositivo',
+]
+
+const premium = [
+  'Todo lo del plan Gratis',
+  'Catálogo completo: todos los álbumes de todos los grupos',
+  'Descargas offline sin internet',
+  'Sincronización en la nube (hasta 3 dispositivos)',
+  'Conversor PDF → acordes',
+  'Tu música importada guardada en la nube para siempre',
+]
+
+const pasos = [
+  { n: '1', texto: 'Iniciá sesión en el portal con la misma cuenta de la app.' },
+  { n: '2', texto: 'Elegí tu plan o el álbum/grupo que querés.' },
+  { n: '3', texto: 'Pagá por QR o transferencia y subí la foto de tu comprobante.' },
+  { n: '4', texto: 'Apenas verifiquemos el pago, tu cuenta queda activada — la app se entera sola.' },
+]
+---
+
+<section id="planes" class="bg-theme-ink-2">
+  <div class="mx-auto w-full max-w-6xl px-6 py-20 md:py-28">
+    <SectionTitle eyebrow="Free vs Premium" title="Planes y Beneficios" />
+
+    <div class="mt-14 grid gap-6 md:grid-cols-2">
+      <!-- Gratis -->
+      <div class="plan-card" data-reveal>
+        <h3 class="text-lg font-black tracking-[0.14em] text-theme-cream">Gratis</h3>
+        <p class="mt-1 text-[0.6rem] tracking-[0.24em] text-theme-cream/45">PARA SIEMPRE</p>
+        <ul class="mt-6 flex flex-col gap-3">
+          {gratis.map((item) => <li class="plan-item">{item}</li>)}
+        </ul>
+      </div>
+
+      <!-- Premium -->
+      <div class="plan-card plan-premium" data-reveal style="--delay:120ms">
+        <h3 class="title-gradient text-lg font-black tracking-[0.14em]">Premium</h3>
+        <p class="mt-1 text-[0.6rem] tracking-[0.24em] text-theme-gold/70">
+          MENSUAL · TRIMESTRAL · ANUAL — PRECIOS POR DEFINIR
+        </p>
+        <ul class="mt-6 flex flex-col gap-3">
+          {premium.map((item) => <li class="plan-item">{item}</li>)}
+        </ul>
+        <p class="mt-6 border-t border-theme-gold/15 pt-4 font-sans text-xs leading-relaxed text-theme-cream/55">
+          ¿No querés suscribirte? Comprá <strong class="text-theme-cream">un álbum</strong> o
+          <strong class="text-theme-cream"> un grupo completo</strong> una sola vez y quedá
+          desbloqueado para siempre.
+        </p>
+        <a
+          href={portal.comprar}
+          class="gold-metallic mt-6 inline-block rounded-pill px-8 py-3 text-xs font-black tracking-[0.14em]"
+        >
+          Comprar Premium
+        </a>
+      </div>
+    </div>
+
+    <!-- Cómo comprar -->
+    <div class="mt-20">
+      <h3 class="text-center text-xl font-black tracking-[0.1em] text-theme-cream md:text-2xl" data-reveal>
+        Cómo comprar
+      </h3>
+      <p class="mx-auto mt-3 max-w-xl text-center font-sans text-sm text-theme-cream/55" data-reveal>
+        Como en Spotify o Netflix: el pago se hace acá en la web y la app se desbloquea sola.
+      </p>
+      <div class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        {
+          pasos.map((paso, index) => (
+            <div class="step-card" data-reveal style={`--delay:${index * 90}ms`}>
+              <span class="step-number">{paso.n}</span>
+              <p class="mt-3 font-sans text-xs leading-relaxed text-theme-cream/60">{paso.texto}</p>
+            </div>
+          ))
+        }
+      </div>
+      <div class="mt-10 text-center" data-reveal>
+        <a
+          href={portal.login}
+          class="inline-block rounded-pill px-8 py-3 text-xs font-black tracking-[0.14em] text-theme-cream shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_45%,transparent)] transition-all hover:-translate-y-0.5 hover:text-theme-gold hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_75%,transparent),0_0_1.5rem_color-mix(in_srgb,var(--color-theme-gold)_15%,transparent)]"
+        >
+          Iniciar sesión para comprar
+        </a>
+        <p class="mt-4 font-sans text-xs text-theme-cream/45">
+          Próximamente: pago en línea instantáneo (Libélula, PagosNet, QR Simple y más).
+          {/* TODO: enlazar al portal de compra cuando exista (fase 2) */}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .plan-card {
+    border-radius: var(--radius-card);
+    padding: 2rem;
+    background: linear-gradient(180deg, #141210 0%, #080706 100%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 20%, transparent);
+  }
+
+  .plan-premium {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 45%, transparent),
+      0 0 3rem color-mix(in srgb, var(--color-theme-gold) 10%, transparent);
+  }
+
+  .plan-item {
+    position: relative;
+    padding-left: 1.4rem;
+    font-family: system-ui, sans-serif;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    color: color-mix(in srgb, var(--color-theme-cream) 65%, transparent);
+  }
+
+  .plan-item::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: var(--color-theme-gold);
+  }
+
+  .step-card {
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    background: linear-gradient(180deg, #141210 0%, #080706 100%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 20%, transparent);
+  }
+
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    font-weight: 900;
+    font-size: 0.8rem;
+    color: var(--color-theme-ink);
+    background: linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--color-theme-gold) 92%, white) 0%,
+      var(--color-theme-gold) 55%,
+      color-mix(in srgb, var(--color-theme-gold) 72%, #6b4f1e) 100%
+    );
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-theme-gold) 35%, transparent);
+  }
+</style>

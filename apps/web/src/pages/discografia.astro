@@ -1,0 +1,34 @@
+---
+// Discografía completa — los álbumes en streaming (Apple Music, datos reales).
+// 21 de los 27 álbumes están en plataformas; los restantes se completarán
+// desde Supabase o la lista del grupo. Evaluar después: página de detalle
+// por álbum (/discografia/[album]) con su lista de canciones.
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import AlbumGrid from '@/domains/grupo/components/AlbumGrid.astro'
+import { albumes } from '@/domains/grupo/data'
+
+// Más recientes primero
+const albumesDesc = [...albumes].reverse()
+---
+
+<Layout title="Discografía — Trio Misión Bolivia">
+  <Header />
+  <main class="mx-auto w-full max-w-6xl flex-1 px-6 pb-24 pt-32">
+    <SectionTitle eyebrow="27 álbumes · más de 300 canciones" title="Discografía Completa" />
+    <p
+      class="mx-auto mt-6 max-w-2xl text-center font-sans leading-relaxed text-theme-cream/60"
+      data-reveal
+    >
+      Del primer álbum en 2002 al más reciente: toda la música del grupo en
+      plataformas. {/* TODO: agregar los álbumes que no están en streaming (Supabase) */}
+    </p>
+
+    <div class="mt-14">
+      <AlbumGrid albumes={albumesDesc} />
+    </div>
+  </main>
+  <Footer />
+</Layout>

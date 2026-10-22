@@ -1,0 +1,115 @@
+---
+// Teaser de la app Triomisión — enlaza a /app (dominio propio de la app).
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import { playStoreUrl } from '@/shared/config'
+
+const features = [
+  'Himnario Adventista completo con acordes, gratis para siempre',
+  'Todo el catálogo de Trio Misión con letras y acordes',
+  'Modo Presentación en vivo para cantar en la iglesia',
+  'Transposición de tonos y afinador integrado',
+]
+---
+
+<section id="app" class="relative mx-auto w-full max-w-6xl px-6 py-24 md:py-32">
+  <SectionTitle eyebrow="Lleva la música contigo" title="La App Triomisión" />
+
+  <div class="mt-14 grid items-center gap-12 md:grid-cols-2">
+    <!-- Mockup del teléfono (placeholder hasta tener screenshots reales) -->
+    <div class="flex justify-center" data-reveal>
+      <div class="phone">
+        <div class="phone-screen">
+          <span class="mt-3 text-xs font-black tracking-[0.3em] text-theme-gold">Triomisión</span>
+          <span class="mt-1 text-[0.55rem] tracking-[0.2em] text-theme-cream/50">
+            Letras y acordes
+          </span>
+        </div>
+      </div>
+      {/* TODO: screenshots reales de la app */}
+    </div>
+
+    <!-- Texto + CTAs -->
+    <div data-reveal style="--delay:120ms">
+      <ul class="flex flex-col gap-4">
+        {
+          features.map((feature) => (
+            <li class="app-feature font-sans text-sm leading-relaxed text-theme-cream/70">
+              <span>{feature}</span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="mt-8 flex flex-wrap items-center gap-4">
+        <a href="/app" class="gold-metallic cta"> Conocer la app → </a>
+        <a href={playStoreUrl} class="cta-secondary"> Google Play </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .cta {
+    display: inline-block;
+    border-radius: var(--radius-pill);
+    padding: 0.8rem 1.75rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .app-feature { position: relative; padding-left: 1.25rem; }
+  .app-feature::before { position: absolute; top: .65em; left: 0; width: .45rem; height: 1px; background: var(--color-theme-gold); content: ''; }
+
+  .cta:hover {
+    transform: translateY(-2px);
+  }
+
+  .cta-secondary {
+    display: inline-block;
+    border-radius: var(--radius-pill);
+    padding: 0.8rem 1.75rem;
+    font-size: 0.75rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-theme-cream);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 45%, transparent);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .cta-secondary:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 75%, transparent),
+      0 0 1.5rem color-mix(in srgb, var(--color-theme-gold) 15%, transparent);
+  }
+
+  /* Teléfono (placeholder) */
+  .phone {
+    width: 13rem;
+    aspect-ratio: 9 / 19;
+    border-radius: 2rem;
+    padding: 0.6rem;
+    background: linear-gradient(160deg, #241d14, #0d0a08);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 35%, transparent),
+      0 2rem 4rem rgb(0 0 0 / 0.55),
+      0 0 3rem color-mix(in srgb, var(--color-theme-gold) 12%, transparent);
+  }
+
+  .phone-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(80% 50% at 50% 0%, color-mix(in srgb, var(--color-theme-teal) 14%, transparent), transparent),
+      linear-gradient(180deg, #0f1416, #0a0908);
+  }
+</style>

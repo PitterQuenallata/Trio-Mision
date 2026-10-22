@@ -1,0 +1,76 @@
+---
+import { ClientRouter } from 'astro:transitions'
+import '@/shared/styles/global.css'
+
+interface Props {
+  title?: string
+  description?: string
+}
+
+const {
+  title = 'Trio Misión Bolivia',
+  description = 'Trio Misión Bolivia — trío de música cristiana adventista con más de 30 años de trayectoria.',
+} = Astro.props
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+
+    <!-- SEO / OpenGraph (placeholder — completar cuando se defina el contenido) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <!-- TODO: og:image, og:url y twitter:card cuando haya dominio e imagen final -->
+
+    <!-- CSS crítico inline: fondo ink para evitar flash blanco antes del CSS -->
+    <style is:inline>
+      html {
+        background: #0a0908;
+      }
+    </style>
+
+    <!-- Activa el estado inicial del reveal ANTES de pintar (evita flash de contenido) -->
+    <script is:inline>
+      document.documentElement.classList.add('reveal-ready')
+    </script>
+
+    <!-- Preload de fuentes Cinzel (variable, pesos 500–900) -->
+    <link rel="preload" href="/fonts/cinzel-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/cinzel-latin-ext.woff2" as="font" type="font/woff2" crossorigin />
+
+    <ClientRouter />
+  </head>
+  <body class="font-cinzel min-h-screen">
+    <slot />
+    <!-- Grano de cine global -->
+    <div class="film-grain fixed inset-0 z-50" aria-hidden="true"></div>
+  </body>
+</html>
+
+<script>
+  // Reveal global: cualquier elemento con [data-reveal] aparece al entrar en
+  // viewport (fade-in-up). Delay opcional vía style="--delay:Nms".
+  // Se engancha a astro:page-load para funcionar también con View Transitions.
+  function initReveal() {
+    const elements = document.querySelectorAll('[data-reveal]:not(.revealed)')
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('revealed')
+            observer.unobserve(entry.target)
+          }
+        })
+      },
+      { threshold: 0.15 },
+    )
+    elements.forEach((el) => observer.observe(el))
+  }
+
+  document.addEventListener('astro:page-load', initReveal)
+</script>

@@ -1,0 +1,157 @@
+---
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+
+const actuales = [
+  { nombre: 'Gabriel Quenallata', periodo: 'Desde 2019', funcion: 'Director general y primera voz' },
+  { nombre: 'Pitter Kevin Quenallata Quispe', periodo: 'Desde 2023', funcion: 'Tenor y guitarra' },
+  { nombre: 'Alexander Gabriel Quenallata Quispe', periodo: 'Desde 2026', funcion: 'Primera guitarra y segunda voz' },
+  { nombre: 'Josias Fidel Quenallata Quispe', periodo: 'Desde 2026', funcion: 'Guitarra y coros' },
+]
+
+const nuevaGeneracion = [
+  { nombre: 'Arturo López Barrios', periodo: 'Desde 2021', funcion: 'Primera guitarra' },
+  { nombre: 'Josué Colque', periodo: 'Desde 2021', funcion: 'Primera voz y acompañamiento de guitarra' },
+  { nombre: 'Juan Daniel Condori Quispe', periodo: 'Desde 2023', funcion: 'Primera voz y acompañamiento de guitarra' },
+]
+
+const femenino = [
+  { nombre: 'Julia Quispe de Quenallata', periodo: 'Desde 2011', funcion: 'Integrante de Trio Misión Femenino' },
+  { nombre: 'Ana María Romero de Colque', periodo: 'Desde 2011', funcion: 'Integrante de Trio Misión Femenino' },
+  { nombre: 'Rosa Caso de Apaza', periodo: 'Desde 2011', funcion: 'Integrante de Trio Misión Femenino' },
+  { nombre: 'Beatriz Sosa de Casu', periodo: 'Desde 2011', funcion: 'Integrante de Trio Misión Femenino' },
+]
+
+const anteriores = [
+  { nombre: 'Abraham Osco', periodo: '2021', funcion: 'Tercera voz y guitarra' },
+  { nombre: 'Justiniano Arojas', periodo: '2021', funcion: 'Guitarra y coros' },
+  { nombre: 'Maguiber Cuevas', periodo: '2022', funcion: 'Primera guitarra y coros' },
+  { nombre: 'Ephraim Quenta', periodo: '2022', funcion: 'Guitarra y coros' },
+  { nombre: 'Alcides Ávalos', periodo: 'Desde 1988', funcion: 'Primera voz y coros' },
+  { nombre: 'Luis Hernán Colque', periodo: 'Desde 1996', funcion: 'Bajo de guitarra y coros' },
+  { nombre: 'Juan Julio Apaza', periodo: 'Desde 1998', funcion: 'Acompañamiento de guitarra y coros' },
+  { nombre: 'Eric Apaza Q.', nota: 'Q. E. P. D.', periodo: 'Desde 2004', funcion: 'Primera voz y bajo de guitarra' },
+  { nombre: 'Edgar Romero', periodo: 'Desde 2004', funcion: 'Primera guitarra' },
+  { nombre: 'José Luis Condori Echeverría', periodo: '2022', funcion: 'Tercera voz en Trio Misión Nueva Generación' },
+  { nombre: 'Cristian Chipana Espinosa', periodo: '2022', funcion: 'Primera guitarra y coros en Trio Misión Nueva Generación' },
+  { nombre: 'Gerson Apaza Q.', periodo: 'Desde 2007', funcion: 'Trio Misión Infantil; luego pasó al grupo principal' },
+  { nombre: 'Abdías Apaza Caso', periodo: 'Desde 2007', funcion: 'Trio Misión Infantil' },
+  { nombre: 'Miguel Apaza Q.', periodo: 'Desde 2010', funcion: 'Primera guitarra y voz' },
+  { nombre: 'Fredy Casu Quispe', periodo: 'Desde 2013', funcion: 'Primera guitarra y coros' },
+  { nombre: 'Ariel Mamani Mallea', periodo: '2008', funcion: 'Participación en la gira de São Paulo' },
+]
+
+const etapas = [
+  { id: 'actuales', titulo: 'Trio Misión · Formación actual', filas: actuales },
+  { id: 'nueva-generacion', titulo: 'Trio Misión Nueva Generación · Formación actual', filas: nuevaGeneracion },
+  { id: 'anteriores', titulo: 'Otras etapas e integrantes históricos', filas: anteriores },
+  { id: 'femenino', titulo: 'Trio Misión Femenino', filas: femenino },
+].map((etapa) => ({
+  ...etapa,
+  filas: etapa.filas.map((persona) => ({
+    ...persona,
+    foto: ({
+      'Gabriel Quenallata': '/assets/integrantes/actual/gabriel.png',
+      'Pitter Kevin Quenallata Quispe': '/assets/integrantes/actual/pitter.png',
+      'Alexander Gabriel Quenallata Quispe': '/assets/integrantes/actual/alex.png',
+      'Arturo López Barrios': '/assets/integrantes/nueva-generacion/arturo.png',
+      'Josué Colque': '/assets/integrantes/nueva-generacion/josue.png',
+      'Juan Daniel Condori Quispe': '/assets/integrantes/nueva-generacion/cesar.png',
+      'José Luis Condori Echeverría': '/assets/integrantes/antiguos/jose-luis.png',
+      'Abraham Osco': '/assets/integrantes/antiguos/abraam.png',
+      'Justiniano Arojas': '/assets/integrantes/antiguos/justiniano.png',
+      'Ephraim Quenta': '/assets/integrantes/antiguos/efraim.png',
+      'Alcides Ávalos': '/assets/integrantes/antiguos/alcides.png',
+      'Luis Hernán Colque': '/assets/integrantes/antiguos/hernan.png',
+      'Juan Julio Apaza': '/assets/integrantes/antiguos/juancho.png',
+      'Eric Apaza Q.': '/assets/integrantes/antiguos/erick.png',
+      'Edgar Romero': '/assets/integrantes/antiguos/edgar-romero.png',
+      'Gerson Apaza Q.': '/assets/integrantes/antiguos/gerson.png',
+      'Abdías Apaza Caso': '/assets/integrantes/antiguos/abdias.png',
+      'Miguel Apaza Q.': '/assets/integrantes/antiguos/miqui.png',
+      'Fredy Casu Quispe': '/assets/integrantes/antiguos/freddy.png',
+    } as Record<string, string>)[persona.nombre],
+  })),
+}))
+
+const iniciales = (nombre: string) => nombre.split(/\s+/).map((parte) => parte[0]).slice(0, 2).join('')
+---
+
+<Layout title="Integrantes — Trio Misión Bolivia" description="Integrantes de Trio Misión, periodos y funciones musicales en sus distintas etapas y agrupaciones.">
+  <Header />
+  <main class="members-record-page mx-auto w-full max-w-6xl flex-1 px-6 pb-28 pt-32">
+    <header class="record-intro" data-reveal>
+      <SectionTitle eyebrow="Trayectoria musical · 1988–2026" title="Integrantes" />
+      <p>Formaciones, etapas y funciones de quienes han sido parte de Trio Misión.</p>
+    </header>
+
+    {etapas.map((etapa) => (
+      <section id={etapa.id} class="record-section" data-reveal aria-labelledby={`${etapa.id}-title`}>
+        <header class="record-heading">
+          <p>TRIO MISIÓN · TRAYECTORIA</p>
+          <h2 id={`${etapa.id}-title`}>{etapa.titulo}</h2>
+        </header>
+        <div class="profile-grid" aria-label={`Perfiles de ${etapa.titulo}`}>
+          {etapa.filas.map((persona) => (
+            <article class="profile-card">
+              <div class="profile-portrait">
+                {persona.foto
+                  ? <img src={persona.foto} alt={`Retrato de ${persona.nombre}`} loading="lazy" />
+                  : <span class="profile-initials" aria-label={`Foto pendiente para ${persona.nombre}`}>{iniciales(persona.nombre)}</span>}
+                <span class="portrait-label">{persona.periodo}</span>
+                {'nota' in persona && <img class="memorial-mark" src="/assets/ui/cinta-luto.webp" alt="En memoria" loading="lazy" />}
+              </div>
+              <div class="profile-copy">
+                <h3>{persona.nombre}{'nota' in persona && <> <span class="profile-note">{persona.nota}</span></>}</h3>
+                <p>{persona.funcion}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <nav class="record-links" aria-label="Más información">
+      <a href="/#integrantes">← Volver a integrantes</a>
+      <a href="/historia">Leer la historia de Trio Misión →</a>
+    </nav>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .members-record-page { color: var(--color-theme-cream); }
+  .record-intro { margin-bottom: 5rem; text-align: center; }
+  .record-intro > p { max-width: 40rem; margin: 1.5rem auto 0; color: rgb(244 228 201 / .62); font-family: system-ui, sans-serif; line-height: 1.8; }
+  .record-section { margin-top: 5.5rem; }
+  .record-heading { display: flex; flex-direction: column; gap: .55rem; margin-bottom: 1.6rem; border-bottom: 1px solid rgb(199 168 107 / .22); padding-bottom: 1rem; }
+  .record-heading p { margin: 0; color: var(--color-theme-gold); font-size: .58rem; letter-spacing: .2em; }
+  .record-heading h2 { margin: 0; font-size: clamp(1.15rem, 2.4vw, 1.8rem); font-weight: 800; letter-spacing: .05em; }
+  .profile-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+  .profile-card { min-width: 0; overflow: hidden; border: 1px solid rgb(199 168 107 / .16); border-radius: var(--radius-card); background: linear-gradient(155deg, #171411, #0b0908 72%); transition: border-color .3s ease, transform .3s ease; }
+  .profile-card:hover { transform: translateY(-4px); border-color: rgb(199 168 107 / .55); }
+  .profile-portrait { position: relative; display: grid; aspect-ratio: 4 / 4.6; place-items: end center; overflow: hidden; background: radial-gradient(ellipse at 50% 32%, rgb(199 168 107 / .26), transparent 58%), linear-gradient(180deg, #292319, #100e0b); }
+  .profile-portrait > img:not(.memorial-mark) { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 0 .7rem rgb(0 0 0 / .25)); transition: filter .3s ease; }
+  .profile-card:hover .profile-portrait > img:not(.memorial-mark) { filter: drop-shadow(0 .2rem .9rem rgb(0 0 0 / .45)); }
+  .profile-initials { display: grid; width: 100%; height: 100%; place-items: center; color: rgb(199 168 107 / .78); font-family: Georgia, serif; font-size: clamp(4rem, 9vw, 7rem); font-weight: 700; }
+  .portrait-label { position: absolute; z-index: 1; top: .85rem; left: .85rem; border: 1px solid rgb(199 168 107 / .45); border-radius: 999px; padding: .4rem .7rem; color: var(--color-theme-cream); background: rgb(10 9 8 / .78); font-family: system-ui, sans-serif; font-size: .62rem; letter-spacing: .08em; }
+  .profile-portrait img.memorial-mark { position: absolute; z-index: 2; top: 1.4rem; right: .65rem; width: 3.5rem; height: 3.5rem; border: 0; border-radius: 0; padding: 0; background: transparent; object-fit: contain; object-position: center; filter: none; }
+  .profile-copy { position: relative; padding: 1rem 1.1rem 1.2rem; }
+  .profile-copy h3 { margin: 0; color: var(--color-theme-cream); font-size: clamp(.85rem, 1.4vw, 1.05rem); font-weight: 800; line-height: 1.35; }
+  .profile-note { display: inline-block; margin-left: .45rem; border: 1px solid rgb(199 168 107 / .25); border-radius: 999px; padding: .2rem .45rem; color: var(--color-theme-gold); background: rgb(199 168 107 / .1); font-family: system-ui, sans-serif; font-size: .56em; font-weight: 700; letter-spacing: .06em; vertical-align: .12em; white-space: nowrap; }
+  .profile-copy p { margin: .55rem 0 0; color: rgb(244 228 201 / .6); font-family: system-ui, sans-serif; font-size: .78rem; line-height: 1.55; }
+  .record-links { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; margin-top: 4rem; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .record-links a { color: var(--color-theme-gold); transition: color .2s ease; }
+  .record-links a:hover { color: var(--color-theme-cream); }
+  @media (max-width: 900px) { .profile-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) {
+    .record-intro { margin-bottom: 3.5rem; }
+    .record-section { margin-top: 3rem; }
+    .profile-grid { gap: .75rem; }
+    .profile-copy { padding: .8rem; }
+    .profile-copy p { font-size: .72rem; }
+    .record-links { flex-direction: column; }
+  }
+</style>

@@ -1,0 +1,48 @@
+---
+interface Row {
+  periodo: string
+  integrantes: string
+  funcion: string
+}
+
+interface Props {
+  rows: ReadonlyArray<Row>
+  label: string
+  accent?: 'gold' | 'teal'
+}
+
+const { rows, label, accent = 'gold' } = Astro.props
+---
+
+<div class="roster-scroll" data-accent={accent} tabindex="0" aria-label={`Tabla desplazable: ${label}`}>
+  <table>
+    <caption>{label}</caption>
+    <thead><tr><th>Año o etapa</th><th>Integrante</th><th>Participación</th></tr></thead>
+    <tbody>
+      {rows.map((row) => (
+        <tr>
+          <td>{row.periodo}</td>
+          <th scope="row">{row.integrantes}</th>
+          <td>{row.funcion}</td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .roster-scroll { overflow-x: auto; outline-color: var(--color-theme-gold); }
+  .roster-scroll[data-accent='teal'] { outline-color: var(--color-theme-teal); }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  caption { padding: 0 0 .6rem; color: rgb(244 228 201 / 42%); font-family: system-ui, sans-serif; font-size: .68rem; text-align: left; }
+  th, td { padding: .58rem .45rem; border-top: 1px solid rgb(244 228 201 / 9%); vertical-align: top; }
+  thead th { color: var(--color-theme-gold); font-size: .55rem; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+  [data-accent='teal'] thead th { color: var(--color-theme-teal); }
+  tbody td { color: rgb(244 228 201 / 56%); font-family: system-ui, sans-serif; font-size: .65rem; line-height: 1.5; }
+  tbody td:first-child { min-width: 5.5rem; font-size: .6rem; font-weight: 700; }
+  tbody th[scope='row'] { min-width: 9rem; color: var(--color-theme-cream); font-family: system-ui, sans-serif; font-size: .67rem; font-weight: 700; line-height: 1.45; }
+  @media (min-width: 900px) {
+    th, td { padding-right: .55rem; padding-left: .55rem; }
+    tbody td, tbody th[scope='row'] { font-size: .72rem; }
+  }
+</style>

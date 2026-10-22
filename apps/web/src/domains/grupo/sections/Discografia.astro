@@ -1,0 +1,27 @@
+---
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import VerMas from '@/shared/components/ui/VerMas.astro'
+import AlbumGrid from '@/domains/grupo/components/AlbumGrid.astro'
+import { albumes } from '@/domains/grupo/data'
+
+// En la principal: los 5 álbumes más recientes. Los 27 completos en /discografia.
+const albumesRecientes = [...albumes].slice(-5).reverse()
+---
+
+<section id="discografia" class="relative bg-theme-ink-2">
+  <div class="mx-auto w-full max-w-6xl px-6 py-24 md:py-32">
+    <SectionTitle eyebrow="Nuestra música" title="Discografía" />
+    <p
+      class="mx-auto mt-6 max-w-2xl text-center font-sans leading-relaxed text-theme-cream/60"
+      data-reveal
+    >
+      27 álbumes y más de 300 canciones: una trayectoria grabada para la eternidad.
+    </p>
+
+    <div class="mt-14">
+      <AlbumGrid albumes={albumesRecientes} />
+    </div>
+
+    <VerMas href="/discografia" label="Ver los 27 álbumes" />
+  </div>
+</section>

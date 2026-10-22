@@ -1,0 +1,56 @@
+---
+// Página de la app Triomisión — dominio propio dentro del sitio.
+// Contenido de trio-mision-app/docs/07-sitio-web.md.
+// Pendiente: precios reales (subscription_plans), URL de Play Store,
+// y enlace al portal de compra (fase 2, proyecto React aparte).
+import Layout from '@/shared/layouts/Layout.astro'
+import HeaderApp from '@/shared/components/layout/HeaderApp.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionDivider from '@/shared/components/ui/SectionDivider.astro'
+import Caracteristicas from '@/domains/app/sections/Caracteristicas.astro'
+import Planes from '@/domains/app/sections/Planes.astro'
+import Faq from '@/domains/app/sections/Faq.astro'
+import { playStoreUrl, portal } from '@/shared/config'
+---
+
+<Layout
+  title="Triomisión App — Letras y acordes de música cristiana"
+  description="El Himnario Adventista con acordes gratis, el catálogo de Trio Misión y herramientas para tocar en vivo."
+>
+  <HeaderApp />
+  <main class="flex flex-1 flex-col">
+    <!-- Hero de la app -->
+    <section class="flex min-h-[70svh] flex-col items-center justify-center gap-6 px-6 pt-20 text-center">
+      <span class="text-xs tracking-[0.24em] text-theme-teal" data-reveal>Aplicación móvil</span>
+      <h1 class="title-gradient text-4xl font-black tracking-[0.06em] md:text-6xl" data-reveal>
+        Letras y acordes,<br />siempre contigo
+      </h1>
+      <p class="max-w-xl font-sans leading-relaxed text-theme-cream/60" data-reveal style="--delay:120ms">
+        El Himnario Adventista completo con acordes gratis, el catálogo de Trio Misión
+        y más grupos, y las herramientas para cantar y tocar en vivo — incluso sin internet.
+      </p>
+      <div class="mt-2 flex flex-wrap items-center justify-center gap-4" data-reveal style="--delay:240ms">
+        <a
+          href={playStoreUrl}
+          class="gold-metallic inline-block rounded-pill px-8 py-3 text-xs font-black tracking-[0.14em]"
+        >
+          Descargar en Google Play
+        </a>
+        <a
+          href={portal.login}
+          class="inline-block rounded-pill px-8 py-3 text-xs font-black tracking-[0.14em] text-theme-cream shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_45%,transparent)] transition-all hover:-translate-y-0.5 hover:text-theme-gold hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_75%,transparent),0_0_1.5rem_color-mix(in_srgb,var(--color-theme-gold)_15%,transparent)]"
+        >
+          Iniciar sesión
+        </a>
+      </div>
+      {/* TODO: URL real de Play Store + portal de compra (fase 2) + screenshots */}
+    </section>
+
+    <SectionDivider />
+
+    <Caracteristicas />
+    <Planes />
+    <Faq />
+  </main>
+  <Footer />
+</Layout>

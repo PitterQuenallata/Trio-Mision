@@ -1,0 +1,105 @@
+---
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import PlatformLink from '@/domains/grupo/components/PlatformLink.astro'
+import { contacto, redes } from '@/shared/config'
+
+const redesTrioMision = redes.filter((red) => red.grupo === 'Trio Misión' && red.icono !== 'spotify')
+const redesNuevaGeneracion = redes.filter((red) => red.grupo === 'Trio Misión Nueva Generación')
+const plataformasMusicales = redes.filter((red) => red.icono === 'spotify' || red.icono === 'apple-music')
+const otrasPlataformas = ['Amazon Music', 'YouTube Music', 'Deezer', 'TIDAL', 'Pandora', 'iHeartRadio']
+---
+
+<section id="contacto" class="relative bg-theme-ink-2">
+  <div class="mx-auto w-full max-w-4xl px-6 py-24 md:py-32">
+    <SectionTitle eyebrow="Hablemos" title="Contacto" />
+    <p class="mx-auto mt-6 max-w-xl text-center font-sans leading-relaxed text-theme-cream/60" data-reveal>
+      Para presentaciones y eventos, contacta directamente a cada agrupación.
+    </p>
+
+    <div class="contact-grid">
+      {contacto.lineas.map((linea, index) => (
+        <article class="contact-card" data-reveal style={`--delay:${index * 100}ms`}>
+          <span class="contact-kicker">{linea.nombre.split(' · ')[1]}</span>
+          <h3>{linea.nombre.split(' · ')[0]}</h3>
+          {linea.responsable && <p class="contact-persona">{linea.responsable}</p>}
+          {linea.correo && <a class="contact-email" href={`mailto:${linea.correo}`}><span>Correo electrónico</span>{linea.correo}</a>}
+          <a class="contact-whatsapp" href={linea.whatsappUrl} target="_blank" rel="noopener noreferrer">
+            <span class="contact-phone">{linea.telefono}</span><span class="whatsapp-action">WhatsApp</span>
+          </a>
+        </article>
+      ))}
+    </div>
+
+    <aside class="technical-contact" data-reveal>
+      <span>Soporte del sitio:</span>
+      <strong>{contacto.soporte.nombre}</strong>
+      <span>programación, soporte técnico y administración</span>
+      <a href={`mailto:${contacto.soporte.correo}`}>{contacto.soporte.correo}</a>
+    </aside>
+
+    <section class="online-presence" aria-labelledby="platforms-title" data-reveal>
+      <header class="online-heading">
+        <span class="contact-kicker">Encuéntranos</span>
+        <h3 id="platforms-title">Redes y música</h3>
+      </header>
+      <div class="social-groups">
+        <section class="social-group" aria-labelledby="social-trio-title">
+          <h4 id="social-trio-title">Trio Misión</h4>
+          <div class="social-links">
+            {redesTrioMision.map((red) => <PlatformLink {...red} />)}
+          </div>
+        </section>
+        <section class="social-group" aria-labelledby="social-ng-title">
+          <h4 id="social-ng-title">Trio Misión Nueva Generación</h4>
+          <div class="social-links">
+            {redesNuevaGeneracion.map((red) => <PlatformLink {...red} />)}
+          </div>
+        </section>
+      </div>
+      <div class="music-platforms">
+        <h4>Escucha el catálogo</h4>
+        <div class="social-links">
+          {plataformasMusicales.map((plataforma) => <PlatformLink {...plataforma} />)}
+        </div>
+        <div class="other-platforms" aria-label="Otras plataformas digitales">
+          {otrasPlataformas.map((plataforma) => <span class="store-wordmark">{plataforma}</span>)}
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
+
+<style>
+  .contact-card { display: flex; min-width: 0; flex-direction: column; gap: .65rem; padding: 1.25rem 1.35rem; background: linear-gradient(145deg, rgb(199 168 107 / 5%), rgb(10 9 8 / 82%) 60%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 18%, transparent); transition: background .25s ease, box-shadow .25s ease; }
+  .contact-card:hover { background: linear-gradient(145deg, rgb(199 168 107 / 9%), rgb(10 9 8 / 88%) 60%); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 46%, transparent); }
+  .contact-kicker { color: var(--color-theme-gold); font-size: .58rem; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; }
+  .contact-persona { margin-top: .28rem; color: color-mix(in srgb, var(--color-theme-cream) 56%, transparent); font-family: system-ui, sans-serif; font-size: .7rem; line-height: 1.5; }
+  .whatsapp-action { color: color-mix(in srgb, var(--color-theme-cream) 73%, transparent); font-size: .62rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  .contact-email { display: flex; flex-wrap: wrap; gap: .2rem .7rem; color: color-mix(in srgb, var(--color-theme-cream) 62%, transparent); font-family: system-ui, sans-serif; font-size: .68rem; overflow-wrap: anywhere; transition: color .2s ease; }
+  .contact-email span { color: color-mix(in srgb, var(--color-theme-cream) 43%, transparent); }
+  .contact-email:hover { color: var(--color-theme-gold); }
+  .technical-contact { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem .45rem; margin-top: 1.25rem; color: color-mix(in srgb, var(--color-theme-cream) 50%, transparent); font-family: system-ui, sans-serif; font-size: .66rem; line-height: 1.6; }
+  .technical-contact strong { color: var(--color-theme-cream); }
+  .technical-contact a { color: var(--color-theme-gold); }
+  .contact-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 3rem; }
+  .contact-card { min-height: 14rem; justify-content: flex-start; padding: 1.5rem; }
+  .contact-card h3 { margin-top: .55rem; color: var(--color-theme-cream); font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; }
+  .contact-whatsapp { display: flex; width: 100%; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .6rem; margin-top: auto; padding-top: 1.2rem; color: var(--color-theme-gold); }
+  .contact-phone { font-family: system-ui, sans-serif; font-size: 1.02rem; font-weight: 700; letter-spacing: .06em; }
+  .social-groups { display: grid; gap: 1.5rem; }
+  .social-group h4 { margin-bottom: .65rem; color: color-mix(in srgb, var(--color-theme-cream) 78%, transparent); font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .social-links { display: flex; flex-wrap: wrap; gap: .55rem; }
+  .music-platforms { margin-top: 1.5rem; }
+  .music-platforms h4 { margin-bottom: .65rem; color: color-mix(in srgb, var(--color-theme-cream) 78%, transparent); font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .other-platforms { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin-top: 1rem; }
+  .store-wordmark { color: color-mix(in srgb, var(--color-theme-cream) 62%, transparent); font-size: .66rem; font-weight: 800; letter-spacing: .04em; }
+  .online-presence { margin-top: 3.5rem; padding-top: 0; }
+  .online-heading { margin-bottom: 1.25rem; }
+  .online-heading h3 { margin-top: .45rem; color: var(--color-theme-cream); font-size: 1.18rem; font-weight: 900; letter-spacing: .035em; }
+  .social-groups { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+  .social-group h4, .music-platforms h4 { margin-bottom: .65rem; color: color-mix(in srgb, var(--color-theme-cream) 78%, transparent); font-size: .65rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+  .music-platforms { margin-top: 1.25rem; }
+  .other-platforms { margin-top: .8rem; }
+  @media (min-width: 760px) { .contact-grid, .social-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; } }
+  @media (prefers-reduced-motion: reduce) { .contact-card, .contact-email { transition: none; } }
+</style>

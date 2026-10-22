@@ -1,0 +1,119 @@
+---
+// Header de la página de la app — variante con vuelta al sitio del grupo.
+// Siempre muestra ambos destinos: da igual si se llega desde / o directo.
+import { navApp, playStoreUrl, portal } from '@/shared/config'
+---
+
+<header
+  id="app-header"
+  class="fixed inset-x-0 top-0 z-40 transition-colors duration-300 data-[scrolled=true]:bg-theme-ink/60 data-[scrolled=true]:backdrop-blur-md data-[scrolled=true]:backdrop-contrast-125"
+>
+  <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+    <a
+      href="/"
+      class="text-xs font-black tracking-[0.2em] text-theme-cream/80 transition-colors hover:text-theme-gold"
+    >
+      ← Trio Misión
+    </a>
+    <ul class="hidden items-center gap-6 md:flex lg:gap-8">
+      {
+        navApp.map((link) => (
+          <li>
+            <a
+              href={link.href}
+              class="relative text-xs tracking-[0.2em] text-theme-cream/80 transition-colors hover:text-theme-cream"
+            >
+              {link.label}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <div class="hidden items-center gap-3 md:flex">
+      <a
+        href={portal.login}
+        class="rounded-pill px-4 py-2 text-[0.65rem] font-black tracking-[0.14em] text-theme-cream shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_45%,transparent)] transition-all hover:text-theme-gold hover:shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-theme-gold)_75%,transparent)]"
+      >
+        Iniciar sesión
+      </a>
+      <a
+        href={playStoreUrl}
+        class="gold-metallic rounded-pill px-4 py-2 text-[0.65rem] font-black tracking-[0.14em]"
+      >
+        Google Play
+      </a>
+    </div>
+    <button
+      id="app-menu-toggle"
+      class="flex h-10 w-10 flex-col items-center justify-center gap-[5px] md:hidden"
+      aria-label="Abrir menú"
+      aria-expanded="false"
+      aria-controls="app-mobile-menu"
+    >
+      <span class="app-menu-bar" aria-hidden="true"></span>
+      <span class="app-menu-bar" aria-hidden="true"></span>
+      <span class="app-menu-bar" aria-hidden="true"></span>
+    </button>
+  </nav>
+  <div id="app-mobile-menu" class="app-mobile-menu md:hidden" hidden>
+    <ul class="flex flex-col gap-1 px-6 py-4">
+      {navApp.map((link) => <li><a class="app-mobile-link" href={link.href}>{link.label}</a></li>)}
+      <li><a class="app-mobile-link" href={portal.login}>Iniciar sesión</a></li>
+      <li><a class="app-mobile-link" href={playStoreUrl}>Google Play</a></li>
+    </ul>
+  </div>
+</header>
+
+<script>
+  let appHeaderController: AbortController | undefined
+
+  function initAppHeader() {
+    appHeaderController?.abort()
+    appHeaderController = new AbortController()
+    const { signal } = appHeaderController
+    const header = document.getElementById('app-header')
+    const toggle = document.getElementById('app-menu-toggle')
+    const menu = document.getElementById('app-mobile-menu')
+    if (!header) return
+
+    const closeMenu = () => {
+      menu?.setAttribute('hidden', '')
+      toggle?.setAttribute('aria-expanded', 'false')
+      toggle?.setAttribute('aria-label', 'Abrir menú')
+      header.removeAttribute('data-menu-open')
+    }
+
+    const onScroll = () => header.setAttribute('data-scrolled', String(window.scrollY > 24))
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true, signal })
+    toggle?.addEventListener('click', () => {
+      if (toggle.getAttribute('aria-expanded') === 'true') {
+        closeMenu()
+      } else {
+        menu?.removeAttribute('hidden')
+        toggle.setAttribute('aria-expanded', 'true')
+        toggle.setAttribute('aria-label', 'Cerrar menú')
+        header.setAttribute('data-menu-open', 'true')
+      }
+    }, { signal })
+    menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu, { signal }))
+    header.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMenu()
+    }, { signal })
+  }
+
+  initAppHeader()
+  document.addEventListener('astro:page-load', initAppHeader)
+</script>
+
+<style>
+  .app-menu-bar { display: block; width: 1.4rem; height: 1.5px; background: var(--color-theme-gold); transition: transform 300ms ease, opacity 300ms ease; }
+  #app-menu-toggle[aria-expanded='true'] .app-menu-bar:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+  #app-menu-toggle[aria-expanded='true'] .app-menu-bar:nth-child(2) { opacity: 0; }
+  #app-menu-toggle[aria-expanded='true'] .app-menu-bar:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+  .app-mobile-menu { border-top: 1px solid color-mix(in srgb, var(--color-theme-gold) 15%, transparent); background: color-mix(in srgb, var(--color-theme-ink) 94%, transparent); backdrop-filter: blur(14px); }
+  #app-header[data-menu-open='true'] { background: color-mix(in srgb, var(--color-theme-ink) 94%, transparent); backdrop-filter: blur(14px); }
+  .app-mobile-link { display: block; padding: .8rem 0; border-bottom: 1px solid color-mix(in srgb, var(--color-theme-gold) 10%, transparent); color: color-mix(in srgb, var(--color-theme-cream) 80%, transparent); font-size: .8rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+  .app-mobile-link:hover { color: var(--color-theme-gold); }
+  @media (prefers-reduced-motion: reduce) { .app-menu-bar { transition: none; } }
+</style>

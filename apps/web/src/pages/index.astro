@@ -1,0 +1,27 @@
+---
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionDivider from '@/shared/components/ui/SectionDivider.astro'
+import Hero from '@/domains/grupo/sections/Hero.astro'
+import Historia from '@/domains/grupo/sections/Historia.astro'
+import Integrantes from '@/domains/grupo/sections/Integrantes.astro'
+import Discografia from '@/domains/grupo/sections/Discografia.astro'
+import AppTeaser from '@/domains/grupo/sections/AppTeaser.astro'
+import Contacto from '@/domains/grupo/sections/Contacto.astro'
+---
+
+<Layout>
+  <Header />
+  <main class="flex flex-1 flex-col">
+    <Hero />
+    <Historia />
+    <SectionDivider />
+    <Integrantes />
+    <Discografia />
+    <AppTeaser />
+    <SectionDivider />
+    <Contacto />
+  </main>
+  <Footer />
+</Layout>

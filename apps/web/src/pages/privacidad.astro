@@ -1,0 +1,18 @@
+---
+// Política de privacidad — texto de domains/legal/content/privacidad.md
+// (trasladado de trio-mision-app/docs/07-sitio-web.md §9.2, borrador 2026-07-11).
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import { Content } from '@/domains/legal/content/privacidad.md'
+---
+
+<Layout title="Política de privacidad — Trio Misión Bolivia">
+  <Header />
+  <main class="mx-auto w-full max-w-3xl flex-1 px-6 pb-24 pt-32">
+    <article class="legal-prose" data-reveal>
+      <Content />
+    </article>
+  </main>
+  <Footer />
+</Layout>

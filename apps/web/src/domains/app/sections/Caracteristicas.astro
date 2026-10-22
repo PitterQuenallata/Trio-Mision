@@ -1,0 +1,49 @@
+---
+// Características de la app — contenido de la spec 07 (8 bloques).
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+
+const caracteristicas = [
+  { titulo: 'Himnario gratis', texto: 'Los himnos del Himnario Adventista con acordes, número por número, sin pagar nada.' },
+  { titulo: 'Catálogo premium', texto: 'Álbumes completos de Trio Misión y otros grupos, con letra y acordes fieles a la grabación.' },
+  { titulo: 'Presentación en vivo', texto: 'Modo escenario: pantalla completa, fondo negro, letra gigante. Armá el repertorio del sábado y cantá.' },
+  { titulo: 'Transposición', texto: 'Subí o bajá el tono con un toque. Soporta capo y notación latina (Do-Re-Mi) o americana (C-D-E).' },
+  { titulo: 'Mi Música', texto: 'Importá tus PDF o archivos ChordPro, creá canciones propias y organizalas en carpetas.' },
+  { titulo: 'Modo offline', texto: 'Descargá álbumes completos y usalos sin internet (Premium).' },
+  { titulo: 'Sincronización', texto: 'Tu música y repertorios en todos tus dispositivos (Premium).' },
+  { titulo: 'Afinador', texto: 'Afinador cromático integrado para guitarra.' },
+]
+---
+
+<section id="caracteristicas" class="mx-auto w-full max-w-6xl px-6 py-20 md:py-28">
+  <SectionTitle eyebrow="Qué incluye" title="Características" />
+
+  <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+    {
+      caracteristicas.map((item, index) => (
+        <div class="feature-card" data-reveal style={`--delay:${index * 70}ms`}>
+          <h3 class="text-sm font-black tracking-[0.12em] text-theme-cream">{item.titulo}</h3>
+          <p class="mt-2 font-sans text-xs leading-relaxed text-theme-cream/55">{item.texto}</p>
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .feature-card {
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    background: linear-gradient(180deg, #141210 0%, #080706 100%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 20%, transparent);
+    transition:
+      transform 0.35s ease,
+      box-shadow 0.35s ease;
+  }
+
+  .feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 60%, transparent),
+      0 0 1.75rem color-mix(in srgb, var(--color-theme-gold) 14%, transparent);
+  }
+</style>

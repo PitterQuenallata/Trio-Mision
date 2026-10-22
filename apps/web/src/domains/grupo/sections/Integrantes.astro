@@ -1,0 +1,195 @@
+---
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import VerMas from '@/shared/components/ui/VerMas.astro'
+interface Persona {
+  nombre: string
+  foto?: string
+  distintivoLuto?: boolean
+}
+
+const iniciales = (nombre: string) => nombre.split(/\s+/).map((parte) => parte[0]).slice(0, 2).join('')
+
+const actual: Persona[] = [
+  { nombre: 'Gabriel Quenallata', foto: '/assets/integrantes/actual/gabriel.png' },
+  { nombre: 'Pitter Quenallata', foto: '/assets/integrantes/actual/pitter.png' },
+  { nombre: 'Alexander Quenallata', foto: '/assets/integrantes/actual/alex.png' },
+  { nombre: 'Josias Quenallata' },
+]
+const nuevaGeneracion: Persona[] = [
+  { nombre: 'Arturo López', foto: '/assets/integrantes/nueva-generacion/arturo.png' },
+  { nombre: 'Josué Colque', foto: '/assets/integrantes/nueva-generacion/josue.png' },
+  { nombre: 'Juan Daniel Condori', foto: '/assets/integrantes/nueva-generacion/cesar.png' },
+]
+const femenino: Persona[] = [
+  { nombre: 'Julia Quispe' },
+  { nombre: 'Ana María Romero' },
+  { nombre: 'Rosa Caso' },
+  { nombre: 'Beatriz Sosa' },
+]
+const antiguos: Persona[] = [
+  { nombre: 'Abraham Osco', foto: '/assets/integrantes/antiguos/abraam.png' },
+  { nombre: 'Alcides Ávalos', foto: '/assets/integrantes/antiguos/alcides.png' },
+  { nombre: 'Ephraim Quenta', foto: '/assets/integrantes/antiguos/efraim.png' },
+  { nombre: 'Fredy Quispe', foto: '/assets/integrantes/antiguos/freddy.png' },
+  { nombre: 'Juan Julio Apaza', foto: '/assets/integrantes/antiguos/juancho.png' },
+  { nombre: 'Abdías Caso', foto: '/assets/integrantes/antiguos/abdias.png' },
+  { nombre: 'Edgar Romero', foto: '/assets/integrantes/antiguos/edgar-romero.png' },
+  { nombre: 'Eric Apaza', foto: '/assets/integrantes/antiguos/erick.png', distintivoLuto: true },
+  { nombre: 'Gerson Apaza', foto: '/assets/integrantes/antiguos/gerson.png' },
+  { nombre: 'Hernán Colque', foto: '/assets/integrantes/antiguos/hernan.png' },
+  { nombre: 'Justiniano Arojas', foto: '/assets/integrantes/antiguos/justiniano.png' },
+  { nombre: 'Miguel Apaza', foto: '/assets/integrantes/antiguos/miqui.png' },
+  { nombre: 'Maguiber Cuevas' },
+  { nombre: 'Ariel Mallea' },
+  { nombre: 'José Luis Echeverría', foto: '/assets/integrantes/antiguos/jose-luis.png' },
+  { nombre: 'Cristian Chipana' },
+]
+---
+
+<section id="integrantes" class="members-section">
+  <div class="mx-auto w-full max-w-7xl px-6 py-24 md:py-32">
+    <SectionTitle eyebrow="Nuestro legado" title="Integrantes" />
+    <p class="intro">Tres generaciones unidas por una misma voz, una misma fe y una historia que continúa.</p>
+
+    <div class="generation-heading">
+      <span>01</span><div><p>Santa Cruz</p><h3>Trio Misión · Formación actual</h3></div><i></i>
+    </div>
+    <div class="featured-grid">
+      {actual.map((persona, index) => (
+        <article class="member-card featured" style={`--delay:${index * 120}ms`}>
+          <span class="corner tl" aria-hidden="true"></span>
+          <span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span>
+          <span class="corner br" aria-hidden="true"></span>
+          <div class="portrait">
+            {persona.foto ? <img src={persona.foto} alt={`${persona.nombre}, integrante de Trio Misión en Santa Cruz`} loading="lazy" /> : <div class="portrait-placeholder" aria-label={`Retrato pendiente para ${persona.nombre}`}>{iniciales(persona.nombre)}</div>}
+          </div>
+          <div class="member-name"><small>Trio Misión</small><h4 class="title-gradient">{persona.nombre}</h4></div>
+        </article>
+      ))}
+    </div>
+
+    <div class="generation-heading">
+      <span>02</span><div><p>La Paz · 2021–2026</p><h3>Trio Misión Nueva Generación</h3></div><i></i>
+    </div>
+    <div class="secondary-grid generation-grid">
+      {nuevaGeneracion.map((persona, index) => (
+        <article class="member-card compact" style={`--delay:${index * 90}ms`}>
+          <span class="corner tl" aria-hidden="true"></span>
+          <span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span>
+          <span class="corner br" aria-hidden="true"></span>
+          <div class="portrait">
+            {persona.foto ? <img src={persona.foto} alt={`${persona.nombre}, Trio Misión Nueva Generación`} loading="lazy" /> : <div class="portrait-placeholder" aria-label={`Retrato pendiente para ${persona.nombre}`}>{iniciales(persona.nombre)}</div>}
+          </div>
+          <div class="member-name"><small>Trio Misión Nueva Generación</small><h4 class="title-gradient">{persona.nombre}</h4></div>
+        </article>
+      ))}
+    </div>
+
+    <div class="generation-heading female-heading">
+      <span>03</span><div><p>Trio Misión</p><h3>Rama femenina</h3></div><i></i>
+    </div>
+    <div class="secondary-grid female-grid">
+      {femenino.map((persona, index) => (
+        <article class="member-card compact female-member" style={`--delay:${index * 90}ms`}>
+          <span class="corner tl" aria-hidden="true"></span>
+          <span class="corner tr" aria-hidden="true"></span>
+          <span class="corner bl" aria-hidden="true"></span>
+          <span class="corner br" aria-hidden="true"></span>
+          <div class="portrait"><div class="portrait-placeholder" aria-label={`Fotografía pendiente para ${persona.nombre}`}>{iniciales(persona.nombre)}</div></div>
+          <div class="member-name"><small>Trio Misión Femenino</small><h4 class="title-gradient">{persona.nombre}</h4></div>
+        </article>
+      ))}
+    </div>
+
+    <div class="generation-heading">
+      <span>04</span><div><p>30 años de historia</p><h3>Antiguos integrantes</h3></div><i></i>
+    </div>
+    <div class="legacy-grid">
+      {antiguos.map((persona, index) => (
+        <article class="legacy-card" style={`--delay:${(index % 7) * 50}ms`}>
+          {persona.foto ? <img src={persona.foto} alt={`${persona.nombre}, integrante de una etapa anterior de Trio Misión`} loading="lazy" /> : <div class="legacy-placeholder" aria-label={`Retrato pendiente para ${persona.nombre}`}>{iniciales(persona.nombre)}</div>}
+          {persona.distintivoLuto && <img class="legacy-memorial-mark" src="/assets/ui/cinta-luto.webp" alt="En memoria" loading="lazy" />}
+          <h4 class="title-gradient">{persona.nombre}</h4>
+        </article>
+      ))}
+    </div>
+    <VerMas href="/integrantes" label="Conocer más sobre los integrantes" />
+  </div>
+</section>
+
+<script>
+  // Reveal escalonado al entrar en viewport (usa --delay de cada card)
+  const cards = document.querySelectorAll('.member-card, .legacy-card')
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('revealed')
+          io.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.15 },
+  )
+  cards.forEach((card) => io.observe(card))
+
+</script>
+
+<style>
+  .members-section { position: relative; overflow: hidden; background: radial-gradient(60% 35% at 50% 0%, rgb(199 168 107 / .08), transparent), var(--color-theme-ink); }
+  .intro { max-width: 42rem; margin: 1.5rem auto 0; color: rgb(244 228 201 / .58); font-family: system-ui, sans-serif; line-height: 1.75; text-align: center; }
+  .generation-heading { display: flex; align-items: center; gap: 1rem; margin: 5rem 0 1.75rem; text-transform: uppercase; }
+  .generation-heading > span { color: var(--color-theme-gold); font-size: .7rem; letter-spacing: .18em; }
+  .generation-heading p { margin: 0 0 .22rem; color: rgb(244 228 201 / .45); font-size: .55rem; letter-spacing: .24em; }
+  .generation-heading h3 { margin: 0; color: var(--color-theme-cream); font-size: clamp(1.1rem, 2vw, 1.55rem); font-weight: 900; letter-spacing: .1em; }
+  .generation-heading i { flex: 1; height: 1px; background: linear-gradient(90deg, rgb(199 168 107 / .45), transparent); }
+  .featured-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(1rem, 2.5vw, 2rem); }
+  .secondary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  .generation-grid { max-width: 58rem; margin-inline: auto; }
+  .female-heading { margin-top: 4rem; }
+  .female-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: 64rem; margin-inline: auto; }
+
+  /* Cards: ring dorado + radius + reveal escalonado */
+  .member-card { position: relative; overflow: hidden; min-width: 0; border-radius: var(--radius-card); background: linear-gradient(180deg, #171411, #080706); box-shadow: 0 0 0 1px rgb(199 168 107 / .22), 0 1.5rem 3rem rgb(0 0 0 / .45); opacity: 0; translate: 0 1.25rem; transition: transform .4s ease, box-shadow .4s ease, opacity .6s ease var(--delay, 0ms), translate .6s ease var(--delay, 0ms); }
+  .member-card.revealed { opacity: 1; translate: 0 0; }
+  .member-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(70% 55% at 50% 20%, rgb(199 168 107 / .2), transparent 68%); transition: opacity .4s ease; }
+  .member-card:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px rgb(199 168 107 / .65), 0 0 2.5rem rgb(199 168 107 / .16); }
+
+  /* Esquinas decorativas en L (trading card) */
+  .corner { position: absolute; z-index: 3; width: 1.1rem; height: 1.1rem; border: 0 solid rgb(199 168 107 / .6); transition: transform .4s ease, filter .4s ease; pointer-events: none; }
+  .corner.tl { top: .6rem; left: .6rem; border-left-width: 1px; border-top-width: 1px; }
+  .corner.tr { top: .6rem; right: .6rem; border-right-width: 1px; border-top-width: 1px; }
+  .corner.bl { bottom: .6rem; left: .6rem; border-left-width: 1px; border-bottom-width: 1px; }
+  .corner.br { bottom: .6rem; right: .6rem; border-right-width: 1px; border-bottom-width: 1px; }
+  .member-card:hover .corner { transform: scale(1.35); filter: drop-shadow(0 0 4px rgb(199 168 107 / .7)); }
+
+  .portrait { position: relative; aspect-ratio: 4 / 5; overflow: hidden; }
+  .portrait-placeholder, .legacy-placeholder { display: grid; width: 100%; height: 100%; place-items: center; color: color-mix(in srgb, var(--color-theme-gold) 78%, var(--color-theme-cream)); background: radial-gradient(ellipse at 50% 38%, rgb(199 168 107 / .16), transparent 58%), linear-gradient(145deg, #171411, #080706); font-family: Georgia, serif; font-size: clamp(3rem, 7vw, 6rem); font-weight: 700; letter-spacing: .08em; }
+  .portrait::after { content: ''; position: absolute; inset: 45% 0 0; background: linear-gradient(transparent, #080706 93%); }
+  .portrait img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; filter: saturate(.98) brightness(.98); transition: transform .55s ease, filter .55s ease; }
+  .member-card:hover img { transform: scale(1.035); filter: saturate(1.08) brightness(1.03); }
+  .member-name { position: absolute; z-index: 2; inset: auto 0 0; padding: 1.25rem; text-align: center; }
+  .member-name small { color: rgb(199 168 107 / .75); font-size: .52rem; letter-spacing: .23em; text-transform: uppercase; }
+  .member-name h4 { margin: .3rem 0 0; font-size: clamp(1.15rem, 2vw, 1.55rem); font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  .compact .portrait { aspect-ratio: 3 / 4; }
+  .compact .member-name h4 { font-size: clamp(.74rem, 1.15vw, .98rem); line-height: 1.25; letter-spacing: .045em; overflow-wrap: anywhere; }
+  .female-member .portrait { background: #0d0b09; }
+  .female-member .portrait::after { display: none; }
+  .female-member .portrait-placeholder { font-size: clamp(2rem, 5vw, 4rem); }
+
+  .legacy-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .8rem; }
+  .legacy-card { position: relative; min-width: 0; overflow: hidden; aspect-ratio: 3 / 4.35; border-radius: var(--radius-card); background: linear-gradient(#171411, #090807); box-shadow: 0 0 0 1px rgb(199 168 107 / .16); opacity: 0; translate: 0 1.25rem; transition: transform .35s ease, box-shadow .35s ease, opacity .55s ease var(--delay, 0ms), translate .55s ease var(--delay, 0ms); }
+  .legacy-card.revealed { opacity: 1; translate: 0 0; }
+  .legacy-card:hover { z-index: 2; transform: translateY(-4px); box-shadow: 0 0 0 1px rgb(199 168 107 / .55), 0 0 1.6rem rgb(199 168 107 / .12); }
+  .legacy-card img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; filter: saturate(.96) brightness(.92); }
+  .legacy-card img.legacy-memorial-mark { position: absolute; z-index: 3; top: .55rem; right: .55rem; width: 2rem; height: 2rem; object-fit: contain; object-position: center; filter: none; }
+  .legacy-placeholder { position: absolute; inset: 0; font-size: clamp(2rem, 4vw, 3.5rem); }
+  .legacy-card::after { content: ''; position: absolute; inset: 55% 0 0; background: linear-gradient(transparent, #080706); }
+  .legacy-card h4 { position: absolute; z-index: 1; inset: auto .3rem .65rem; margin: 0; font-size: clamp(.5rem, .8vw, .72rem); font-weight: 700; letter-spacing: .08em; text-align: center; text-transform: uppercase; }
+
+  @media (max-width: 900px) { .secondary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .female-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .legacy-grid { grid-template-columns: repeat(4, 1fr); } }
+  @media (max-width: 640px) { .featured-grid { grid-template-columns: 1fr; } .featured { max-width: 24rem; margin-inline: auto; width: 100%; } .generation-heading { margin-top: 4rem; } .legacy-grid { grid-template-columns: repeat(3, 1fr); gap: .55rem; } }
+  @media (prefers-reduced-motion: reduce) { .member-card, .member-card img, .legacy-card, .corner { transition: none; } .member-card, .legacy-card { opacity: 1; translate: none; } }
+</style>

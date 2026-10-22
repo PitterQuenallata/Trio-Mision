@@ -1,0 +1,137 @@
+---
+// FAQ + sección para grupos — contenido de la spec 07.
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import { contacto } from '@/shared/config'
+
+const faqs = [
+  {
+    pregunta: '¿El himnario es gratis de verdad?',
+    respuesta: 'Sí. El Himnario Adventista completo con acordes es gratuito para siempre. Lo premium es el catálogo de los grupos.',
+  },
+  {
+    pregunta: '¿Qué pasa si dejo de pagar premium?',
+    respuesta: 'Volvés al plan gratuito: seguís usando el himnario, tus repertorios y tu música. Las descargas offline del catálogo expiran. Tu música importada no se pierde: podés seguir descargándola de la nube.',
+  },
+  {
+    pregunta: '¿Lo que compré por álbum/grupo también vence?',
+    respuesta: 'No. Las compras únicas son tuyas para siempre, con o sin premium.',
+  },
+  {
+    pregunta: '¿En cuántos dispositivos puedo usar mi cuenta?',
+    respuesta: 'Gratis: 1 dispositivo. Premium: hasta 3. ¿Cambiaste de teléfono? Escribinos a soporte y te desvinculamos el viejo.',
+  },
+  {
+    pregunta: '¿Puedo usar la app sin internet?',
+    respuesta: 'Sí: el himnario y tu música funcionan siempre offline. El catálogo premium se descarga para offline y se revalida cuando volvés a tener conexión.',
+  },
+  {
+    pregunta: '¿Puedo exportar las canciones del catálogo?',
+    respuesta: 'No — el catálogo es contenido licenciado de los grupos. Lo que sí exportás (PDF o ChordPro) es tu propia música, la que creaste o importaste vos.',
+  },
+  {
+    pregunta: '¿Cómo pago?',
+    respuesta: 'En este sitio, con tu cuenta: elegís el plan, pagás por QR/transferencia y subís tu comprobante. Tu cuenta se activa al verificarse el pago — la app se entera sola.',
+  },
+  {
+    pregunta: '¿Sirve para tablets?',
+    respuesta: 'Sí, y el modo Presentación en vivo está pensado justamente para tablet (hasta 2 columnas de letra en pantalla grande).',
+  },
+]
+---
+
+<section id="faq" class="mx-auto w-full max-w-4xl px-6 py-20 md:py-28">
+  <SectionTitle eyebrow="Dudas" title="Preguntas Frecuentes" />
+
+  <div class="mt-14 flex flex-col gap-3">
+    {
+      faqs.map((faq, index) => (
+        <details class="faq-item" data-reveal style={`--delay:${index * 60}ms`}>
+          <summary>
+            <span>{faq.pregunta}</span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </summary>
+          <p class="font-sans text-sm leading-relaxed text-theme-cream/60">{faq.respuesta}</p>
+        </details>
+      ))
+    }
+  </div>
+
+  <!-- Para grupos y músicos -->
+  <div class="creator-block mt-20" data-reveal>
+    <h3 class="text-center text-xl font-black tracking-[0.1em] text-theme-cream md:text-2xl">
+      Para grupos y músicos
+    </h3>
+    <p class="mx-auto mt-4 max-w-2xl text-center font-sans text-sm leading-relaxed text-theme-cream/60">
+      ¿Tenés un grupo o ministerio musical? Publicamos tu catálogo con letras y acordes
+      revisados, con tus créditos de autor siempre visibles. Como integrante del grupo,
+      accedés a tu propio contenido sin pagar.
+    </p>
+    <div class="mt-6 text-center">
+      <a
+        href={contacto.whatsappUrl}
+        target="_blank"
+        rel="noopener"
+        class="gold-metallic inline-block rounded-pill px-8 py-3 text-xs font-black tracking-[0.14em]"
+      >
+        Escribinos por WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .faq-item {
+    border-radius: var(--radius-card);
+    padding: 1.1rem 1.4rem;
+    background: linear-gradient(180deg, #141210 0%, #080706 100%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 18%, transparent);
+    transition: box-shadow 0.3s ease;
+  }
+
+  .faq-item[open] {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 50%, transparent);
+  }
+
+  .faq-item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    cursor: pointer;
+    list-style: none;
+    font-size: 0.8rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-theme-cream);
+  }
+
+  .faq-item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq-icon {
+    color: var(--color-theme-gold);
+    font-size: 1.1rem;
+    transition: transform 0.3s ease;
+  }
+
+  .faq-item[open] .faq-icon {
+    transform: rotate(45deg);
+  }
+
+  .faq-item p {
+    margin-top: 0.9rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-theme-gold) 12%, transparent);
+    padding-top: 0.9rem;
+  }
+
+  .creator-block {
+    border-radius: var(--radius-card);
+    padding: 2.5rem 2rem;
+    background:
+      radial-gradient(70% 60% at 50% 0%, color-mix(in srgb, var(--color-theme-gold) 10%, transparent), transparent),
+      linear-gradient(180deg, #141210 0%, #080706 100%);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-theme-gold) 25%, transparent);
+  }
+</style>

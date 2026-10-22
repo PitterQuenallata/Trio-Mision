@@ -1,0 +1,30 @@
+---
+interface Props {
+  nombre: string
+  url: string
+  icono: string
+  grupo: string
+}
+
+const { nombre, url, icono, grupo } = Astro.props
+---
+
+<a class="platform-link" href={url} target="_blank" rel="noopener noreferrer" aria-label={`${nombre} · ${grupo}`}>
+  <span class="platform-mark" aria-hidden="true">
+    {icono === 'youtube' && <svg viewBox="0 0 24 24"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.6 12 3.6 12 3.6s-7.6 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.5 9.4.5 9.4.5s7.6 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8ZM9.6 15.6V8.4l6.2 3.6-6.2 3.6Z" /></svg>}
+    {icono === 'facebook' && <svg viewBox="0 0 24 24"><path d="M13.5 21v-8.2h2.8l.4-3.2h-3.2v-2c0-.9.3-1.5 1.6-1.5h1.7V3.2c-.3 0-1.3-.2-2.5-.2-2.5 0-4.2 1.5-4.2 4.3v2.3H7.3v3.2h2.8V21h3.4Z" /></svg>}
+    {icono === 'tiktok' && <svg viewBox="0 0 24 24"><path d="M19.6 6.7a4.8 4.8 0 0 1-3.8-4.3V2h-3.6v13.7a2.9 2.9 0 1 1-2.9-2.9c.3 0 .6 0 .9.1V9.3a6.5 6.5 0 1 0 5.6 6.4V8.8a8.3 8.3 0 0 0 4.9 1.6V6.8c-.4 0-.8 0-1.1-.1Z" /></svg>}
+    {icono === 'spotify' && <svg viewBox="0 0 24 24"><path d="M12 1.5a10.5 10.5 0 1 0 0 21 10.5 10.5 0 0 0 0-21Zm4.8 15.1a.8.8 0 0 1-1.1.3c-2.9-1.8-6.5-2.2-10.8-1.2a.8.8 0 1 1-.4-1.6c4.7-1.1 8.7-.6 12 1.4.4.2.5.7.3 1.1Zm1.4-3.1a1 1 0 0 1-1.3.3c-3.3-2-8.4-2.6-12.3-1.4a1 1 0 1 1-.6-1.8c4.5-1.4 10.1-.7 13.9 1.6.5.3.6.9.3 1.3Zm.1-3.2C14.4 8 7.9 7.8 4.2 8.9a1.1 1.1 0 1 1-.6-2.1c4.3-1.3 11.4-1 15.8 1.6a1.1 1.1 0 0 1-1.1 1.9Z" /></svg>}
+    {icono === 'apple-music' && <svg viewBox="0 0 24 24"><path d="M19 2.5a1 1 0 0 1 1.3 1v13.2a4.2 4.2 0 1 1-2-3.6V7.6l-8.6 1.8v9.4a4.2 4.2 0 1 1-2-3.6V6.7a1 1 0 0 1 .8-1L19 2.5Z" /></svg>}
+  </span>
+  <span class="platform-name">{nombre}</span>
+</a>
+
+<style>
+  .platform-link { display: inline-flex; min-height: 2.8rem; align-items: center; gap: .6rem; padding: .55rem .8rem; color: var(--color-theme-cream); border: 1px solid color-mix(in srgb, var(--color-theme-gold) 19%, transparent); background: rgb(10 9 8 / 62%); transition: color .2s ease, border-color .2s ease, background .2s ease; }
+  .platform-link:hover, .platform-link:focus-visible { color: var(--color-theme-gold); border-color: color-mix(in srgb, var(--color-theme-gold) 58%, transparent); background: rgb(199 168 107 / 6%); }
+  .platform-link:focus-visible { outline: 2px solid var(--color-theme-gold); outline-offset: 3px; }
+  .platform-mark { display: grid; width: 1.1rem; height: 1.1rem; flex: 0 0 auto; place-items: center; }
+  .platform-mark svg { width: 100%; height: 100%; fill: currentColor; }
+  .platform-name { font-size: .67rem; font-weight: 800; letter-spacing: .06em; }
+</style>

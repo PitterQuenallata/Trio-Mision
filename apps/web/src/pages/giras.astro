@@ -1,0 +1,50 @@
+---
+import Layout from '@/shared/layouts/Layout.astro'
+import Header from '@/shared/components/layout/Header.astro'
+import Footer from '@/shared/components/layout/Footer.astro'
+import SectionTitle from '@/shared/components/ui/SectionTitle.astro'
+import Timeline from '@/domains/grupo/components/Timeline.astro'
+import { actividades } from '@/domains/grupo/data'
+---
+
+<Layout
+  title="Giras y presentaciones — Trio Misión Bolivia"
+  description="Giras, encuentros y presentaciones de Trio Misión en Bolivia y otros países, desde 1996 hasta 2025."
+>
+  <Header />
+  <main class="mx-auto w-full max-w-5xl flex-1 px-6 pb-28 pt-32">
+    <header class="mx-auto max-w-2xl text-center">
+      <SectionTitle eyebrow="Bolivia · Perú · Brasil · Argentina · Chile" title="Giras y presentaciones" />
+      <p class="mt-6 font-sans text-sm leading-relaxed text-theme-cream/60" data-reveal>
+        Encuentros, campañas y viajes donde Trio Misión compartió su música con distintas comunidades.
+      </p>
+    </header>
+
+    <section class="mt-20" aria-label="Cronología de giras, encuentros y presentaciones">
+      <Timeline hitos={actividades} />
+    </section>
+
+    <nav class="mt-24 text-center" aria-label="Más sobre Trio Misión" data-reveal>
+      <a href="/historia" class="story-link">Conoce la historia del grupo <span aria-hidden="true">→</span></a>
+    </nav>
+  </main>
+  <Footer />
+</Layout>
+
+<style>
+  .story-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .75rem 1.3rem;
+    color: var(--color-theme-gold);
+    font-size: .65rem;
+    font-weight: 800;
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    box-shadow: inset 0 0 0 1px rgb(199 168 107 / 38%);
+    transition: color .2s ease, box-shadow .2s ease, transform .2s ease;
+  }
+  .story-link:hover { color: var(--color-theme-cream); box-shadow: inset 0 0 0 1px rgb(199 168 107 / 75%); transform: translateY(-2px); }
+  @media (prefers-reduced-motion: reduce) { .story-link { transition: none; } }
+</style>
