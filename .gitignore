@@ -29,6 +29,7 @@ reverse-lab/**/evidence/recordings/
 
 # Herramientas de terceros clonadas (no se vendorean)
 reverse-lab/tools/rea/
+reverse-lab/tools/ghidra/
 
 # Versiones v1 de referencia (clones independientes con su propio .git)
 legacy/*
