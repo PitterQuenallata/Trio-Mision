@@ -7,6 +7,8 @@
 
 # Binarios móviles (APK de terceros no se versionan)
 *.apk
+*.apks
+*.xapk
 *.aab
 *.ipa
 
@@ -41,3 +43,8 @@ legacy/*
 # Python
 .venv/
 __pycache__/
+
+# Extracciones y descompilaciones de APKs
+reverse-lab/**/reference/*extracted*/
+reverse-lab/**/reference/*unpacked*/
+*.apks.zip

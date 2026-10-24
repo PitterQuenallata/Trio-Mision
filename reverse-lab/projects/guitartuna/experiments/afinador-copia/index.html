@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>guitartuna — copia</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ══ VISTA: AFINADOR (TUNER)               ══ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="view-panel" id="view-tuner">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <span class="logo-guitar">guitar</span><span class="logo-tuna">tuna</span>
+      </div>
+      <div class="auto-toggle">
+        <span class="auto-label">Autom.</span>
+        <div class="toggle-track" id="auto-toggle" role="switch" aria-checked="true" tabindex="0">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Instrument selector -->
+    <div class="instrument-selector">
+      <div class="instrument-name" id="instrument-btn">
+        Guitarra 6 cuerdas
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="tuning-name" id="tuning-label">Estándar</div>
+      <select class="tuning-select" id="tuning-select">
+        <option value="standard">Estándar (EADGBe)</option>
+        <option value="dropD">Drop D (DADGBe)</option>
+        <option value="openG">Open G (DGDGBd)</option>
+        <option value="openE">Open E (EBE G#Be)</option>
+        <option value="dadgad">DADGAD</option>
+        <option value="halfDown">Medio tono abajo (Eb)</option>
+      </select>
+    </div>
+
+    <!-- Gauge -->
+    <div class="gauge-section">
+      <div class="gauge-container">
+        <span class="gauge-label-flat">&#9837;</span>
+        <div class="gauge-center-line"></div>
+        <div class="gauge-track"></div>
+        <div class="needle-indicator" id="needle-indicator">
+          <div class="needle-circle" id="needle-circle"></div>
+          <div class="needle-tip" id="needle-tip"></div>
+        </div>
+        <span class="gauge-label-sharp">#</span>
+      </div>
+    </div>
+
+    <!-- Hint / nota detectada -->
+    <div class="hint-bubble" id="hint-bubble">Toca cualquier cuerda para comenzar a afinar</div>
+    <div class="note-display" id="note-display">
+      <div class="detected-note" id="detected-note">A</div>
+      <div class="detected-cents" id="detected-cents">+0 cents · 440.0 Hz</div>
+    </div>
+
+    <!-- Headstock + Cuerdas -->
+    <div class="headstock-area">
+      <div class="strings-col" id="strings-left"></div>
+
+      <div class="headstock-wrap">
+        <svg class="headstock-svg" viewBox="0 0 200 420" xmlns="http://www.w3.org/2000/svg" aria-label="Clavijero">
+          <defs>
+            <linearGradient id="woodGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stop-color="#7a3d1a"/>
+              <stop offset="40%"  stop-color="#a0521f"/>
+              <stop offset="70%"  stop-color="#8b4513"/>
+              <stop offset="100%" stop-color="#5c2a0a"/>
+            </linearGradient>
+            <linearGradient id="pearlGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%"   stop-color="#e8e0c8"/>
+              <stop offset="50%"  stop-color="#d4c89a"/>
+              <stop offset="100%" stop-color="#b8a878"/>
+            </linearGradient>
+            <linearGradient id="tunerGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%"   stop-color="#d8d8d8"/>
+              <stop offset="50%"  stop-color="#909090"/>
+              <stop offset="100%" stop-color="#606060"/>
+            </linearGradient>
+            <radialGradient id="tunerKnob" cx="40%" cy="35%">
+              <stop offset="0%"  stop-color="#f0f0f0"/>
+              <stop offset="60%" stop-color="#a0a0a0"/>
+              <stop offset="100%" stop-color="#606060"/>
+            </radialGradient>
+            <filter id="shadow">
+              <feDropShadow dx="2" dy="4" stdDeviation="5" flood-color="rgba(0,0,0,0.6)"/>
+            </filter>
+            <pattern id="grain" x="0" y="0" width="4" height="20" patternUnits="userSpaceOnUse" patternTransform="rotate(5)">
+              <line x1="0" y1="0" x2="0" y2="20" stroke="rgba(0,0,0,0.07)" stroke-width="1.5"/>
+            </pattern>
+          </defs>
+
+          <path d="M75,420 L75,280 Q75,260 55,250 L20,235 Q5,228 5,212 L5,60 Q5,30 30,20 L85,10 Q100,6 115,10 L170,20 Q195,30 195,60 L195,212 Q195,228 180,235 L145,250 Q125,260 125,280 L125,420 Z"
+            fill="url(#woodGrad)" filter="url(#shadow)"/>
+          <path d="M75,420 L75,280 Q75,260 55,250 L20,235 Q5,228 5,212 L5,60 Q5,30 30,20 L85,10 Q100,6 115,10 L170,20 Q195,30 195,60 L195,212 Q195,228 180,235 L145,250 Q125,260 125,280 L125,420 Z"
+            fill="url(#grain)" opacity="0.5"/>
+          <path d="M75,420 L75,280 Q75,260 55,250 L20,235 Q5,228 5,212 L5,60 Q5,30 30,20 L85,10 Q100,6 115,10 L170,20 Q195,30 195,60 L195,212 Q195,228 180,235 L145,250 Q125,260 125,280 L125,420"
+            fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+          <path d="M80,420 L80,282 Q80,265 62,255 L28,240 Q14,234 13,218 L13,62 Q13,36 36,26 L86,14"
+            fill="none" stroke="rgba(200,130,60,0.25)" stroke-width="2.5" stroke-linecap="round"/>
+
+          <ellipse cx="100" cy="38" rx="26" ry="16" fill="url(#pearlGrad)" opacity="0.85"/>
+          <ellipse cx="100" cy="38" rx="20" ry="11" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="1"/>
+
+          <!-- Clavijas IZQUIERDA -->
+          <rect x="3" y="68"  width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <rect x="3" y="118" width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <rect x="3" y="168" width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <circle cx="8"  cy="72"  r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="8"  cy="122" r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="8"  cy="172" r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="5"  cy="69"  r="3.5" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="5"  cy="119" r="3.5" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="5"  cy="169" r="3.5" fill="rgba(255,255,255,0.4)"/>
+
+          <!-- Clavijas DERECHA -->
+          <rect x="173" y="68"  width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <rect x="173" y="118" width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <rect x="173" y="168" width="24" height="7" rx="3.5" fill="url(#tunerGrad)"/>
+          <circle cx="192" cy="72"  r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="192" cy="122" r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="192" cy="172" r="11" fill="url(#tunerKnob)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="189" cy="69"  r="3.5" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="189" cy="119" r="3.5" fill="rgba(255,255,255,0.4)"/>
+          <circle cx="189" cy="169" r="3.5" fill="rgba(255,255,255,0.4)"/>
+
+          <!-- Cuerdas -->
+          <line x1="14"  y1="72"  x2="82"  y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="1.3"/>
+          <line x1="14"  y1="122" x2="88"  y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="1.1"/>
+          <line x1="14"  y1="172" x2="94"  y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="0.9"/>
+          <line x1="186" y1="72"  x2="106" y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="0.8"/>
+          <line x1="186" y1="122" x2="112" y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="0.7"/>
+          <line x1="186" y1="172" x2="118" y2="300" stroke="rgba(210,190,150,0.4)" stroke-width="0.6"/>
+
+          <rect x="74" y="294" width="52" height="9" rx="2" fill="#ede0b8" stroke="rgba(0,0,0,0.35)" stroke-width="0.8"/>
+          <line x1="82"  y1="303" x2="82"  y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="1.3"/>
+          <line x1="88"  y1="303" x2="88"  y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="1.1"/>
+          <line x1="94"  y1="303" x2="94"  y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="0.9"/>
+          <line x1="106" y1="303" x2="106" y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="0.8"/>
+          <line x1="112" y1="303" x2="112" y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="0.7"/>
+          <line x1="118" y1="303" x2="118" y2="420" stroke="rgba(190,170,130,0.55)" stroke-width="0.6"/>
+
+          <rect x="74" y="338" width="52" height="2.5" rx="1" fill="rgba(210,190,150,0.45)"/>
+          <rect x="74" y="378" width="52" height="2.5" rx="1" fill="rgba(210,190,150,0.45)"/>
+        </svg>
+      </div>
+
+      <div class="strings-col" id="strings-right"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ══ VISTA: CANCIONES (GUITARTUNA EXACTA)  ══ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="view-panel" id="view-songs" style="display:none;">
+
+    <!-- Top Navigation Bar de la canción -->
+    <div class="gt-song-header">
+      <button class="gt-back-btn" id="btn-back-to-tuner" aria-label="Volver">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <div class="gt-title-wrapper">
+        <select class="gt-song-select" id="gt-song-select">
+          <option value="cantad-alegres">01 Cantad alegres al Señor</option>
+          <option value="bailando">Bailando (Enrique Iglesias)</option>
+          <option value="cumpleanos-feliz">Cumpleaños Feliz</option>
+          <option value="basta-ya">Basta Ya (ChordU)</option>
+        </select>
+      </div>
+      <div class="gt-song-actions">
+        <button class="gt-icon-btn" aria-label="Favorito">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+        <button class="gt-icon-btn" aria-label="Opciones">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <circle cx="19" cy="12" r="2"></circle>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Info Card (Simplificada / Original + Cejillo + Acordes) -->
+    <div class="gt-info-card">
+      <div class="gt-tabs-row">
+        <button class="gt-tab-btn" id="btn-tab-simplified">Simplificada</button>
+        <button class="gt-tab-btn active" id="btn-tab-original">Original</button>
+      </div>
+      <div class="gt-capo-text" id="gt-capo-display">Cejillo: Sin cejillo</div>
+      <div class="gt-chords-strip" id="gt-chords-strip">
+        <span class="gt-chord-badge">Bb</span>
+        <span class="gt-divider">|</span>
+        <span class="gt-chord-badge">Dm</span>
+        <span class="gt-divider">|</span>
+        <span class="gt-chord-badge">Gm</span>
+        <span class="gt-divider">|</span>
+        <span class="gt-chord-badge">F</span>
+      </div>
+    </div>
+
+    <!-- Toggle AVANCE AUTOMÁTICO, Filtro Voz y Tolerancia (GuitarTuna exacto) -->
+    <div class="gt-auto-scroll-row">
+      <div class="gt-filters-group">
+        <button class="gt-voice-filter-btn active" id="btn-toggle-voice-filter" title="Ignorar voz humana y solo avanzar con rasgueo de guitarra">
+          <span class="dot-filter"></span>
+          <span id="voice-filter-label">Filtro Voz: ACTIVO</span>
+        </button>
+        <button class="gt-strictness-btn" id="btn-toggle-strictness" title="Modo de tolerancia: Aprendiz (tolera cuerdas apagadas y bajos accidentales) vs Pro (estricto)">
+          <span class="dot-strictness"></span>
+          <span id="strictness-label">Aprendiz</span>
+        </button>
+      </div>
+
+      <div class="gt-toggle-wrap">
+        <span class="gt-auto-scroll-label">AVANCE AUTOMÁTICO</span>
+        <div class="toggle-track" id="auto-scroll-toggle" role="switch" aria-checked="true" tabindex="0">
+          <div class="toggle-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hoja de Canción con Scroll Automático -->
+    <div class="gt-song-sheet-container" id="song-sheet-container">
+      <div class="gt-song-sheet" id="song-sheet">
+        <!-- Renderizado dinámicamente con secciones, acordes en azul y línea activa en blanco -->
+      </div>
+    </div>
+
+    <!-- Floating Live Mic Banner -->
+    <div class="gt-floating-mic" id="floating-mic">
+      <div class="gt-mic-dot" id="gt-mic-dot"></div>
+      <div class="gt-mic-info">
+        <span class="gt-mic-prompt" id="gt-mic-prompt">Toca el acorde: <strong id="gt-current-chord-name" class="chord-blue-text">C</strong></span>
+        <span class="gt-mic-heard" id="gt-mic-heard">Escuchando micrófono...</span>
+      </div>
+      <button class="gt-restart-pill" id="btn-restart-song" title="Reiniciar canción">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        Reiniciar
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ══ VISTA: METRÓNOMO (GUITARTUNA EXACTO)   ══ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="view-panel" id="view-metronome" style="display:none;">
+
+    <!-- Top Header -->
+    <header class="metro-header">
+      <button class="metro-back-btn" id="btn-metro-back" aria-label="Volver">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <h1 class="metro-title">Metrónomo</h1>
+      <div class="metro-header-spacer"></div>
+    </header>
+
+    <!-- BPM Display Row (- [ 136 ] +) -->
+    <div class="metro-bpm-section">
+      <div class="metro-bpm-controls">
+        <button class="metro-circle-btn" id="btn-metro-minus" aria-label="Disminuir tempo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <span class="metro-bpm-number" id="metro-bpm-num">136</span>
+        <button class="metro-circle-btn" id="btn-metro-plus" aria-label="Aumentar tempo">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="metro-bpm-subtitle">Pulsos por minuto</div>
+    </div>
+
+    <!-- Circular Dial (Dial de Ticks Radiales + Controles Centrales) -->
+    <div class="metro-dial-wrap" id="metro-dial-wrap">
+      <div class="metro-dial-container" id="metro-dial-area">
+        <svg class="metro-dial-svg" viewBox="0 0 300 300" id="metro-dial-svg">
+          <!-- Ticks radiales generados dinámicamente -->
+          <g id="metro-dial-ticks"></g>
+          
+          <!-- Números de referencia alrededor del dial -->
+          <text x="150" y="58" class="metro-dial-label" text-anchor="middle">135</text>
+          <text x="64" y="154" class="metro-dial-label" text-anchor="middle">75</text>
+          <text x="236" y="154" class="metro-dial-label" text-anchor="middle">195</text>
+          <text x="96" y="234" class="metro-dial-label" text-anchor="middle">30</text>
+          <text x="204" y="234" class="metro-dial-label" text-anchor="middle">240</text>
+
+          <!-- Knob / Selector circular draggable -->
+          <circle id="metro-dial-knob" cx="150" cy="37" r="13" class="metro-dial-knob" />
+        </svg>
+
+        <!-- Controles centrales (Play/Pause arriba, Línea divisoria, Tap Tempo abajo) -->
+        <div class="metro-center-controls">
+          <button class="metro-play-btn" id="btn-metro-play-pause" aria-label="Iniciar metrónomo">
+            <svg width="26" height="28" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="6,3 20,12 6,21" />
+            </svg>
+          </button>
+          
+          <div class="metro-center-divider"></div>
+
+          <button class="metro-tap-btn" id="btn-metro-tap" title="Toca al ritmo para calcular tempo (Tap Tempo)" aria-label="Tap Tempo">
+            <!-- Icono exacto de mano señalando / pulsando como en GuitarTuna -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v8" />
+              <path d="M10 5l2-3 2 3" />
+              <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+              <path d="M14 10V4a2 2 0 0 0-4 0v9" />
+              <path d="M10 10.5V7a2 2 0 0 0-4 0v7a6 6 0 0 0 12 0v-3a2 2 0 0 0-4 0" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Puntos indicadores de compás (Beats) -->
+    <div class="metro-dots-container" id="metro-dots-container">
+      <!-- Generado dinámicamente según el compás (4 puntos para 4/4) -->
+    </div>
+
+    <!-- Selector de Compás (Pill Button 4/4) -->
+    <div class="metro-signature-section">
+      <button class="metro-signature-pill" id="btn-metro-sig" aria-label="Cambiar medida de compás">4/4</button>
+      <div class="metro-signature-label">Medida de compás</div>
+    </div>
+
+  </div>
+
+  <!-- Modal / Bottom Sheet para seleccionar compás -->
+  <div class="metro-modal-backdrop" id="metro-sig-modal">
+    <div class="metro-modal-sheet">
+      <div class="metro-modal-handle"></div>
+      <h3 class="metro-modal-title">Medida de compás</h3>
+      <div class="metro-modal-options">
+        <button class="metro-modal-opt" data-sig="1/4">1/4 <span class="opt-desc">Sin compás / Pulso libre</span></button>
+        <button class="metro-modal-opt" data-sig="2/4">2/4 <span class="opt-desc">2 tiempos (Marcha)</span></button>
+        <button class="metro-modal-opt" data-sig="3/4">3/4 <span class="opt-desc">3 tiempos (Vals)</span></button>
+        <button class="metro-modal-opt active" data-sig="4/4">4/4 <span class="opt-desc">4 tiempos (Estándar)</span></button>
+        <button class="metro-modal-opt" data-sig="5/4">5/4 <span class="opt-desc">5 tiempos</span></button>
+        <button class="metro-modal-opt" data-sig="6/8">6/8 <span class="opt-desc">6 tiempos (Ternario / Balada)</span></button>
+      </div>
+      <button class="metro-modal-close" id="btn-close-sig-modal">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- ══ BOTTOM NAV (6 TABS)                    ══ -->
+  <!-- ═══════════════════════════════════════════ -->
+  <nav class="bottom-nav">
+    <button class="nav-item" id="nav-canciones" aria-label="Canciones">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      Canciones
+    </button>
+    <button class="nav-item" id="nav-aprendizaje" aria-label="Aprendizaje">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>
+      Aprendizaje
+    </button>
+    <button class="nav-item active" id="nav-tuner" aria-label="Afinar">
+      <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      Afinar
+    </button>
+    <button class="nav-item" id="nav-herramientas" aria-label="Herramientas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="4"/>
+        <line x1="8" y1="8" x2="8" y2="16"/>
+        <line x1="12" y1="6" x2="12" y2="18"/>
+        <line x1="16" y1="10" x2="16" y2="14"/>
+      </svg>
+      Herramientas
+    </button>
+    <button class="nav-item" id="nav-yousician" aria-label="Yousician">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="10" ry="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Yousician
+    </button>
+    <button class="nav-item" id="nav-cuenta" aria-label="Cuenta">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Cuenta
+    </button>
+  </nav>
+
+</div>
+
+<div class="error-toast" id="error-toast" role="alert"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

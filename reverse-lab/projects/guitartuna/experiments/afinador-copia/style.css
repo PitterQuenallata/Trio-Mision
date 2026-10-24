@@ -1,0 +1,1240 @@
+/* ============================================================
+   afinador-copia — style.css
+   Copia fiel de la UI de GuitarTuna
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:         #1a1a2a;
+  --bg-dark:    #141420;
+  --bg-section: #1e1e30;
+  --accent:     #3ddc84;
+  --accent-glow:rgba(61,220,132,0.35);
+  --text:       #ffffff;
+  --text-dim:   rgba(255,255,255,0.55);
+  --text-muted: rgba(255,255,255,0.25);
+  --string-bg:  rgba(255,255,255,0.08);
+  --string-active-bg: rgba(61,220,132,0.15);
+  --transition: 150ms cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-dark);
+  color: var(--text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Grid background (como GuitarTuna) ── */
+.app {
+  position: relative;
+  height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-dark);
+}
+
+.app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Header ── */
+.header {
+  position: relative; z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 10px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.logo-guitar { color: var(--text); }
+.logo-tuna   { color: var(--accent); }
+
+.auto-toggle {
+  display: flex; align-items: center; gap: 8px;
+}
+.auto-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+/* Toggle switch */
+.toggle-track {
+  width: 44px; height: 26px;
+  background: var(--accent);
+  border-radius: 13px;
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition);
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+.toggle-track.off { background: rgba(255,255,255,0.15); box-shadow: none; }
+.toggle-thumb {
+  position: absolute;
+  top: 3px; right: 3px;
+  width: 20px; height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: right var(--transition);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+.toggle-track.off .toggle-thumb { right: auto; left: 3px; }
+
+/* ── Instrument selector ── */
+.instrument-selector {
+  position: relative; z-index: 2;
+  padding: 2px 20px 12px;
+  flex-shrink: 0;
+}
+.instrument-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  display: flex; align-items: center; gap: 6px;
+  cursor: pointer;
+}
+.instrument-name svg { color: var(--text-dim); }
+.tuning-name {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+/* ── Gauge section ── */
+.gauge-section {
+  position: relative; z-index: 2;
+  flex-shrink: 0;
+  padding: 0 20px;
+}
+
+.gauge-container {
+  position: relative;
+  height: 90px;
+  display: flex;
+  align-items: center;
+}
+
+/* Labels b y # */
+.gauge-label-flat, .gauge-label-sharp {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: var(--text-dim);
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  z-index: 3;
+}
+.gauge-label-flat  { left: 0; font-family: Georgia, serif; }
+.gauge-label-sharp { right: 0; }
+
+/* Línea central vertical */
+.gauge-center-line {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 1px;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+/* Indicador (círculo con punta) */
+.gauge-track {
+  position: absolute;
+  left: 24px; right: 24px;
+  top: 50%; transform: translateY(-50%);
+  height: 1px;
+  background: rgba(255,255,255,0.1);
+  z-index: 2;
+}
+
+.needle-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: left 130ms cubic-bezier(0.4,0,0.2,1);
+  z-index: 4;
+}
+
+.needle-circle {
+  width: 36px; height: 36px;
+  border: 2.5px solid var(--text);
+  border-radius: 50%;
+  background: transparent;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+.needle-circle.in-tune {
+  border-color: var(--accent);
+  background: rgba(61,220,132,0.15);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+.needle-circle.close-tune {
+  border-color: #f7b731;
+  box-shadow: 0 0 14px rgba(247,183,49,0.4);
+}
+.needle-circle.off-tune {
+  border-color: rgba(255,255,255,0.7);
+}
+
+/* Punta triangular debajo del círculo */
+.needle-tip {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 8px solid var(--text);
+  margin-top: -1px;
+  transition: border-top-color var(--transition);
+}
+.needle-circle.in-tune  ~ .needle-tip { border-top-color: var(--accent); }
+.needle-circle.close-tune ~ .needle-tip { border-top-color: #f7b731; }
+
+/* ── Hint message ── */
+.hint-bubble {
+  position: relative; z-index: 2;
+  margin: 6px 20px 0;
+  background: rgba(50,50,70,0.9);
+  border-radius: 14px;
+  padding: 13px 20px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  font-weight: 400;
+  flex-shrink: 0;
+  transition: opacity 300ms;
+}
+.hint-bubble.hidden { opacity: 0; pointer-events: none; }
+
+/* ── Note display (cuando detecta) ── */
+.note-display {
+  position: relative; z-index: 2;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  margin: 4px 0 0;
+  flex-shrink: 0;
+}
+.note-display.visible { display: flex; }
+
+.detected-note {
+  font-size: 4rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text);
+  transition: color var(--transition);
+}
+.detected-note.in-tune   { color: var(--accent); }
+.detected-note.close-tune{ color: #f7b731; }
+.detected-note.off-tune  { color: rgba(255,255,255,0.8); }
+
+.detected-cents {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ── Headstock + strings layout ── */
+.headstock-area {
+  position: relative; z-index: 2;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 64px 1fr 64px;
+  align-items: center;
+  padding: 10px 12px 10px;
+  min-height: 0;
+}
+
+/* Columnas de cuerdas */
+.strings-col {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
+}
+
+/* Botón de cuerda */
+.string-btn {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  background: var(--string-bg);
+  border: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.string-btn:hover {
+  background: rgba(255,255,255,0.13);
+}
+.string-btn.active {
+  background: var(--string-active-bg);
+  border: 2px solid var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 16px var(--accent-glow);
+}
+
+/* Headstock SVG ilustración */
+.headstock-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.headstock-svg {
+  width: 100%;
+  max-width: 200px;
+  height: auto;
+  filter: drop-shadow(0 8px 32px rgba(0,0,0,0.6));
+}
+
+/* ── Bottom nav ── */
+.bottom-nav {
+  position: relative; z-index: 2;
+  background: var(--bg-dark);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 4px 10px;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: color var(--transition);
+}
+.nav-item:hover { color: var(--text-dim); }
+.nav-item.active { color: var(--accent); }
+
+.nav-item svg {
+  width: 22px; height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ── Error toast ── */
+.error-toast {
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,10,15,0.95);
+  border: 1px solid rgba(255,77,109,0.5);
+  border-radius: 12px;
+  padding: 12px 20px;
+  color: #ff6b81;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 300ms;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.error-toast.show { opacity: 1; }
+
+/* ── View panels ── */
+.view-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GUITARTUNA EXACT SONG SCREEN & SMART-SCROLL (AVANCE AUTOMÁTICO)
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Song Top Header ── */
+.gt-song-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 8px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.gt-back-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: transform 150ms ease;
+}
+
+.gt-back-btn:hover {
+  transform: translateX(-2px);
+}
+
+.gt-title-wrapper {
+  flex: 1;
+  text-align: center;
+  padding: 0 8px;
+}
+
+.gt-song-select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  outline: none;
+  cursor: pointer;
+  max-width: 220px;
+}
+
+.gt-song-select option {
+  background: var(--bg-dark);
+  color: #fff;
+}
+
+.gt-song-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gt-icon-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: color 150ms ease;
+}
+
+.gt-icon-btn:hover {
+  color: #fff;
+}
+
+/* ── Top Info Card (Simplificada, Cejillo, Acordes) ── */
+.gt-info-card {
+  margin: 12px 16px 6px;
+  background: #111116;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px 16px 12px;
+  flex-shrink: 0;
+}
+
+.gt-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gt-tab-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.gt-tab-btn.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #22d4a3;
+}
+
+.gt-capo-text {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.gt-chords-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.gt-chord-badge {
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.gt-divider {
+  color: rgba(255, 255, 255, 0.2);
+  font-weight: 300;
+}
+
+/* ── Toggle AVANCE AUTOMÁTICO, FILTRO DE VOZ y TOLERANCIA ── */
+.gt-auto-scroll-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 18px 8px;
+  flex-shrink: 0;
+}
+
+.gt-filters-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gt-voice-filter-btn,
+.gt-strictness-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  color: rgba(255, 255, 255, 0.7);
+  font-family: inherit;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.gt-voice-filter-btn .dot-filter {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4d6d;
+}
+
+.gt-voice-filter-btn.active {
+  background: rgba(0, 192, 255, 0.12);
+  border-color: rgba(0, 192, 255, 0.4);
+  color: #00c0ff;
+}
+
+.gt-voice-filter-btn.active .dot-filter {
+  background: #00c0ff;
+  box-shadow: 0 0 6px #00c0ff;
+}
+
+.gt-strictness-btn .dot-strictness {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22d4a3;
+  box-shadow: 0 0 6px #22d4a3;
+}
+
+.gt-strictness-btn {
+  background: rgba(34, 212, 163, 0.10);
+  border-color: rgba(34, 212, 163, 0.35);
+  color: #22d4a3;
+}
+
+.gt-strictness-btn.strict {
+  background: rgba(255, 170, 0, 0.10);
+  border-color: rgba(255, 170, 0, 0.35);
+  color: #ffaa00;
+}
+
+.gt-strictness-btn.strict .dot-strictness {
+  background: #ffaa00;
+  box-shadow: 0 0 6px #ffaa00;
+}
+
+.gt-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gt-auto-scroll-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+/* ── Sheet Container ── */
+.gt-song-sheet-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 20px 80px;
+  scroll-behavior: smooth;
+  min-height: 0;
+}
+
+.gt-song-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding-bottom: 60px;
+}
+
+/* Sección badge tipo GuitarTuna: [INTRO 1], [VERSE 1] */
+.gt-section-pill {
+  display: inline-block;
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 12px;
+}
+
+/* ── Bloque de línea de letra y acordes ── */
+.gt-line-block {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 220ms ease;
+  position: relative;
+  opacity: 0.55;
+}
+
+/* Línea ACTIVA (en blanco vibrante) */
+.gt-line-block.active-line {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #00c0ff;
+  padding-left: 14px;
+  box-shadow: inset 0 0 20px rgba(0, 192, 255, 0.04);
+}
+
+/* ── Fila de pares de Acorde sobre Letra (Alineación natural) ── */
+.gt-chord-lyric-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  row-gap: 8px;
+}
+
+.gt-chord-lyric-pair {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  vertical-align: bottom;
+}
+
+.gt-chord-cell {
+  font-size: 1.15rem;
+  font-weight: 800;
+  min-height: 1.5rem;
+  line-height: 1.2;
+  margin-bottom: 2px;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 180ms ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.gt-chord-cell.empty-chord {
+  visibility: hidden;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* Acorde activo en COLOR AZUL vibrante (como pidió el usuario) */
+.gt-chord-cell.active-chord {
+  color: #00c0ff !important;
+  font-size: 1.35rem;
+  transform: translateY(-2px);
+  text-shadow: 0 0 14px rgba(0, 192, 255, 0.8), 0 0 2px #fff;
+  animation: pulse-chord 1.5s infinite alternate;
+}
+
+.gt-chord-cell.past-chord {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+@keyframes pulse-chord {
+  0% { transform: translateY(-2px) scale(1); }
+  100% { transform: translateY(-2px) scale(1.08); }
+}
+
+.gt-lyric-cell {
+  font-size: 1.15rem;
+  font-weight: 500;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  letter-spacing: -0.01em;
+  white-space: pre-wrap; /* Mantiene los espacios exactos de cada sílaba */
+}
+
+/* La letra de la línea que se está tocando está en BLANCO */
+.gt-line-block.active-line .gt-lyric-cell {
+  color: #ffffff !important;
+  font-weight: 600;
+}
+
+/* ── Floating Mic Bar ── */
+.gt-floating-mic {
+  margin: 6px 14px 10px;
+  background: rgba(18, 20, 28, 0.95);
+  border: 1px solid rgba(0, 192, 255, 0.25);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), 0 0 16px rgba(0, 192, 255, 0.12);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.gt-mic-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ff4d6d;
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.7);
+  animation: pulse-dot 1.2s infinite;
+  flex-shrink: 0;
+}
+
+.gt-mic-dot.listening-chord-match {
+  background: #00c0ff;
+  box-shadow: 0 0 14px rgba(0, 192, 255, 0.9);
+}
+
+.gt-mic-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.gt-mic-prompt {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.chord-blue-text {
+  color: #00c0ff;
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.gt-mic-heard {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gt-restart-pill {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 150ms ease;
+  flex-shrink: 0;
+}
+
+.gt-restart-pill:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* ── Tuning select (hidden, triggered by instrument row) ── */
+.tuning-select { display: none; }
+
+/* ══════════════════════════════════════════════════════════════
+   GUITARTUNA EXACT METRONOME (METRÓNOMO)
+   ══════════════════════════════════════════════════════════════ */
+
+.metro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 6px;
+  flex-shrink: 0;
+}
+
+.metro-back-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  transition: transform 150ms ease;
+}
+
+.metro-back-btn:hover {
+  transform: translateX(-2px);
+}
+
+.metro-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.metro-header-spacer {
+  width: 28px;
+}
+
+/* ── BPM Display Section ── */
+.metro-bpm-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 6px 0 10px;
+  flex-shrink: 0;
+}
+
+.metro-bpm-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+.metro-circle-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  background: transparent;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: all 120ms ease;
+  padding: 0;
+}
+
+.metro-circle-btn:hover {
+  border-color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.metro-circle-btn:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.metro-bpm-number {
+  font-size: 3.8rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  min-width: 120px;
+  text-align: center;
+  user-select: none;
+}
+
+.metro-bpm-subtitle {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  margin-top: 6px;
+  user-select: none;
+}
+
+/* ── Dial Circular Wrap & Central Controls ── */
+.metro-dial-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-height: 290px;
+  position: relative;
+  user-select: none;
+  touch-action: none;
+}
+
+.metro-dial-container {
+  position: relative;
+  width: 290px;
+  height: 290px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+}
+
+.metro-dial-container:active {
+  cursor: grabbing;
+}
+
+.metro-dial-svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.metro-dial-label {
+  fill: rgba(255, 255, 255, 0.45);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  user-select: none;
+}
+
+.metro-dial-knob {
+  fill: #14141c;
+  stroke: #22d4a3;
+  stroke-width: 2.8;
+  filter: drop-shadow(0 0 6px rgba(34, 212, 163, 0.7));
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* Centro del Dial: Play/Pause arriba, Línea divisoria, Tap Tempo abajo */
+.metro-center-controls {
+  position: absolute;
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  background: #121217;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  padding: 14px 0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.metro-play-btn {
+  background: none;
+  border: none;
+  color: #22d4a3;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  transition: transform 120ms ease, filter 150ms ease;
+  outline: none;
+}
+
+.metro-play-btn:hover {
+  filter: drop-shadow(0 0 8px rgba(34, 212, 163, 0.8));
+}
+
+.metro-play-btn:active {
+  transform: scale(0.90);
+}
+
+.metro-center-divider {
+  width: 130px;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.metro-tap-btn {
+  background: none;
+  border: none;
+  color: #22d4a3;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  transition: transform 80ms ease, filter 80ms ease;
+  outline: none;
+}
+
+.metro-tap-btn:hover {
+  filter: drop-shadow(0 0 8px rgba(34, 212, 163, 0.7));
+}
+
+.metro-tap-btn:active,
+.metro-tap-btn.tapping {
+  transform: scale(1.22);
+  filter: drop-shadow(0 0 12px #22d4a3);
+}
+
+/* ── Beat Indicator Dots ── */
+.metro-dots-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 12px 0 18px;
+  flex-shrink: 0;
+}
+
+.metro-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transition: all 80ms cubic-bezier(0.2, 0.8, 0.4, 1);
+}
+
+.metro-dot.active {
+  background: #22d4a3;
+  box-shadow: 0 0 12px #22d4a3;
+  transform: scale(1.35);
+}
+
+.metro-dot.active.accent {
+  background: #22d4a3;
+  box-shadow: 0 0 18px #22d4a3, 0 0 4px #ffffff;
+  transform: scale(1.5);
+}
+
+/* ── Time Signature Pill & Label ── */
+.metro-signature-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+
+.metro-signature-pill {
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  border-radius: 99px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 6px 38px;
+  cursor: pointer;
+  outline: none;
+  transition: all 150ms ease;
+}
+
+.metro-signature-pill:hover {
+  border-color: #22d4a3;
+  color: #22d4a3;
+}
+
+.metro-signature-pill:active {
+  transform: scale(0.96);
+  background: rgba(34, 212, 163, 0.1);
+}
+
+.metro-signature-label {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
+  margin-top: 6px;
+  user-select: none;
+}
+
+/* ── Modal Bottom Sheet Compás ── */
+.metro-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 150;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease;
+  display: flex;
+  align-items: flex-end;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.metro-modal-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.metro-modal-sheet {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  background: #181824;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 16px 20px 28px;
+  transform: translateY(100%);
+  transition: transform 260ms cubic-bezier(0.2, 0.9, 0.3, 1);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.metro-modal-backdrop.open .metro-modal-sheet {
+  transform: translateY(0);
+}
+
+.metro-modal-handle {
+  width: 38px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 auto 16px;
+}
+
+.metro-modal-title {
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.metro-modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.metro-modal-opt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: all 140ms ease;
+  outline: none;
+}
+
+.metro-modal-opt .opt-desc {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.metro-modal-opt:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.metro-modal-opt.active {
+  background: rgba(34, 212, 163, 0.15);
+  border-color: #22d4a3;
+  color: #22d4a3;
+}
+
+.metro-modal-opt.active .opt-desc {
+  color: #22d4a3;
+}
+
+.metro-modal-close {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.metro-modal-close:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+@media (max-width: 375px) {
+  .string-btn { width: 44px; height: 44px; font-size: 0.9rem; }
+  .strings-col { gap: 14px; }
+  .metro-dial-container { width: 260px; height: 260px; }
+  .metro-bpm-number { font-size: 3.2rem; }
+}
