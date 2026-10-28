@@ -80,9 +80,10 @@ Docker o PostgreSQL estén ausentes. Verificar con
 - Premium nunca concede audio descargable ni licencias: se calcula por
   períodos de suscripción; los paquetes congelan su contenido en el snapshot
   de la orden (`include_future_tracks=false`).
-- Siguiente tarea: Sprint 3C.3 de API pura (servicios y soporte: solicitudes,
-  cotizaciones, entregas y tickets/mensajes con adjuntos y reclamos YouTube),
-  sin construir UI.
+- Siguiente tarea: Revisión obligatoria con Kimi 3.1 del Sprint 3C.2 (el avance
+  queda pausado por el momento hasta que se revise); posteriormente Sprint 3C.3
+  de API pura (servicios y soporte: solicitudes, cotizaciones, entregas y tickets/mensajes
+  con adjuntos y reclamos YouTube), sin construir UI.
 - API actual: versión 0.8.0.
 
 ## Convenciones

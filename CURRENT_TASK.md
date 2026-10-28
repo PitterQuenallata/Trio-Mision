@@ -3,6 +3,12 @@
 > Archivo de estado vivo. Se actualiza al inicio y al final de cada sesión de trabajo.
 > Última actualización: 2026-10-28
 
+> [!IMPORTANT]
+> **ESTADO ACTUAL / PAUSA DE REVISIÓN:**
+> El Sprint 3C.2 está completado y verificado al 100%. **Se debe revisar con Kimi 3.1**
+> todo lo implementado antes de iniciar el siguiente sprint. El avance queda en
+> pausa por el momento hasta que se realice dicha revisión.
+
 ## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
 
 **Cerrado el 2026-10-28.** API pura 0.8.0: perfiles predeterminados por artista,
@@ -93,13 +99,17 @@ modificó UI**: los clientes se integran contra
   filtra `where oi.offer_id is not null limit 1` para no confundir las líneas de
   licencia (`offer_id = NULL`) con el ítem de la oferta al reconstruir la orden.
 
-## Siguiente tarea — Sprint 3C.3: servicios y soporte
+## Siguiente tarea — Revisión con Kimi 3.1 y posterior Sprint 3C.3 (servicios y soporte)
 
-**Estado:** no iniciado. Base verificada: API 0.8.0, 22 migraciones, Bruno
-150/150 y 359/359. **Solo API; no construir UI.** Ver alcance en
-`docs/planificacion/README.md`: solicitudes/cotizaciones/proyectos/entregas de
-composición-producción; tickets y mensajes de pagos, descargas, permisos y
-reclamos YouTube, con adjuntos privados y autorización titular/staff.
+**Estado:** en pausa para revisión. Base verificada: API 0.8.0, 22 migraciones, Bruno
+150/150 y 359/359.
+1. **Revisión obligatoria con Kimi 3.1**: revisar la implementación completa del
+   Sprint 3C.2 (migraciones 00021-00022, contratos de API, snapshots congelados,
+   efectos disjuntos y suite Bruno). No iniciar 3C.3 hasta cerrar esta revisión.
+2. **Sprint 3C.3 (servicios y soporte)**: **Solo API; no construir UI.** Ver alcance en
+   `docs/planificacion/README.md`: solicitudes/cotizaciones/proyectos/entregas de
+   composición-producción; tickets y mensajes de pagos, descargas, permisos y
+   reclamos YouTube, con adjuntos privados y autorización titular/staff.
 
 ## Fase 3 / Sprint 3C.1 — Premium, paquetes de audio, cupones y canjes: COMPLETADA ✅
 
