@@ -1,0 +1,41 @@
+meta {
+  name: Staff - crear código de canje agotado
+  type: http
+  seq: 109
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-AGOTADO-${Date.now()}`;
+  bru.setEnvVar("canjeAgotCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{canjeAgotCode}}",
+    "descripcion": "Código de prueba de un solo uso",
+    "tipo": "premium",
+    "plan_id": "{{planPremiumId}}",
+    "max_usos": 1,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.max_usos: eq 1
+}
+
+docs {
+  Crea un código de canje con un solo uso. Guarda `canjeAgotCode` para el
+  canje válido y el negativo de agotado.
+}

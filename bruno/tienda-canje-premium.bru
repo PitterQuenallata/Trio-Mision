@@ -1,0 +1,50 @@
+meta {
+  name: Tienda - canje Premium
+  type: http
+  seq: 105
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-canje-prem-${Date.now()}`;
+  bru.setEnvVar("canjePremKey", key);
+}
+
+body:json {
+  {
+    "codigo": "PREMIUM-DEMO",
+    "idempotency_key": "{{canjePremKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq PREMIUM-DEMO
+  res.body.tipo: eq premium
+}
+
+tests {
+  test("canje premium concede período sin pago ni audio", function() {
+    expect(res.getBody().accesos_creados).to.equal(0);
+    if (res.getBody().ya_canjeado === false) {
+      expect(res.getBody().suscripcion_creada).to.equal(true);
+      expect(res.getBody().suscripcion_id).to.exist;
+    }
+    // En corridas siguientes ya_canjeado=true (idempotencia natural).
+  });
+}
+
+docs {
+  Canje del código PREMIUM-DEMO (seed): crea un período Premium con
+  grant_source=redemption y extiende el vigente, sin crear pago ni
+  entitlements de audio.
+}

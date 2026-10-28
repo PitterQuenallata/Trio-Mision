@@ -1,0 +1,34 @@
+meta {
+  name: Artistas - member lee canción premium
+  type: http
+  seq: 45
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/canciones/00000000-0000-4000-8000-000000000208
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.acceso: eq premium
+  res.body.chordpro: isNotEmpty
+}
+
+tests {
+  test("el member lee el ChordPro que el catálogo público deniega (403)", function() {
+    expect(res.getBody().chordpro).to.contain("Estrella de la mañana");
+  });
+}
+
+docs {
+  Contraste central de la autorización por artista: la misma canción con
+  acceso=premium responde 403 en el catálogo público (GET
+  /api/v1/catalogo/canciones/{id}) pero 200 con ChordPro para member/manager
+  de su artista: la membresía autoriza la lectura, no el tipo de acceso.
+}

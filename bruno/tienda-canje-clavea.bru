@@ -1,0 +1,38 @@
+meta {
+  name: Tienda - canje del código A
+  type: http
+  seq: 93
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-cla-${Date.now()}`;
+  bru.setEnvVar("canjeClaveKey", key);
+}
+
+body:json {
+  {
+    "codigo": "{{canjeClaveACode}}",
+    "idempotency_key": "{{canjeClaveKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq {{canjeClaveACode}}
+  res.body.ya_canjeado: eq false
+}
+
+docs {
+  Canjea el código A con la clave de cliente `canjeClaveKey`. El siguiente
+  request reutiliza esa misma clave con otro código y debe fallar con 409.
+}

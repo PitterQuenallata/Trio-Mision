@@ -1,0 +1,16 @@
+meta {
+  name: Himnario - lista de himnos
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/v1/himnario/himnos
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.coleccion: eq himnario-adventista
+}

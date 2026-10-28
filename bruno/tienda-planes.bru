@@ -1,0 +1,33 @@
+meta {
+  name: Tienda - planes Premium
+  type: http
+  seq: 70
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tienda/planes
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.planes: isNotEmpty
+}
+
+tests {
+  test("el plan premium-30 del seed está publicado con beneficios", function() {
+    const planes = res.getBody().planes;
+    const plan = planes.find(p => p.codigo === "premium-30");
+    expect(plan, "plan premium-30").to.exist;
+    expect(plan.duracion_dias).to.equal(30);
+    expect(plan.beneficios).to.be.an("object");
+    bru.setEnvVar("planPremiumId", plan.id);
+  });
+}
+
+docs {
+  Catálogo público de planes Premium activos (Sprint 3C.1). Requiere el
+  seed (`make db-seed`): crea el plan premium-30 con beneficios
+  publicados. Guarda `planPremiumId`.
+}

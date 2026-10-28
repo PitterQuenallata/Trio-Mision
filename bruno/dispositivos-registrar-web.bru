@@ -1,0 +1,44 @@
+meta {
+  name: Dispositivos - registrar web
+  type: http
+  seq: 58
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "install_id": "bru-web-{{$timestamp}}",
+    "platform": "web",
+    "app_version": "1.0.0",
+    "device_name": "Bruno Web"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.platform: eq web
+  res.body.estado: eq activo
+}
+
+tests {
+  test("guarda el install_id web para las requests siguientes", function() {
+    bru.setVar("installIdWeb", res.getBody().install_id);
+    bru.setVar("deviceIdWeb", res.getBody().id);
+  });
+}
+
+docs {
+  PUT /api/v1/dispositivos con el token del comprador: alta o refresco de una
+  instalación (upsert por install_id estable del cliente). Primera actividad
+  y última actividad quedan registradas; no se guardan tokens ni secretos.
+  El install_id lleva timestamp para que la corrida sea repetible.
+}

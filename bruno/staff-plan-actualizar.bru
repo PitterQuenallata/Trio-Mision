@@ -1,0 +1,32 @@
+meta {
+  name: Staff - actualizar plan
+  type: http
+  seq: 114
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/planes/{{planBrunoId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "activo": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.activo: eq false
+}
+
+docs {
+  Desactiva el plan de prueba (PATCH parcial: solo activo). Un plan
+  desactivado deja de publicarse en /tienda/planes y sus productos/ofertas
+  premium dejan de listarse.
+}

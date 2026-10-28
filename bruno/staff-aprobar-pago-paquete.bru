@@ -1,0 +1,46 @@
+meta {
+  name: Staff - aprobar pago paquete
+  type: http
+  seq: 102
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoPaqueteId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Paquete verificado (Bruno E2E 3C.1)"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.orden_estado: eq paid
+  res.body.ya_estaba_confirmado: eq false
+  res.body.suscripciones_creados: eq 0
+}
+
+tests {
+  test("la aprobación entrega el snapshot sin duplicar acceso vigente", function() {
+    expect(res.getBody().accesos_creados, JSON.stringify(res.getBody())).to.equal(0);
+    // El comprador ya tenía acceso vigente a las dos pistas (canje
+    // PAQUETE-DEMO): el índice único impide duplicar. El estado real se
+    // verifica en "Mis compras - paquete tras aprobación": exactamente dos
+    // accesos vigentes. Sin canje previo el valor sería 2 (el snapshot).
+  });
+}
+
+docs {
+  Aprobación de la orden paquete: transacción con locks que aplica el
+  snapshot congelado (include_future_tracks=false). Si el comprador ya
+  tenía las pistas, no se duplica ningún acceso y no se crean suscripciones
+  (premium nunca sale de una orden de audio y viceversa).
+}

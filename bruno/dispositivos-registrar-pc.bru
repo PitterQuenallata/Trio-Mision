@@ -1,0 +1,43 @@
+meta {
+  name: Dispositivos - registrar pc
+  type: http
+  seq: 59
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "install_id": "bru-pc-{{$timestamp}}",
+    "platform": "windows",
+    "app_version": "1.0.0",
+    "device_name": "Bruno PC"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.platform: eq windows
+  res.body.estado: eq activo
+}
+
+tests {
+  test("guarda el install_id pc para la revocación staff", function() {
+    bru.setVar("installIdPc", res.getBody().install_id);
+    bru.setVar("deviceIdPc", res.getBody().id);
+  });
+}
+
+docs {
+  Segunda instalación del mismo usuario (misma cuenta en PC): un usuario
+  puede registrar varios dispositivos. Este queda activo hasta que el staff
+  lo revoque al final del flujo.
+}

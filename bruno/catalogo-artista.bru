@@ -1,0 +1,16 @@
+meta {
+  name: Catalogo - detalle de artista
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/v1/catalogo/artistas/trio-mision
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.slug: eq trio-mision
+}

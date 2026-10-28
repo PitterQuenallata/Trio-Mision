@@ -1,0 +1,36 @@
+meta {
+  name: GoTrue - signup comprador2
+  type: http
+  seq: 68
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "comprador2@triomision.local",
+    "password": "CompraPass123!"
+  }
+}
+
+tests {
+  test("signup crea el segundo comprador, o informa que ya existe", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 200) {
+      expect(res.getBody().user.email).to.equal("comprador2@triomision.local");
+    } else {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta del segundo comprador (usuario limpio para los flujos de paquete y
+  canje del Sprint 3C.1). Repetible: un segundo signup responde 422
+  user_already_exists y la corrida sigue en verde.
+}

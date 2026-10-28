@@ -1,0 +1,41 @@
+meta {
+  name: GoTrue - login
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{testUserEmail}}",
+    "password": "{{testUserPassword}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token_type: eq bearer
+  res.body.access_token: isNotEmpty
+  res.body.expires_in: eq 3600
+}
+
+tests {
+  test("guarda el access token para las requests siguientes", function() {
+    bru.setVar("gotrueAccessToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login real (password grant) emitido por GoTrue: devuelve un JWT
+  HS256 con aud=authenticated firmado con GOTRUE_JWT_SECRET, expiración
+  GOTRUE_JWT_EXP (3600 s) y refresh_token.
+
+  El script guarda el access token en la variable de entorno
+  `gotrueAccessToken`, que usa "Me con token GoTrue". Este flujo reemplaza
+  al token sintético de `make api-token` como validación final.
+}

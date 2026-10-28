@@ -1,0 +1,40 @@
+meta {
+  name: Me con token GoTrue
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.user_id: isNotEmpty
+  res.body.email: eq dev@triomision.local
+  res.body.role: eq authenticated
+  res.body.display_name: eq dev
+}
+
+tests {
+  test("guarda el id del usuario comprador para las requests siguientes", function() {
+    bru.setEnvVar("devUserId", res.getBody().user_id);
+  });
+}
+
+docs {
+  GET /api/v1/me con el access_token real emitido por GoTrue en "GoTrue -
+  login". Verifica de extremo a extremo: la API valida la firma/audiencia,
+  identifica al usuario (UUID de auth.users) y asegura su perfil — /me crea
+  la fila en `profiles` en el primer request autenticado, con display_name
+  inicial igual a la parte local del correo.
+
+  Debe ejecutarse después de "GoTrue - login" en la misma corrida (usa la
+  variable `gotrueAccessToken` que el login guarda).
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Staff - auditoria de dispositivos
+  type: http
+  seq: 68
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/auditoria?accion=dispositivo.revocado&limite=5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.eventos: isNotEmpty
+}
+
+tests {
+  test("la revocación staff quedó auditada con motivo", function() {
+    const ev = res.getBody().eventos[0];
+    expect(ev.metadata.motivo).to.equal("Revocación operativa de prueba (Bruno 3B)");
+  });
+}
+
+docs {
+  GET /api/v1/staff/auditoria?accion=dispositivo.revocado: cierra el flujo de
+  dispositivos verificando la auditoría append-only de la revocación staff.
+}

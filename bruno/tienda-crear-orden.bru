@@ -1,0 +1,48 @@
+meta {
+  name: Tienda - crear orden
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "bruno-orden-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+  res.body.total_minor: eq {{montoMinor}}
+  res.body.moneda: eq {{moneda}}
+  res.body.items: isNotEmpty
+}
+
+tests {
+  test("guarda la orden y congela el contenido", function() {
+    bru.setEnvVar("ordenId", res.getBody().id);
+    const item = res.getBody().items[0];
+    expect(item.content_snapshot.track_id).to.equal(bru.getEnvVar("pistaId"));
+    expect(item.product_snapshot.titulo).to.be.a("string");
+  });
+}
+
+docs {
+  Crea la orden del comprador autenticado congelando oferta, producto y
+  contenido (snapshots). Idempotente: la clave lleva {{$timestamp}}, así
+  cada corrida genera su propia orden y el flujo completo es repetible
+  sin reset de base.
+
+  Requiere "GoTrue - login" (token del comprador) y "Tienda - ofertas".
+}

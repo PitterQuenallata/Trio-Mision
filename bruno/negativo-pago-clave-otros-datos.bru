@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - misma clave con otros datos
+  type: http
+  seq: 33
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "proveedor": "transfer",
+    "monto_minor": {{montoMinor}},
+    "idempotency_key": "{{pagoIdempotencyKey}}",
+    "referencia": "bruno-e2e"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  La clave idempotente solo permite repetir el mismo request sobre la misma
+  orden. Cambiar el proveedor u otro dato con la misma clave devuelve 409.
+}

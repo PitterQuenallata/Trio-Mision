@@ -1,0 +1,34 @@
+meta {
+  name: Dispositivos - otro usuario no los lista
+  type: http
+  seq: 65
+}
+
+get {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("la lista del member no contiene los dispositivos del comprador", function() {
+    const dispositivos = res.getBody().dispositivos;
+    const ajeno = dispositivos.filter(d => bru.getVar("installIdWeb") && d.install_id === bru.getVar("installIdWeb"));
+    expect(ajeno).to.have.lengthOf(0);
+  });
+}
+
+docs {
+  Negativo de propiedad: cada usuario solo lista sus propios dispositivos.
+  El token member no ve los del comprador dev (la lista propia puede estar
+  vacía en desarrollo). El heartbeat/revocación de un install_id ajeno
+  respondería 404 (no se revela su existencia).
+}

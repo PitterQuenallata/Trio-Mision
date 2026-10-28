@@ -1,0 +1,34 @@
+meta {
+  name: Tienda - orden con cupón limitado (uso válido)
+  type: http
+  seq: 82
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000205",
+    "idempotency_key": "bruno-lim-{{$timestamp}}",
+    "coupon_code": "{{cuponLimCode}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.descuento_minor: eq 75
+  res.body.cupon_code: eq {{cuponLimCode}}
+}
+
+docs {
+  Primer uso del cupón limitado: 5% de 1500 = 75 BOB de descuento. El
+  siguiente intento del mismo usuario supera el límite (negativo dedicado).
+}

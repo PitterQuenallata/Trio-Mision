@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - clave de orden con otro cupón
+  type: http
+  seq: 73
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000211",
+    "idempotency_key": "{{ordenPremiumKey}}",
+    "coupon_code": "FIJO500"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  La idempotencia de crearOrden conserva oferta Y cupón: reutilizar la
+  clave de "Tienda - orden Premium con cupón" con otro código de cupón
+  devuelve 409 (la clave ya fue usada con otro cupón).
+}

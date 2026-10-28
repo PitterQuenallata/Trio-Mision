@@ -1,0 +1,26 @@
+meta {
+  name: Artistas - artista ajeno es 404
+  type: http
+  seq: 47
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000301
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Negativo de aislamiento por artista: el member pertenece a trio-mision y
+  consulta al Coro Polifónico (sembrado en 3B), donde no es miembro.
+  Responde 404 (no se revela la existencia del artista). Válido también para
+  manager: ver "Artistas - manager de otro artista es 404".
+}

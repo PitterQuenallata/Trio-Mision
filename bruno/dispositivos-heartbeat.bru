@@ -1,0 +1,38 @@
+meta {
+  name: Dispositivos - heartbeat
+  type: http
+  seq: 61
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdWeb}}/heartbeat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "app_version": "1.0.1"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.install_id: eq {{installIdWeb}}
+}
+
+tests {
+  test("el heartbeat actualiza la última actividad", function() {
+    expect(Date.parse(res.getBody().last_seen_at)).to.be.greaterThan(0);
+  });
+}
+
+docs {
+  POST /api/v1/dispositivos/{installId}/heartbeat: marca actividad del
+  dispositivo y puede refrescar la versión de app. El parámetro de ruta es
+  el install_id estable del cliente, no el UUID interno.
+}

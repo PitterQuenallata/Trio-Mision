@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - límite de usos por usuario
+  type: http
+  seq: 83
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000217",
+    "idempotency_key": "bruno-lim2-{{$timestamp}}",
+    "coupon_code": "{{cuponLimCode}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  El mismo usuario ya consumió su único uso del cupón limitado: el segundo
+  intento devuelve 409 y no crea la orden.
+}

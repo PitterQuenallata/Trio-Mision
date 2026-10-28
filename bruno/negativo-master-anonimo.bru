@@ -1,0 +1,26 @@
+meta {
+  name: Negativo - master anónimo en MinIO
+  type: http
+  seq: 32
+}
+
+get {
+  url: {{previewUrl}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Caso negativo: el master privado rechaza lectura anónima. La URL se
+  construye en el pre-request quitando /public/ al previewUrl
+  (.../public/tracks/ID/preview.wav → .../tracks/ID/master.wav).
+}
+
+script:pre-request {
+  const url = bru.getEnvVar("previewUrl").replace("/public/tracks/", "/tracks/").replace("/preview.wav", "/master.wav");
+  req.setUrl(url);
+}

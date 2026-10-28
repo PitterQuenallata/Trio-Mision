@@ -1,0 +1,39 @@
+meta {
+  name: Descarga - URL firmada
+  type: http
+  seq: 24
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{accesoId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.url: isNotEmpty
+  res.body.mime_type: eq audio/wav
+}
+
+tests {
+  test("la URL apunta al master privado y es breve", function() {
+    expect(res.getBody().url).to.contain("/tracks/");
+    expect(res.getBody().url).not.to.contain("/public/");
+    expect(res.getBody().pista.id).to.equal(bru.getEnvVar("pistaId"));
+    bru.setVar("downloadUrl", res.getBody().url);
+  });
+}
+
+docs {
+  Emite la URL firmada del master solo con entitlement vigente. Es el
+  único punto de descarga: el objeto es privado en MinIO y sin acceso
+  vigente la API responde 403/404.
+
+  Casos negativos: "Descarga - acceso revocado" y "Negativo - descarga
+  de otro usuario".
+}

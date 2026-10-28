@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - código de canje agotado
+  type: http
+  seq: 111
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "codigo": "{{canjeAgotCode}}",
+    "idempotency_key": "bruno-agotado2-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Otro usuario intenta canjear el código de un solo uso ya consumido:
+  409 (usos agotados). No se registra redención ni se concede nada.
+}

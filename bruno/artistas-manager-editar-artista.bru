@@ -1,0 +1,33 @@
+meta {
+  name: Artistas - manager edita artista
+  type: http
+  seq: 52
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "bio": "Trío vocal de música cristiana adventista (editado por manager 3B)."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.slug: eq trio-mision
+  res.body.bio: eq "Trío vocal de música cristiana adventista (editado por manager 3B)."
+}
+
+docs {
+  PATCH /api/v1/mis-artistas/{artistId} con token manager: actualiza la ficha
+  (bio, país, redes, portada). Nombre, slug y publicación del artista siguen
+  siendo operación staff. Audita "artista.actualizado".
+}

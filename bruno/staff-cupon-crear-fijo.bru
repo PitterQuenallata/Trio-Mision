@@ -1,0 +1,46 @@
+meta {
+  name: Staff - crear cupón fijo de prueba
+  type: http
+  seq: 74
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-FIJO-${Date.now()}`;
+  bru.setEnvVar("cuponFijoCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{cuponFijoCode}}",
+    "descripcion": "Cupón de prueba Bruno: 500 BOB fijos desde 1000 BOB",
+    "tipo": "fixed",
+    "monto_minor": 500,
+    "moneda": "BOB",
+    "min_subtotal_minor": 1000,
+    "max_usos_total": 100,
+    "max_usos_por_usuario": 5,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq fixed
+  res.body.monto_minor: eq 500
+  res.body.codigo: eq {{cuponFijoCode}}
+}
+
+docs {
+  Crea un cupón fijo por corrida (repetible sin reset). Guarda
+  `cuponFijoCode` para la orden con descuento fijo.
+}

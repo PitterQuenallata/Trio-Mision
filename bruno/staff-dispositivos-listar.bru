@@ -1,0 +1,35 @@
+meta {
+  name: Staff - listar dispositivos
+  type: http
+  seq: 66
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/dispositivos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.dispositivos: isNotEmpty
+}
+
+tests {
+  test("el staff ve el dispositivo pc del comprador", function() {
+    const dispositivos = res.getBody().dispositivos;
+    const pc = dispositivos.find(d => d.install_id === bru.getVar("installIdPc"));
+    expect(pc).to.exist;
+    expect(pc.estado).to.equal("activo");
+  });
+}
+
+docs {
+  GET /api/v1/staff/dispositivos con token staff: visibilidad operativa de
+  dispositivos con filtro opcional ?usuario=<uuid>. En 3B la matriz asigna
+  dispositivos a admin+vendedor.
+}

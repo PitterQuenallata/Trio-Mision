@@ -1,0 +1,40 @@
+meta {
+  name: GoTrue - signup staff
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "staff@triomision.local",
+    "password": "StaffPass123!"
+  }
+}
+
+tests {
+  test("signup staff crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 200) {
+      expect(res.getBody().user.email).to.equal("staff@triomision.local");
+    } else {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta en GoTrue del usuario de staff de desarrollo. El rol NO se concede
+  aquí: se asigna con SQL contra la base (lo que la API consulta):
+
+      make db-staff EMAIL=staff@triomision.local ROLE=vendedor
+
+  Ejecutar ese comando una vez antes de correr el flujo staff (después de
+  este signup). Ver "GoTrue - login staff".
+}

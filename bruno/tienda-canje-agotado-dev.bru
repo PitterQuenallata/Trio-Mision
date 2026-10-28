@@ -1,0 +1,38 @@
+meta {
+  name: Tienda - canje agotado (primer y único uso)
+  type: http
+  seq: 110
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "codigo": "{{canjeAgotCode}}",
+    "idempotency_key": "bruno-agotado-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq {{canjeAgotCode}}
+  res.body.tipo: eq premium
+}
+
+tests {
+  test("primer uso válido del código de un solo uso", function() {
+    expect(res.getBody().ya_canjeado).to.equal(false);
+  });
+}
+
+docs {
+  El primer (y único) usuario canjea el código de un solo uso con éxito.
+}

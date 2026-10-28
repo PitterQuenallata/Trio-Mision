@@ -1,0 +1,29 @@
+meta {
+  name: Tienda - preview público en MinIO
+  type: http
+  seq: 31
+}
+
+get {
+  url: {{previewUrl}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers.content-length: isNotEmpty
+}
+
+tests {
+  test("el preview es audio/wav y se sirve sin credenciales", function() {
+    expect(res.getHeaders()["content-type"]).to.contain("audio");
+  });
+}
+
+docs {
+  El preview (activo derivado público) se lee desde MinIO sin ninguna
+  credencial. Los previews son la única parte pública del bucket: solo
+  el prefijo public/ tiene política de lectura anónima (la crea
+  minio-init en compose.yaml).
+}

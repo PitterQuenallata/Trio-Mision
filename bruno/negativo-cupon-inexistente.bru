@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - cupón inexistente
+  type: http
+  seq: 76
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000205",
+    "idempotency_key": "bruno-nocupon-{{$timestamp}}",
+    "coupon_code": "NO-EXISTE-12345"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un código de cupón inexistente devuelve 404: la orden no se crea.
+}

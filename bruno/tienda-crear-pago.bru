@@ -1,0 +1,50 @@
+meta {
+  name: Tienda - crear pago
+  type: http
+  seq: 15
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-pago-${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
+  bru.setEnvVar("pagoIdempotencyKey", key);
+}
+
+body:json {
+  {
+    "proveedor": "qr",
+    "monto_minor": {{montoMinor}},
+    "idempotency_key": "{{pagoIdempotencyKey}}",
+    "referencia": "bruno-e2e"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq awaiting_evidence
+  res.body.monto_minor: eq {{montoMinor}}
+}
+
+tests {
+  test("guarda el intento de pago", function() {
+    bru.setEnvVar("pagoId", res.getBody().id);
+  });
+}
+
+docs {
+  Registra el intento de pago manual (QR/transferencia) de la orden.
+  El monto declarado debe coincidir con el total congelado de la orden.
+  Idempotente por idempotency_key (lleva timestamp: repetible).
+
+  El estado inicial es awaiting_evidence: el QR/captura por sí mismo no
+  activa nada; sigue la subida del comprobante.
+}

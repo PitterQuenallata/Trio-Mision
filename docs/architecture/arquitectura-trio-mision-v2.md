@@ -26,8 +26,12 @@
 -   **Panel administrativo:** aplicación web que consume la API del
     backend.
 -   **Procesamiento pesado:** tareas asíncronas para conversiones
-    masivas de PDF a formato ChordPro y otros trabajos que no deban
-    bloquear una petición web.
+    editoriales de PDF a ChordPro y derivados de audio. Los masters se
+    conservan inmutables y los resultados requieren revisión antes de
+    publicarse.
+-   **Almacenamiento musical:** un solo PostgreSQL lógico para catálogo,
+    tienda y permisos; el audio binario permanece en S3 y su procesamiento
+    puede escalarse en workers independientes.
 -   **Tiempo real:** no es requisito inicial. Se prioriza sincronización
     explícita y eficiente.
 
@@ -204,10 +208,12 @@ desacoplar la API del proveedor.
 
 Posibles usos:
 
--   Archivos PDF originales.
--   Archivos generados o convertidos.
--   Portadas, imágenes y otros recursos.
--   Archivos descargables del catálogo.
+-   PDFs editoriales importados por staff y archivos convertidos.
+-   Portadas, imágenes, previews y audio descargable del catálogo.
+-   Comprobantes de pago y adjuntos privados, con políticas separadas.
+
+Los PDFs personales importados por el músico no se almacenan aquí: permanecen
+solo en el dispositivo y no se sincronizan con Premium.
 
 La API debe decidir quién puede acceder a cada archivo. Para contenido
 privado, se pueden emitir enlaces firmados con vencimiento o servir el

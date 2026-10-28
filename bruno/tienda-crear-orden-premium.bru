@@ -1,0 +1,58 @@
+meta {
+  name: Tienda - orden Premium con cupón
+  type: http
+  seq: 72
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-prem-${Date.now()}`;
+  bru.setEnvVar("ordenPremiumKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000211",
+    "idempotency_key": "{{ordenPremiumKey}}",
+    "coupon_code": "{{cuponPctCode}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+  res.body.subtotal_minor: eq 5000
+  res.body.descuento_minor: eq 500
+  res.body.total_minor: eq 4500
+  res.body.cupon_code: eq {{cuponPctCode}}
+  res.body.items: isNotEmpty
+}
+
+tests {
+  test("el descuento lo calcula el backend y congela el plan", function() {
+    const item = res.getBody().items[0];
+    expect(item.product_snapshot.tipo).to.equal("premium");
+    expect(item.content_snapshot.plan.codigo).to.equal("premium-30");
+    bru.setEnvVar("ordenPremiumId", res.getBody().id);
+    bru.setEnvVar("montoPagoPremium", String(res.getBody().total_minor));
+  });
+}
+
+docs {
+  Orden del producto Premium 30 días (oferta fija del seed, 5000 BOB) con
+  cupón porcentual. El backend calcula subtotal 5000, descuento 500 (10%)
+  y total 4500; el cliente nunca decide el descuento. Guarda
+  `ordenPremiumId` y `montoPagoPremium` para el flujo de aprobación.
+
+  La clave lleva timestamp y queda en `ordenPremiumKey` para el negativo
+  de reutilización con otro cupón.
+}

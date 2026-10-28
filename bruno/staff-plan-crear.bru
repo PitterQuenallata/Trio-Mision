@@ -1,0 +1,46 @@
+meta {
+  name: Staff - crear plan
+  type: http
+  seq: 113
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/planes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "codigo": "bruno-plan-{{$timestamp}}",
+    "nombre": "Plan de prueba Bruno (7 días)",
+    "descripcion": "Plan temporal de prueba de la colección",
+    "duracion_dias": 7,
+    "beneficios": {
+      "contenido_autorizado": true
+    },
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: contains bruno-plan-
+  res.body.duracion_dias: eq 7
+  res.body.activo: eq true
+}
+
+tests {
+  test("guarda el plan creado", function() {
+    bru.setEnvVar("planBrunoId", res.getBody().id);
+  });
+}
+
+docs {
+  Crea un plan Premium de 7 días con beneficios JSON (código con
+  timestamp: repetible sin reset). Guarda `planBrunoId` para el PATCH.
+}

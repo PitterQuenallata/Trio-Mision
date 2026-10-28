@@ -1,0 +1,38 @@
+meta {
+  name: Mis compras - premium activo
+  type: http
+  seq: 88
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.premium_activo: eq true
+  res.body.suscripciones: isNotEmpty
+}
+
+tests {
+  test("hay una suscripción activa de origen purchase", function() {
+    const sus = res.getBody().suscripciones.find(s => s.origen === "purchase" && s.estado === "activa");
+    expect(sus, "suscripción purchase activa").to.exist;
+    expect(sus.plan.codigo).to.equal("premium-30");
+    bru.setEnvVar("suscripcionId", sus.id);
+    const ahora = new Date();
+    expect(new Date(sus.fin)).to.be.above(ahora);
+  });
+}
+
+docs {
+  /mis-compras incluye suscripciones con estado e inicio/fin, y
+  premium_activo calculado por tiempo actual. Guarda `suscripcionId` del
+  período purchase para el negativo de descarga.
+}

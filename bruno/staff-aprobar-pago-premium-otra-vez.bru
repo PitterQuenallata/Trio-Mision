@@ -1,0 +1,33 @@
+meta {
+  name: Staff - aprobar pago Premium otra vez
+  type: http
+  seq: 87
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoPremiumId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_confirmado: eq true
+  res.body.suscripciones_creados: eq 0
+  res.body.accesos_creados: eq 0
+  res.body.suscripciones_totales: eq {{suscripcionesTotales}}
+}
+
+docs {
+  Repetir la aprobación del pago Premium es idempotente: no duplica el
+  período ni crea audio (suscripciones_totales sin cambios).
+}

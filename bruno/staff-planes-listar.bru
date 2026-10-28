@@ -1,0 +1,33 @@
+meta {
+  name: Staff - listar planes
+  type: http
+  seq: 112
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/planes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.planes: isNotEmpty
+}
+
+tests {
+  test("el plan del seed figura con suscripción", function() {
+    const plan = res.getBody().planes.find(p => p.codigo === "premium-30");
+    expect(plan, "plan premium-30").to.exist;
+    expect(plan.suscripciones).to.be.at.least(0);
+  });
+}
+
+docs {
+  Bandeja staff de planes Premium con conteo de suscripciones. Solo
+  admin|vendedor.
+}

@@ -1,0 +1,57 @@
+meta {
+  name: Tienda - orden del paquete
+  type: http
+  seq: 99
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-paq-${Date.now()}`;
+  bru.setEnvVar("ordenPaqueteKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000217",
+    "idempotency_key": "{{ordenPaqueteKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+  res.body.total_minor: eq 2500
+  res.body.items: isNotEmpty
+}
+
+tests {
+  test("la orden congela exactamente las dos pistas publicadas", function() {
+    const item = res.getBody().items[0];
+    expect(item.product_snapshot.tipo).to.equal("album");
+    expect(item.content_snapshot.include_future_tracks).to.equal(false);
+    const pistas = item.content_snapshot.pistas;
+    expect(pistas).to.have.lengthOf(2);
+    const ids = pistas.map(p => p.track_id).sort();
+    expect(ids).to.deep.equal([
+      "00000000-0000-4000-8000-000000000203",
+      "00000000-0000-4000-8000-000000000213"
+    ]);
+    bru.setEnvVar("ordenPaqueteId", res.getBody().id);
+  });
+}
+
+docs {
+  Orden del paquete demo (2500 BOB): el snapshot congela las dos pistas
+  publicadas del producto con include_future_tracks=false. Una pista que
+  se agregue al producto después de esta orden NO se entregará al aprobar.
+  Guarda `ordenPaqueteId`.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - cupón vencido
+  type: http
+  seq: 80
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000205",
+    "idempotency_key": "bruno-venc-{{$timestamp}}",
+    "coupon_code": "{{cuponVencCode}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Un cupón fuera de su ventana de vigencia devuelve 409: la orden no se
+  crea y el uso no se registra.
+}

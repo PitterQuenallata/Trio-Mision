@@ -1,0 +1,30 @@
+meta {
+  name: Descarga - master desde MinIO
+  type: http
+  seq: 25
+}
+
+get {
+  url: {{downloadUrl}}
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.headers.content-length: isNotEmpty
+}
+
+tests {
+  test("el objeto real llega desde MinIO (WAV de ~220 KB)", function() {
+    const headers = res.getHeaders();
+    expect(headers["content-type"]).to.contain("audio");
+    expect(parseInt(headers["content-length"], 10)).to.be.greaterThan(100000);
+  });
+}
+
+docs {
+  Descarga el master con la URL firmada: prueba de extremo a extremo de
+  que el objeto real sale de MinIO. El cuerpo es el WAV sembrado por
+  `make db-seed` (PCM 16-bit 22050 Hz mono).
+}

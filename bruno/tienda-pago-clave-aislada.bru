@@ -1,0 +1,41 @@
+meta {
+  name: Tienda - misma clave aislada por orden
+  type: http
+  seq: 35
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{staffOrdenId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "proveedor": "qr",
+    "monto_minor": {{montoMinor}},
+    "idempotency_key": "{{pagoIdempotencyKey}}",
+    "referencia": "bruno-e2e"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq awaiting_evidence
+}
+
+tests {
+  test("crea un pago propio y nunca devuelve el de la otra cuenta", function() {
+    expect(res.getBody().id).to.not.equal(bru.getEnvVar("pagoId"));
+  });
+}
+
+docs {
+  Regresión de titularidad: payment_attempts pertenece a orders y orders al
+  usuario. La clave tiene alcance por orden; otra cuenta recibe su propio
+  intento, jamás los datos del pago del comprador original.
+}

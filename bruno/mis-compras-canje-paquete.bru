@@ -1,0 +1,41 @@
+meta {
+  name: Mis compras - accesos por canje
+  type: http
+  seq: 97
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.accesos: isNotEmpty
+  res.body.premium_activo: eq false
+}
+
+tests {
+  test("ambas pistas del paquete tienen acceso vigente por canje", function() {
+    const accesos = res.getBody().accesos;
+    const pista2 = accesos.find(a => a.pista.id === "00000000-0000-4000-8000-000000000213" && a.estado === "vigente");
+    bru.setEnvVar("accesoIdPista2", pista2.id);
+    for (const trackId of ["00000000-0000-4000-8000-000000000203", "00000000-0000-4000-8000-000000000213"]) {
+      const acceso = accesos.find(a => a.pista.id === trackId && a.estado === "vigente");
+      expect(acceso, `acceso vigente de ${trackId}`).to.exist;
+      expect(acceso.origen).to.equal("redemption");
+    }
+    expect(res.getBody().premium_activo, "el canje de paquete no activa premium").to.equal(false);
+  });
+}
+
+docs {
+  El canje concedió acceso vigente con origen redemption a las dos pistas
+  del paquete, sin pago y sin activar Premium. Guarda `accesoIdPista2`
+  (pista "Al mundo paz") para la descarga.
+}

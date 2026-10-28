@@ -1,0 +1,45 @@
+meta {
+  name: Staff - crear cupón porcentual de prueba
+  type: http
+  seq: 71
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-PCT-${Date.now()}`;
+  bru.setEnvVar("cuponPctCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{cuponPctCode}}",
+    "descripcion": "Cupón de prueba Bruno: 10%",
+    "tipo": "percent",
+    "porcentaje": 10,
+    "max_usos_total": 100,
+    "max_usos_por_usuario": 10,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq percent
+  res.body.porcentaje: eq 10
+  res.body.codigo: eq {{cuponPctCode}}
+}
+
+docs {
+  Crea un cupón porcentual por corrida (código con timestamp: repetible
+  sin reset). Guarda `cuponPctCode` para las órdenes con cupón.
+  Solo staff (admin|vendedor); auditoría cupon.creado.
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Artistas - no miembro es 404
+  type: http
+  seq: 48
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Negativo: el comprador dev (autenticado pero sin membresía en trio-mision)
+  recibe 404 en los endpoints por artista. Debe ejecutarse ANTES de
+  "Artistas - manager agrega member", porque esa request agrega temporalmente
+  a dev como member y "Artistas - manager quita member" lo deja fuera al
+  final de la corrida.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Mis compras
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.compras: isNotEmpty
+  res.body.accesos: isNotEmpty
+}
+
+tests {
+  test("la compra figura pagada y el acceso vigente", function() {
+    const acceso = res.getBody().accesos.find(a =>
+      a.pista.id === bru.getEnvVar("pistaId") && a.estado === "vigente");
+    expect(acceso, "acceso vigente de la pista del flujo").to.exist;
+    expect(acceso.origen).to.equal("purchase");
+    bru.setEnvVar("accesoId", acceso.id);
+  });
+}
+
+docs {
+  Biblioteca del comprador: compras pagadas y accesos concedidos con su
+  vigencia. Guarda `accesoId` para la descarga firmada.
+}

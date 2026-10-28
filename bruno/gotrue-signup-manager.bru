@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - signup manager
+  type: http
+  seq: 39
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "manager@triomision.local",
+    "password": "ManagerPass123!"
+  }
+}
+
+tests {
+  test("signup manager crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 422) {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta en GoTrue del usuario manager de desarrollo (rol por artista, NO staff).
+  La membresía manager en trio-mision se asigna por SQL:
+
+      make db-artist-role EMAIL=manager@triomision.local ROLE=manager ARTIST=trio-mision
+}

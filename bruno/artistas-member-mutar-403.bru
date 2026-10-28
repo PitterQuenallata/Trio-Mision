@@ -1,0 +1,31 @@
+meta {
+  name: Artistas - member no puede mutar
+  type: http
+  seq: 46
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/canciones/00000000-0000-4000-8000-000000000202
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+body:json {
+  {
+    "titulo": "Intento de edición member"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Negativo de la matriz por artista: member es de solo lectura; cualquier
+  mutación (PATCH canción, álbum, artista o miembros) responde 403
+  "se requiere rol manager de este artista".
+}

@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - signup member
+  type: http
+  seq: 37
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "member@triomision.local",
+    "password": "MemberPass123!"
+  }
+}
+
+tests {
+  test("signup member crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 422) {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta en GoTrue del usuario member de desarrollo (rol por artista, NO staff).
+  La membresía en trio-mision se asigna por SQL (igual que db-staff):
+
+      make db-artist-role EMAIL=member@triomision.local ROLE=member ARTIST=trio-mision
+}

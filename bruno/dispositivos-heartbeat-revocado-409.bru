@@ -1,0 +1,29 @@
+meta {
+  name: Dispositivos - heartbeat revocado es 409
+  type: http
+  seq: 63
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdWeb}}/heartbeat
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Negativo de ciclo de vida: un dispositivo revocado no acepta heartbeat
+  (409). La revocación es definitiva para ese install_id; una reinstalación
+  real genera un install_id nuevo.
+}

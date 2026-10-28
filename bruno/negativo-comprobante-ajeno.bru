@@ -1,0 +1,26 @@
+meta {
+  name: Negativo - comprobante ajeno
+  type: http
+  seq: 29
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Caso negativo: el comprador (sin rol staff) intenta ver el detalle del
+  pago con su comprobante privado y recibe 403. La URL firmada del
+  comprobante solo la emite la revisión staff. Con token staff sí es
+  visible (ver "Staff - detalle del pago").
+}

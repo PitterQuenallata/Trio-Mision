@@ -1,0 +1,36 @@
+meta {
+  name: GoTrue - login manager
+  type: http
+  seq: 40
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "manager@triomision.local",
+    "password": "ManagerPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token_type: eq bearer
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token manager (administración limitada a trio-mision)", function() {
+    bru.setVar("managerToken", res.getBody().access_token);
+    bru.setVar("managerUserId", res.getBody().user.id);
+  });
+}
+
+docs {
+  Login del usuario manager de trio-mision: puede mutar catálogo y membresías
+  solo de ese artista. Verifica el alcance por artist_id del Sprint 3B.
+}

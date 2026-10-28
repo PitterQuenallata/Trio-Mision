@@ -1,0 +1,33 @@
+meta {
+  name: Staff - detalle de código de canje
+  type: http
+  seq: 117
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/canjes/{{canjePaqId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.canje.codigo: eq PAQUETE-DEMO
+  res.body.redenciones: isNotEmpty
+}
+
+tests {
+  test("la redención del comprador2 quedó registrada", function() {
+    expect(res.getBody().canje.usos).to.be.at.least(1);
+    expect(res.getBody().redenciones.length).to.be.at.least(1);
+  });
+}
+
+docs {
+  Detalle del código PAQUETE-DEMO con la lista de redenciones: cada canje
+  queda ligado a su usuario para trazabilidad.
+}

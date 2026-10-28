@@ -1,0 +1,42 @@
+meta {
+  name: Tienda - subir comprobante
+  type: http
+  seq: 16
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/pagos/{{pagoId}}/comprobante
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/comprobante-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq in_review
+  res.body.byte_size: eq 70
+}
+
+tests {
+  test("guarda la clave privada del comprobante", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("comprobanteKey", res.getBody().comprobante_key);
+  });
+}
+
+docs {
+  Multipart autenticado directo a la API. El backend valida titularidad,
+  MIME y máximo 5 MiB, guarda en evidence/ privado y marca el pago en revisión.
+  Subir un comprobante nunca concede acceso por sí mismo.
+}

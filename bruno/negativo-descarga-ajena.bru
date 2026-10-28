@@ -1,0 +1,26 @@
+meta {
+  name: Negativo - descarga de otro usuario
+  type: http
+  seq: 30
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{accesoId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Caso negativo: otro usuario autenticado (aunque sea staff) pide la URL
+  de descarga de un entitlement ajeno → 404, para no revelar ni conceder
+  acceso a objetos privados ajenos. Solo el titular con acceso vigente
+  obtiene la URL firmada.
+}

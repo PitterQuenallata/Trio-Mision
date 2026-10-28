@@ -1,0 +1,43 @@
+meta {
+  name: Artistas - manager edita y publica canción
+  type: http
+  seq: 51
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/canciones/{{cancionNuevaId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "tono": "D",
+    "bpm": 76,
+    "publicada": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tono: eq D
+  res.body.bpm: eq 76
+  res.body.publicada: eq true
+}
+
+tests {
+  test("la publicación queda visible en el detalle del artista", function() {
+    expect(res.getBody().creado_en).to.exist;
+  });
+}
+
+docs {
+  PATCH /api/v1/mis-artistas/{artistId}/canciones/{songId} con token manager:
+  ajusta tono/BPM y publica la canción. Solo campos enviados se actualizan
+  (PATCH parcial). Audita "cancion.actualizada". Tras esta request la
+  canción es legible también por member en el detalle del artista.
+}

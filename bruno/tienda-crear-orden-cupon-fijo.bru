@@ -1,0 +1,46 @@
+meta {
+  name: Tienda - orden paquete con cupón fijo
+  type: http
+  seq: 75
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000217",
+    "idempotency_key": "bruno-paq-fijo-{{$timestamp}}",
+    "coupon_code": "{{cuponFijoCode}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+  res.body.subtotal_minor: eq 2500
+  res.body.descuento_minor: eq 500
+  res.body.total_minor: eq 2000
+  res.body.cupon_code: eq {{cuponFijoCode}}
+}
+
+tests {
+  test("cupón fijo: el total queda dentro de la moneda de la oferta", function() {
+    const item = res.getBody().items[0];
+    expect(item.product_snapshot.tipo).to.equal("album");
+    expect(item.content_snapshot.pistas).to.have.lengthOf(2);
+  });
+}
+
+docs {
+  Orden del paquete demo (2 pistas, 2500 BOB) con cupón fijo de 500 BOB:
+  el backend calcula subtotal 2500, descuento 500, total 2000. No se paga
+  ni aprueba: solo verifica el cálculo del descuento en backend.
+}

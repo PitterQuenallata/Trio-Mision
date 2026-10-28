@@ -1,0 +1,32 @@
+meta {
+  name: Dispositivos - revocar propio
+  type: http
+  seq: 62
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdWeb}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "motivo": "Cierre de sesión en este navegador (Bruno 3B)"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocado
+}
+
+docs {
+  POST /api/v1/dispositivos/{installId}/revocar con el token propietario:
+  revoca el dispositivo (p. ej. logout remoto). Idempotente: repetirla
+  devuelve el estado revocado sin error.
+}

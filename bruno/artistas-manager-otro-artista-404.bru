@@ -1,0 +1,31 @@
+meta {
+  name: Artistas - manager de otro artista es 404
+  type: http
+  seq: 53
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000301/albumes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "titulo": "Álbum que no debe existir"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Negativo de alcance: el manager de trio-mision intenta crear un álbum en el
+  Coro Polifónico (artista donde no es miembro) y recibe 404: cada query y
+  mutación queda filtrada por artist_id y la membresía no da alcance global.
+}

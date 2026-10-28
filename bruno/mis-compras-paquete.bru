@@ -1,0 +1,41 @@
+meta {
+  name: Mis compras - paquete tras aprobación
+  type: http
+  seq: 103
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.compras: isNotEmpty
+  res.body.accesos: isNotEmpty
+}
+
+tests {
+  test("sigue habiendo exactamente dos accesos vigentes (canje + compra sin duplicar)", function() {
+    const vigentes = res.getBody().accesos.filter(a => a.estado === "vigente");
+    expect(vigentes).to.have.lengthOf(2);
+    const ids = vigentes.map(a => a.pista.id).sort();
+    expect(ids).to.deep.equal([
+      "00000000-0000-4000-8000-000000000203",
+      "00000000-0000-4000-8000-000000000213"
+    ]);
+    const compraPaquete = res.getBody().compras.find(c => c.orden_id === bru.getEnvVar("ordenPaqueteId"));
+    expect(compraPaquete, "la compra del paquete figura pagada").to.exist;
+  });
+}
+
+docs {
+  Después de la aprobación: la compra figura pagada y los accesos vigentes
+  siguen siendo exactamente los dos del snapshot (el canje previo y la
+  compra no duplican ninguno).
+}

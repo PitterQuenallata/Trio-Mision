@@ -1,0 +1,16 @@
+meta {
+  name: Catalogo - lista de artistas
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/v1/catalogo/artistas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.artistas: isArray
+}

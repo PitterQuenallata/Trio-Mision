@@ -1,0 +1,17 @@
+meta {
+  name: Himnario - detalle de himno
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/v1/himnario/himnos/1
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.numero: eq 1
+  res.body.titulo: eq Cantad alegres al Señor
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Staff - auditoría del flujo
+  type: http
+  seq: 28
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/auditoria?limite=50
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.eventos: isNotEmpty
+}
+
+tests {
+  test("constan aprobación, concesión y revocación del flujo", function() {
+    const acciones = res.getBody().eventos.map(e => e.accion);
+    expect(acciones).to.include("pago.aprobado");
+    expect(acciones).to.include("acceso.concedido");
+    expect(acciones).to.include("acceso.revocado");
+  });
+}
+
+docs {
+  Pista de auditoría de operaciones sensibles. Cada evento guarda actor
+  (staff), entidad, acción y metadata, sin datos privados del comprobante.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Staff - listar cupones
+  type: http
+  seq: 115
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.cupones: isNotEmpty
+}
+
+tests {
+  test("figuran los cupones fijo y porcentual del seed", function() {
+    const cupones = res.getBody().cupones;
+    expect(cupones.find(c => c.codigo === "BIENVENIDA10"), "BIENVENIDA10").to.exist;
+    expect(cupones.find(c => c.codigo === "FIJO500"), "FIJO500").to.exist;
+  });
+}
+
+docs {
+  Bandeja staff de cupones con tipo, vigencia, límites y usos. Incluye los
+  cupones sembrados (BIENVENIDA10 porcentual, FIJO500 fijo) y los creados
+  por la corrida.
+}

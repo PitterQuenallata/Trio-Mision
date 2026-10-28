@@ -1,0 +1,26 @@
+meta {
+  name: Me (requiere token)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: inherit
+}
+
+assert {
+  res.status: eq 200
+  res.body.display_name: isNotEmpty
+}
+
+docs {
+  Devuelve la identidad del usuario autenticado y asegura su perfil: crea la
+  fila en `profiles` en el primer request (display_name inicial = parte
+  local del correo del token).
+
+  Requiere un Bearer token válido (variable secreta `gotrueToken`, salida de
+  `make api-token`). Sin token debe responder 401. Para el flujo real
+  (signup → login → token GoTrue) ver "Me con token GoTrue".
+}

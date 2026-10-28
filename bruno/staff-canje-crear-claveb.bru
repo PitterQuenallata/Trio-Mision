@@ -1,0 +1,40 @@
+meta {
+  name: Staff - crear código de canje B (idempotencia)
+  type: http
+  seq: 94
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-CLB-${Date.now()}`;
+  bru.setEnvVar("canjeClaveBCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{canjeClaveBCode}}",
+    "descripcion": "Código B de prueba de idempotencia por clave",
+    "tipo": "premium",
+    "plan_id": "{{planPremiumId}}",
+    "max_usos": 10,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Crea el código B del par de pruebas de idempotencia por clave (fresco por
+  corrida). Guarda `canjeClaveBCode`.
+}

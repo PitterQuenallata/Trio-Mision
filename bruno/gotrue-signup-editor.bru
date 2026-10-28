@@ -1,0 +1,37 @@
+meta {
+  name: GoTrue - signup editor
+  type: http
+  seq: 41
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "editor@triomision.local",
+    "password": "EditorPass123!"
+  }
+}
+
+tests {
+  test("signup editor crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 422) {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta en GoTrue del usuario editor de desarrollo. El rol staff editor se
+  asigna con:
+
+      make db-staff EMAIL=editor@triomision.local ROLE=editor
+
+  El editor NO tiene acceso a pagos ni accesos (matriz staff del Sprint 3B).
+}

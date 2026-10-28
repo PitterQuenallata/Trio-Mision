@@ -1,0 +1,34 @@
+meta {
+  name: Staff - aprobar pago otra vez
+  type: http
+  seq: 22
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_confirmado: eq true
+  res.body.accesos_creados: eq 0
+}
+
+docs {
+  Reintenta la aprobación del mismo pago (doble clic, retry de red,
+  reenvío del cliente). La API responde 200 con el estado actual SIN
+  duplicar pago ni entitlement: la transición es idempotente, el índice
+  único parcial de entitlements es la red de seguridad en base de datos
+  y `accesos_creados` es 0 porque esta llamada no creó nada.
+}

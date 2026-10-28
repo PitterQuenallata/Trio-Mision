@@ -1,0 +1,33 @@
+meta {
+  name: Staff - revocar acceso
+  type: http
+  seq: 26
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/accesos/{{accesoId}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Revocación de prueba del flujo Bruno"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocado
+}
+
+docs {
+  Revoca el entitlement concedido en el flujo (con motivo y auditoría).
+  Idempotente: repetirla sobre un acceso ya revocado devuelve el estado
+  actual. La verificación de que la descarga queda bloqueada está en
+  "Descarga - acceso revocado".
+}

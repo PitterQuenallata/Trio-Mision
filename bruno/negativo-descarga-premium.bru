@@ -1,0 +1,25 @@
+meta {
+  name: Negativo - Premium no descarga audio
+  type: http
+  seq: 89
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{suscripcionId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Una suscripción Premium NO es un entitlement de audio: usar su id en el
+  endpoint de descarga devuelve 404. Premium concede período, no descargas
+  ni licencias.
+}

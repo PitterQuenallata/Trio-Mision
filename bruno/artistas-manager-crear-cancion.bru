@@ -1,0 +1,46 @@
+meta {
+  name: Artistas - manager crea canción
+  type: http
+  seq: 50
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/canciones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "album_id": "{{albumNuevoId}}",
+    "titulo": "Noche de paz (borrador 3B)",
+    "chordpro": "{title: Noche de paz}\n{key: C}\n\nC\nNoche de paz, noche de amor",
+    "tono": "C",
+    "bpm": 72,
+    "acceso": "free"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.titulo: eq "Noche de paz (borrador 3B)"
+  res.body.publicada: eq false
+  res.body.acceso: eq free
+}
+
+tests {
+  test("guarda el id de la canción nueva para las requests siguientes", function() {
+    bru.setEnvVar("cancionNuevaId", res.getBody().id);
+  });
+}
+
+docs {
+  POST /api/v1/mis-artistas/{artistId}/canciones con token manager: crea la
+  canción con ChordPro en el álbum creado en la request anterior (sin
+  publicar) y deja auditoría "cancion.creada". El álbum se referencia por id
+  guardado en la variable albumNuevoId.
+}

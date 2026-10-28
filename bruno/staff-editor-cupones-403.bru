@@ -1,0 +1,35 @@
+meta {
+  name: Negativo - editor no administra cupones
+  type: http
+  seq: 118
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+body:json {
+  {
+    "codigo": "EDITOR-NO-100",
+    "tipo": "percent",
+    "porcentaje": 10,
+    "max_usos_por_usuario": 1,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Negativo de la matriz staff: el rol editor (contenido) NO administra
+  cupones, planes ni canjes: /staff/cupones*, /staff/planes* y /staff/canjes*
+  exigen admin o vendedor, así que el token editor responde 403.
+}

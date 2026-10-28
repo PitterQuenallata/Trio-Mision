@@ -2,11 +2,17 @@
 # Uso: cp .env.example .env && make up
 #
 # Pendiente de agregar:
-#   - gotrue   (autenticación, ver infra/gotrue/)
 #   - api      (servicio Go, services/api/)
 #   - worker   (tareas en segundo plano, services/worker/)
 #   - smtp     (servidor de correo de desarrollo, p. ej. Mailpit)
-#   - s3       (almacenamiento compatible con S3, p. ej. MinIO)
+#
+# GoTrue usa las mismas variables POSTGRES_* y GOTRUE_JWT_SECRET del .env de
+# la raíz; ver la configuración en infra/gotrue/README.md.
+#
+# MinIO (S3 compatible) usa S3_* del .env. Las imágenes oficiales minio/minio
+# salieron de Docker Hub (ahora solo en quay.io, no alcanzable desde este
+# entorno): se usa el empaquetado bitnamilegacy/minio (binario MinIO upstream
+# con las mismas variables MINIO_ROOT_*) — es intercambiable con la oficial.
 
 services:
   postgres:
@@ -18,7 +24,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-triomision}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -27,5 +33,73 @@ services:
       timeout: 5s
       retries: 5
 
+  gotrue:
+    image: supabase/gotrue:v2.197.0
+    env_file:
+      - .env
+    environment:
+      GOTRUE_API_HOST: 0.0.0.0
+      # supabase/auth v2.197+ exige esta clave SIN prefijo GOTRUE_.
+      API_EXTERNAL_URL: ${API_EXTERNAL_URL:-http://localhost:9999}
+      PORT: 9999
+      # Mismo PostgreSQL que la API; GoTrue crea su esquema auth al arrancar.
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://triomision_gotrue:${GOTRUE_DB_PASSWORD:-changeme-gotrue}@postgres:5432/${POSTGRES_DB:-triomision}?sslmode=disable
+      # Redirecciones tras flujos de email (desarrollo local).
+      GOTRUE_SITE_URL: ${GOTRUE_SITE_URL:-http://localhost:3000}
+      GOTRUE_URI_ALLOW_LIST: ${GOTRUE_URI_ALLOW_LIST:-http://localhost:3000/**}
+      # El secreto JWT llega por env_file (.env) y es el mismo que valida la API.
+      GOTRUE_JWT_AUD: ${GOTRUE_JWT_AUDIENCE:-authenticated}
+      GOTRUE_JWT_EXP: ${GOTRUE_JWT_EXP:-3600}
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      # Desarrollo: sin correo de confirmación (en producción configurar SMTP).
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+      GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
+      GOTRUE_DISABLE_SIGNUP: "false"
+    ports:
+      - "127.0.0.1:9999:9999"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9999/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: bitnamilegacy/minio:2025.5.24-debian-12-r5
+    env_file:
+      - .env
+    environment:
+      # Root solo se usa en init/administración; la API recibe otra cuenta.
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "127.0.0.1:9000:9000" # API S3
+      - "127.0.0.1:9001:9001" # consola web
+    volumes:
+      - minio_data:/bitnami/minio/data
+    healthcheck:
+      # MinIO expone /minio/health/live; se consulta con bash (sin curl/wget en la imagen).
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /minio/health/live HTTP/1.0\\r\\n\\r\\n' >&3 && head -c 12 <&3 | grep -q HTTP"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  # Crea el bucket, publica solo public/ y configura la cuenta S3 limitada.
+  minio-init:
+    image: bitnamilegacy/minio-client:2025.5.21-debian-12-r4
+    env_file:
+      - .env
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "/init.sh"]
+    volumes:
+      - ./infra/minio/init.sh:/init.sh:ro
+
 volumes:
   postgres_data:
+  minio_data:

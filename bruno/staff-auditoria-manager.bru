@@ -1,0 +1,38 @@
+meta {
+  name: Staff - auditoria de mutaciones manager
+  type: http
+  seq: 57
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/auditoria?accion=album.creado&limite=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.eventos: isNotEmpty
+}
+
+tests {
+  test("los eventos album.creado registran artista y actor manager", function() {
+    const evs = res.getBody().eventos;
+    expect(evs.length).to.be.greaterThan(0);
+    const ev = evs[0];
+    expect(ev.metadata.artista_id).to.equal("00000000-0000-4000-8000-000000000001");
+    expect(ev.actor_id).to.exist;
+  });
+}
+
+docs {
+  GET /api/v1/staff/auditoria?accion=album.creado con token staff: verifica
+  que las mutaciones manager quedaron en la pista de auditoría append-only
+  con el artista afectado y el actor. Los filtros entidad/accion/limite
+  permiten aislar cada tipo de evento 3B (album.creado, cancion.creada,
+  cancion.actualizada, artista.actualizado, rol.asignado, rol.revocado).
+}

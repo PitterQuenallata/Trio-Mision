@@ -1,0 +1,26 @@
+meta {
+  name: Staff - editor no opera pagos
+  type: http
+  seq: 56
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/pagos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Negativo de la matriz staff: el rol editor (contenido) NO tiene acceso a
+  pagos ni accesos. /staff/pagos* y /staff/accesos* exigen admin o vendedor,
+  así que el token editor responde 403. La auditoría y dispositivos siguen
+  siendo admin+vendedor en 3B; el contenido staff llegará con el panel (Fase 5).
+}

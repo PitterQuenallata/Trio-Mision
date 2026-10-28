@@ -1,0 +1,42 @@
+meta {
+  name: Staff - crear cupón con límite por usuario
+  type: http
+  seq: 81
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-LIM-${Date.now()}`;
+  bru.setEnvVar("cuponLimCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{cuponLimCode}}",
+    "descripcion": "Cupón de prueba: un solo uso por usuario",
+    "tipo": "percent",
+    "porcentaje": 5,
+    "max_usos_total": 100,
+    "max_usos_por_usuario": 1,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.max_usos_por_usuario: eq 1
+}
+
+docs {
+  Crea un cupón con límite de un uso por usuario. Guarda `cuponLimCode`
+  para el uso válido y el negativo de límite.
+}

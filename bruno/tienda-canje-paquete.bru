@@ -1,0 +1,50 @@
+meta {
+  name: Tienda - canje de paquete
+  type: http
+  seq: 90
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-canje-paq-${Date.now()}`;
+  bru.setEnvVar("canjePaqKey", key);
+}
+
+body:json {
+  {
+    "codigo": "PAQUETE-DEMO",
+    "idempotency_key": "{{canjePaqKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq PAQUETE-DEMO
+  res.body.tipo: eq package
+  res.body.concedido_en: isNotEmpty
+}
+
+tests {
+  test("canje válido concede las pistas del paquete sin pago", function() {
+    expect(res.getBody().contenido.pistas).to.have.lengthOf(2);
+    expect(res.getBody().accesos_creados, JSON.stringify(res.getBody())).to.be.within(0, 2);
+    // 2 en la primera corrida tras reset; 0 en corridas siguientes (el
+    // acceso ya existe y el índice único impide duplicarlo, comportamiento
+    // idempotente). ya_canjeado es false la primera vez y true después.
+  });
+}
+
+docs {
+  Canje del código PAQUETE-DEMO (seed): concede entitlements de las dos
+  pistas con grant_source=redemption, sin crear pago. Guarda la clave en
+  `canjePaqKey` para el negativo de reutilización con otro código.
+}

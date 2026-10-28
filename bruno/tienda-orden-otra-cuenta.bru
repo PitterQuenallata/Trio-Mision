@@ -1,0 +1,38 @@
+meta {
+  name: Tienda - orden de otra cuenta
+  type: http
+  seq: 34
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "bruno-orden-staff-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+}
+
+tests {
+  test("guarda una orden independiente de otra cuenta", function() {
+    bru.setEnvVar("staffOrdenId", res.getBody().id);
+  });
+}
+
+docs {
+  Prepara una orden de otra cuenta para comprobar que una misma clave de
+  idempotencia no comparte pagos entre órdenes ni usuarios.
+}

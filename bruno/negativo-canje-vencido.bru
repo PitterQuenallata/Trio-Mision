@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - código de canje vencido
+  type: http
+  seq: 108
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "codigo": "{{canjeVencCode}}",
+    "idempotency_key": "bruno-canje-venc-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Un código de canje vencido devuelve 409: no se registra redención ni se
+  concede ningún efecto.
+}

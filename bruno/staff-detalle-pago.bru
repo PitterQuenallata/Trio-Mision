@@ -1,0 +1,39 @@
+meta {
+  name: Staff - detalle del pago
+  type: http
+  seq: 20
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.comprobante_url: isNotEmpty
+  res.body.pago.comprobante.estado: eq pending
+  res.body.pago.orden.usuario_email: isNotEmpty
+}
+
+tests {
+  test("la URL del comprobante es firmada y breve", function() {
+    expect(res.getBody().comprobante_url).to.contain("evidence/");
+    expect(res.getBody().comprobante_url).to.contain("X-Amz-Expires=300");
+    bru.setVar("comprobanteUrl", res.getBody().comprobante_url);
+    expect(res.getBody().pago.id).to.equal(bru.getEnvVar("pagoId"));
+    expect(res.getBody().pago.estado).to.equal("in_review");
+  });
+}
+
+docs {
+  Detalle del pago para revisión: el intento con su orden y usuario (email
+  de GoTrue) bajo `pago`, los ítems congelados de la orden y una URL
+  firmada de 5 minutos del comprobante privado. Solo staff: el comprobante
+  jamás se expone al titular ni a otros usuarios por esta vía.
+}

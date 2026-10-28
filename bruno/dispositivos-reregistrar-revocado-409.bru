@@ -1,0 +1,33 @@
+meta {
+  name: Dispositivos - re-registrar revocado es 409
+  type: http
+  seq: 64
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "install_id": "{{installIdWeb}}",
+    "platform": "web",
+    "app_version": "1.0.1"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Negativo: re-registrar el mismo install_id tras la revocación responde
+  409 ("este dispositivo fue revocado; genera un nuevo install_id"). La
+  revocación no se deshace por el cliente.
+}

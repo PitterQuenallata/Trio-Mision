@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - cupón no alcanza el mínimo
+  type: http
+  seq: 78
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "00000000-0000-4000-8000-000000000205",
+    "idempotency_key": "bruno-min-{{$timestamp}}",
+    "coupon_code": "{{cuponMinCode}}"
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  El subtotal de la oferta (1500 BOB) no alcanza el mínimo del cupón
+  (100000 BOB): la orden se rechaza con 422 y no se crea.
+}

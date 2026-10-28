@@ -1,0 +1,34 @@
+meta {
+  name: Mis compras - suscripción por canje
+  type: http
+  seq: 106
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.premium_activo: eq true
+  res.body.suscripciones: isNotEmpty
+}
+
+tests {
+  test("existe una suscripción activa de origen redemption", function() {
+    const sus = res.getBody().suscripciones.find(s => s.origen === "redemption" && s.estado === "activa");
+    expect(sus, "suscripción redemption activa").to.exist;
+    expect(sus.plan.codigo).to.equal("premium-30");
+  });
+}
+
+docs {
+  El canje quedó visible en /mis-compras como suscripción activa de origen
+  redemption: trazabilidad completa sin pago.
+}

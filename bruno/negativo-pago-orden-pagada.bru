@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - nuevo pago en orden pagada
+  type: http
+  seq: 36
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "proveedor": "transfer",
+    "monto_minor": {{montoMinor}},
+    "idempotency_key": "bruno-pago-pagada-{{$timestamp}}",
+    "referencia": "intento-adicional"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Una orden pagada no admite nuevos intentos. La aprobación también bloquea
+  la orden para impedir dos pagos confirmed previamente en revisión.
+}

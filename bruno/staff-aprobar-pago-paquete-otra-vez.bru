@@ -1,0 +1,33 @@
+meta {
+  name: Staff - aprobar pago paquete otra vez
+  type: http
+  seq: 104
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoPaqueteId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_confirmado: eq true
+  res.body.accesos_creados: eq 0
+  res.body.suscripciones_creados: eq 0
+}
+
+docs {
+  Repetir la aprobación del paquete es idempotente: no crea accesos ni
+  suscripciones (el estado real —dos accesos vigentes— se verifica en "Mis
+  compras - paquete tras aprobación").
+}

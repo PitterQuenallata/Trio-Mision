@@ -1,0 +1,44 @@
+meta {
+  name: Staff - aprobar pago Premium
+  type: http
+  seq: 86
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoPremiumId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Pago Premium verificado (Bruno E2E 3C.1)"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.orden_estado: eq paid
+  res.body.ya_estaba_confirmado: eq false
+  res.body.accesos_creados: eq 0
+}
+
+tests {
+  test("premium crea un período, nunca audio", function() {
+    expect(res.getBody().suscripciones_creados, JSON.stringify(res.getBody())).to.be.within(0, 1);
+    // 1 en la primera compra del ítem; 0 solo si el ítem ya tenía suscripción.
+    bru.setEnvVar("suscripcionesTotales", String(res.getBody().suscripciones_totales));
+  });
+}
+
+docs {
+  Aprobación de la orden Premium: en UNA transacción confirma el pago,
+  marca la orden pagada y crea el período de suscripción (grant_source=
+  purchase) que extiende el vigente si existe. Premium NO crea entitlements
+  de audio: accesos_creados queda en 0. Guarda `suscripcionesTotales`.
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Artistas - detalle mi artista (member)
+  type: http
+  seq: 44
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.slug: eq trio-mision
+  res.body.albumes: isNotEmpty
+}
+
+tests {
+  test("el detalle incluye álbumes con canciones publicadas", function() {
+    const albumes = res.getBody().albumes;
+    const demo = albumes.find(a => a.titulo === "Celebremos Su Gloria (demo)");
+    expect(demo).to.exist;
+    const premium = demo.canciones.find(c => c.acceso === "premium");
+    expect(premium).to.exist;
+  });
+}
+
+docs {
+  GET /api/v1/mis-artistas/{artistId} con token member: ficha del artista con
+  álbumes y canciones (metadatos; el ChordPro va en el detalle de canción).
+  Verifica que el álbum demo incluye la canción premium sembrada en 3B.
+}

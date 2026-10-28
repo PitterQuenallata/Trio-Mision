@@ -1,0 +1,34 @@
+meta {
+  name: Staff - pagos pendientes
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/pagos?estado=in_review
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.pagos: isNotEmpty
+}
+
+tests {
+  test("el pago del flujo está entre los pendientes", function() {
+    const ids = res.getBody().pagos.map(p => p.id);
+    expect(ids).to.include(bru.getEnvVar("pagoId"));
+  });
+}
+
+docs {
+  Bandeja de revisión staff: pagos con comprobante pendientes. Requiere
+  rol staff (`make db-staff EMAIL=staff@triomision.local ROLE=vendedor`)
+  y "GoTrue - login staff". El usuario comprador recibiría 403 (ver
+  "Negativo - sin rol staff").
+}

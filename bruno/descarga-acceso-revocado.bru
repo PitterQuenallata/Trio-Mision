@@ -1,0 +1,25 @@
+meta {
+  name: Descarga - acceso revocado
+  type: http
+  seq: 27
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{accesoId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Caso negativo: el titular pierde la descarga cuando su entitlement fue
+  revocado ("Staff - revocar acceso"). La API no firma URL alguna con el
+  acceso revocado o vencido.
+}

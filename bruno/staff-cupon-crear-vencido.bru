@@ -1,0 +1,44 @@
+meta {
+  name: Staff - crear cupón vencido
+  type: http
+  seq: 79
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-VENC-${Date.now()}`;
+  bru.setEnvVar("cuponVencCode", code);
+  const ayer = new Date(Date.now() - 86400000).toISOString();
+  bru.setEnvVar("cuponVencAyer", ayer);
+}
+
+body:json {
+  {
+    "codigo": "{{cuponVencCode}}",
+    "descripcion": "Cupón de prueba vencido",
+    "tipo": "percent",
+    "porcentaje": 5,
+    "termina_en": "{{cuponVencAyer}}",
+    "max_usos_por_usuario": 5,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.termina_en: isNotEmpty
+}
+
+docs {
+  Crea un cupón ya vencido (termina_en en el pasado). Guarda
+  `cuponVencCode` para el negativo de vigencia.
+}

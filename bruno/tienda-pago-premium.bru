@@ -1,0 +1,46 @@
+meta {
+  name: Tienda - pago de orden Premium
+  type: http
+  seq: 84
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenPremiumId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-pagoprem-${Date.now()}`;
+  bru.setEnvVar("pagoPremiumKey", key);
+}
+
+body:json {
+  {
+    "proveedor": "qr",
+    "monto_minor": {{montoPagoPremium}},
+    "idempotency_key": "{{pagoPremiumKey}}",
+    "referencia": "bruno-e2e-premium"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq awaiting_evidence
+  res.body.monto_minor: eq {{montoPagoPremium}}
+}
+
+tests {
+  test("guarda el pago de la orden premium", function() {
+    bru.setEnvVar("pagoPremiumId", res.getBody().id);
+  });
+}
+
+docs {
+  Intento de pago QR de la orden Premium. El monto debe coincidir con el
+  total con descuento congelado (montoPagoPremium). Guarda `pagoPremiumId`.
+}

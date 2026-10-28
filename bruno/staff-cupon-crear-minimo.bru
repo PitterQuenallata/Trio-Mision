@@ -1,0 +1,42 @@
+meta {
+  name: Staff - crear cupón con mínimo alto
+  type: http
+  seq: 77
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/cupones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-MIN-${Date.now()}`;
+  bru.setEnvVar("cuponMinCode", code);
+}
+
+body:json {
+  {
+    "codigo": "{{cuponMinCode}}",
+    "descripcion": "Cupón de prueba: 5% solo desde 100000 BOB",
+    "tipo": "percent",
+    "porcentaje": 5,
+    "min_subtotal_minor": 100000,
+    "max_usos_por_usuario": 5,
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.min_subtotal_minor: eq 100000
+}
+
+docs {
+  Crea un cupón con subtotal mínimo inalcanzable para las ofertas del seed
+  (máx. 5000 BOB). Guarda `cuponMinCode` para el negativo de mínimo.
+}

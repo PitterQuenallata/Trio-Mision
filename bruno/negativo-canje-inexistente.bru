@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - código de canje inexistente
+  type: http
+  seq: 96
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "codigo": "CODIGO-INEXISTENTE-999",
+    "idempotency_key": "bruno-nocanje-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un código de canje inexistente devuelve 404: no se registra redención
+  ni se concede nada.
+}

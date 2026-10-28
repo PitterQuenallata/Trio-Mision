@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - login member
+  type: http
+  seq: 38
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "member@triomision.local",
+    "password": "MemberPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token_type: eq bearer
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token member (rol por artista, sin privilegios staff)", function() {
+    bru.setVar("memberToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del usuario member: tiene membresía en trio-mision pero ningún rol
+  staff. Sus pruebas verifican la autorización por artista del Sprint 3B.
+}

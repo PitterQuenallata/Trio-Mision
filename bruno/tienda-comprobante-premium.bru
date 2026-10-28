@@ -1,0 +1,34 @@
+meta {
+  name: Tienda - comprobante de pago Premium
+  type: http
+  seq: 85
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/pagos/{{pagoPremiumId}}/comprobante
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/comprobante-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq in_review
+  res.body.byte_size: eq 70
+}
+
+docs {
+  Comprobante multipart del pago Premium (fixture binario de la colección).
+  Marca el intento en revisión; subir la imagen nunca activa acceso.
+}

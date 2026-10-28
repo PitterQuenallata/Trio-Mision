@@ -1,0 +1,35 @@
+meta {
+  name: Artistas - mis artistas (member)
+  type: http
+  seq: 43
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.artistas: isNotEmpty
+}
+
+tests {
+  test("el member ve trio-mision con su rol member", function() {
+    const artistas = res.getBody().artistas;
+    const trio = artistas.find(a => a.slug === "trio-mision");
+    expect(trio).to.exist;
+    expect(trio.mi_rol).to.equal("member");
+  });
+}
+
+docs {
+  GET /api/v1/mis-artistas con el token member: lista las membresías del
+  usuario autenticado con su rol por artista. Es la entrada del futuro panel
+  por-artista. Requiere "GoTrue - login member".
+}

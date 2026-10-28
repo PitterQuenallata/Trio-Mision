@@ -1,0 +1,37 @@
+meta {
+  name: GoTrue - login staff
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "staff@triomision.local",
+    "password": "StaffPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token staff para la revisión de pagos", function() {
+    bru.setVar("staffToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del usuario staff (requiere haberlo dado de alta en
+  "GoTrue - signup staff" y haberle asignado el rol con
+  `make db-staff EMAIL=staff@triomision.local ROLE=vendedor`).
+
+  Guarda `staffToken`, usado por los endpoints /api/v1/staff/*.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Artistas - no eliminar último manager
+  type: http
+  seq: 67
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/miembros/{{managerUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Regresión de continuidad administrativa: incluso el propio manager no puede
+  eliminar su membresía si es la última de ese artista. La comprobación y la
+  revocación/auditoría se serializan por artista dentro de una transacción.
+}

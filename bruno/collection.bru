@@ -1,0 +1,82 @@
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{gotrueToken}}
+}
+
+docs {
+  # Trio Misión API
+
+  Colección Bruno de la API central.
+
+  - Base URL por entorno: ver `environments/Local.bru` (`baseUrl` para la
+    API, `gotrueUrl` para GoTrue).
+  - Endpoints protegidos heredan el Bearer de la colección (`gotrueToken`).
+  - Genera un token de desarrollo con `make api-token` y pégalo como
+    variable secreta `gotrueToken` del entorno Local.
+  - Flujo real de autenticación (sin token sintético), en orden:
+    1. `GoTrue - signup` — alta del usuario de desarrollo (repetible).
+    2. `GoTrue - login` — password grant; guarda `gotrueAccessToken`.
+    3. `Me con token GoTrue` — `/api/v1/me` con el JWT emitido por GoTrue.
+
+  ## Sprint 3A — compra, seguridad y descarga por API
+
+  Flujo vertical completo: oferta → orden → pago QR → comprobante multipart
+  (máximo 5 MiB) → revisión staff → aprobación idempotente → entitlement →
+  descarga firmada desde MinIO, con revocación y casos negativos.
+
+  Prerequisitos (una vez, o tras `make db-reset`):
+  - `make db-migrate && make db-security && make db-seed`.
+  - `docker compose restart gotrue` tras un reset.
+  - Correr `GoTrue - signup staff` una vez y asignar el rol:
+    `make db-staff EMAIL=staff@triomision.local ROLE=vendedor`.
+
+  El flujo genera claves nuevas por corrida y es repetible sin reset.
+  El archivo `fixtures/comprobante-multipart.bin` contiene una request
+  multipart binaria válida para el endpoint autenticado de comprobantes.
+
+  ## Sprint 3B — API pura: contratos, autorización por artista y dispositivos
+
+  Flujos nuevos (seq 37-68): logins de member/manager/editor, autorización
+  por artista (member lee con ChordPro, manager administra solo sus
+  artistas, negativos cruzados 403/404, membresías por API auditadas) y
+  dispositivos (registro, heartbeat, revocación propia y staff). Prerequisito
+  de roles tras un reset:
+
+      make db-artist-role EMAIL=manager@triomision.local ROLE=manager ARTIST=trio-mision
+      make db-artist-role EMAIL=member@triomision.local ROLE=member ARTIST=trio-mision
+      make db-staff EMAIL=editor@triomision.local ROLE=editor
+
+  ## Sprint 3C.1 — Premium, paquetes de audio, cupones y canjes
+
+  Flujos nuevos (seq 68-118): planes Premium públicos, orden premium con
+  cupón porcentual (descuento calculado en backend), cupón fijo, negativos
+  de cupón (inexistente 404, vencido 409, mínimo 422, límite por usuario
+  409, clave con otro cupón 409), flujo premium completo (pago →
+  comprobante → aprobación que crea período y no audio → doble aprobación
+  idempotente → premium_activo), canje de paquete sin pago (accesos
+  redemption), compra del paquete sobre acceso previo sin duplicar,
+  descarga de pista conseguida por canje, canje premium, negativos de canje
+  (inexistente 404, vencido/agotado 409, clave con otro código 409,
+  repetido ya_canjeado) y CRUD staff de planes/cupones/canjes con editor
+  en 403. Requiere el seed 3C.1 (`make db-seed`: plan premium-30, oferta
+  premium, paquete de dos pistas, cupones BIENVENIDA10/FIJO500, códigos
+  PREMIUM-DEMO/PAQUETE-DEMO).
+
+  La guía de integración para los futuros clientes está en
+  `docs/development/integracion-api.md`.
+
+  ## Correr con el CLI
+
+  Desde la raíz del monorepo:
+
+  ```bash
+  GT=$(make api-token | tail -1)
+  (cd bruno && npx @usebruno/cli run . --env Local --env-var "gotrueToken=$GT")
+  ```
+
+  Tokens y URLs firmadas usan `bru.setVar` y solo viven en memoria durante
+  la corrida; no deben persistirse en `Local.bru`.
+}

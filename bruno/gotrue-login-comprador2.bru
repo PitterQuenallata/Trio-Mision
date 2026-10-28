@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - login comprador2
+  type: http
+  seq: 69
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "comprador2@triomision.local",
+    "password": "CompraPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token del segundo comprador", function() {
+    bru.setVar("comprador2Token", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del segundo comprador. Guarda `comprador2Token`, usado por los
+  flujos de paquete y canje del Sprint 3C.1 (usuario sin mezcla de
+  suscripciones premium).
+}

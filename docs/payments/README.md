@@ -1,91 +1,106 @@
-# Pagos y suscripciones — Trio Misión
+# Pagos, suscripciones y compras — Trio Misión
 
-> **Estado:** documento de estrategia. Aún no existe integración de pagos implementada.
+> **Estado:** estrategia acordada e implementada en la API para el flujo
+> inicial (QR/transferencia con revisión manual), Premium por períodos,
+> cupones y códigos de canje (Sprints 3A y 3C.1). Proveedores externos
+> (Binance, IAP, QR dinámico) siguen sin integración.
 
-## 1. Estrategia
+## 1. Principios
 
-Trio Misión ofrecerá suscripciones Premium mediante distintos métodos de pago. La implementación será gradual, comenzando con pagos sencillos en Bolivia y avanzando hacia integraciones automatizadas.
+La API es la fuente de verdad y distingue:
 
-## 2. Métodos de pago
+- **Orden:** intención de compra con importe y moneda congelados.
+- **Intento de pago:** operación con un método/proveedor y su estado verificado.
+- **Suscripción:** periodo temporal de Premium.
+- **Entitlement:** acceso a audio u otro producto.
+- **Licencia:** usos permitidos sobre una pista y términos aceptados.
+- **Cupón:** descuento calculado por el backend (nunca por el cliente) sobre
+  el subtotal de una orden.
+- **Canje:** concesión de suscripción o entitlements con `grant_source=
+  redemption`, mediante código, sin pago.
 
-### 2.1. QR bancario y transferencia — Bolivia
+Premium no incluye automáticamente audio descargable ni permisos de uso. Los pagos
+pueden fallar, revisarse, reembolsarse o revertirse sin borrar el historial. Una
+aprobación o notificación repetida no debe duplicar acceso, suscripción ni pago.
 
-**Primera etapa.**
+## 2. Flujo inicial: QR/transferencia manual
 
-- Generar o proporcionar un QR para el período de suscripción seleccionado, por ejemplo, mensual.
-- Permitir pagos mediante transferencia bancaria.
-- Registrar el usuario, plan, importe y período contratado.
-- Verificar manualmente los pagos en esta primera etapa.
-- Activar Premium después de confirmar el pago.
-- Registrar la fecha de inicio y vencimiento de la suscripción.
+1. El usuario autenticado selecciona una oferta y crea una orden.
+2. El backend crea un intento con referencia e importe exactos y muestra las
+   instrucciones o QR estático configurado.
+3. El usuario adjunta el comprobante en almacenamiento privado.
+4. Staff autorizado revisa referencia, importe, fecha y evidencia; aprueba o rechaza
+   con comentario y auditoría.
+5. Al aprobar, el backend confirma el pago y concede, en la
+   misma transacción lógica y de forma idempotente, el período Premium o los
+   entitlements de las pistas congeladas en el snapshot de la orden.
+   Para paquetes con `include_future_tracks=false` solo se entregan las
+   pistas del snapshot; con `true`, el contenido publicado vigente al aprobar.
+6. El cliente consulta el estado. Ninguna pantalla activa acceso por recibir una
+   imagen o por escanear el QR.
 
-Inicialmente no se requiere una API bancaria para generar cobros dinámicos.
+Las órdenes tienen expiración configurable. Un reenvío crea otro intento registrado.
+Los comprobantes solo son visibles para su titular y staff autorizado.
 
-### 2.2. Binance
+### Cupones y códigos de canje
 
-Se incorporará Binance como método de pago adicional.
+- El cliente solo envía el código del cupón en la creación de la orden; el
+  backend valida vigencia, límites total/por usuario, moneda y monto mínimo,
+  calcula subtotal, descuento y total, y jamás persiste un total cero o
+  negativo (check en base: `total = subtotal - descuento`, `total > 0`).
+- Un cupón que dejaría el total en cero se rechaza con 422 al crear la orden.
+- Los códigos de canje conceden suscripción o entitlements con
+  `grant_source=redemption`, sin crear pago, respetando vigencia y límites.
+  El mismo usuario no canjea dos veces el mismo código (ni consume dos usos);
+  la clave de cliente del canje tampoco se reutiliza con otro código.
 
-La integración deberá permitir identificar las transacciones, verificar los importes recibidos y actualizar el estado de la suscripción de manera segura.
+## 3. Proveedores futuros
 
-### 2.3. Google Play Billing
+Los adaptadores comparten operaciones conceptuales de crear intento, consultar
+estado, validar notificación/recibo y registrar reversión, sin fingir que todos
+tienen el mismo ciclo de vida.
 
-Se incorporará Google Play Billing para las suscripciones digitales de la aplicación Android distribuida mediante Google Play, conforme a las políticas aplicables.
+- **Binance:** confirmar identificador, importe y estado desde backend; una captura
+  enviada por el cliente no constituye prueba suficiente.
+- **Google Play Billing / Apple IAP:** validar recibos/tokens protegidos en servidor
+  y procesar renovaciones, cancelaciones, vencimientos y reembolsos.
+- **QR dinámico:** referencia única por orden e importe, webhook firmado o consulta
+  autenticada, expiración y conciliación.
 
-El backend deberá verificar las compras y mantener actualizado el estado de la suscripción.
+Antes de vender contenido digital dentro de una app o enlazar al checkout web se
+revisarán las reglas vigentes de la plataforma y el canal de distribución.
 
-### 2.4. Apple In-App Purchase
+## 4. Datos e idempotencia
 
-Se incorporará Apple In-App Purchase para las suscripciones digitales de la aplicación iOS, conforme a las políticas aplicables de Apple.
+- Importes en unidades menores enteras y moneda ISO; nunca `float`.
+- Claves idempotentes únicas y restricciones sobre referencias del proveedor cuando
+  existan.
+- Conservar estado e identificador externos, con payload minimizado y protegido.
+- Verificar webhooks antes de aplicar efectos y tolerar reintentos.
+- No guardar secretos, tokens completos ni comprobantes en logs.
+- Reembolsos, revocaciones y cambios manuales conservan actor, fecha y motivo.
+- Las órdenes congelan oferta, producto, contenido y totales (subtotal,
+  descuento, total) en sus ítems; la aprobación toma de esos snapshots el
+  plan y su duración, y la bandera de contenido futuro, no sus valores
+  actuales. La idempotencia de creación valida que oferta, cupón y payload
+  coincidan con el reintento.
+- Repetir aprobación o canje nunca duplica suscripciones, pagos ni accesos:
+  índices únicos parciales por `order_item_id`/`redemption_id` y por
+  (usuario, pista/asset) vigente.
 
-El backend deberá verificar las transacciones y gestionar las renovaciones, vencimientos y cancelaciones.
+## 5. Soporte
 
-## 3. QR dinámico mediante API — fase futura
-
-En una etapa posterior se integrará un proveedor de pagos QR compatible con Bolivia.
-
-El objetivo es generar un QR único por transacción, asociado al importe exacto, para facilitar pagos rápidos y automatizar la confirmación.
-
-Flujo previsto:
-
-1. El usuario selecciona su plan.
-2. El backend crea una orden de pago con identificador e importe únicos.
-3. El proveedor genera el QR dinámico.
-4. El usuario escanea el QR y paga.
-5. El proveedor confirma la transacción mediante webhook o consulta autenticada.
-6. El backend valida el pago y activa o renueva Premium.
-7. La web y las aplicaciones reflejan el estado actualizado.
-
-La elección del proveedor y la integración técnica se realizarán en esta fase futura.
-
-## 4. Gestión de suscripciones
-
-La API será la fuente de verdad para el acceso Premium.
-
-Se distinguirán:
-
-- **Orden de pago:** solicitud de cobro de un plan.
-- **Pago:** estado de la transacción.
-- **Suscripción:** período de acceso concedido al usuario.
-
-Los usuarios podrán consultar su estado de suscripción desde la web y las aplicaciones, respetando las reglas de cada plataforma.
-
-## 5. Seguridad
-
-- Mantener las credenciales privadas exclusivamente en el backend.
-- Verificar las transacciones antes de conceder acceso Premium.
-- Evitar procesar una misma transacción más de una vez.
-- Registrar importes, moneda, referencias y estados.
-- Separar los entornos de pruebas de los pagos reales.
-- Respetar las políticas vigentes de Google Play y Apple.
+El comprador puede abrir casos de pago, descarga/archivo, permiso/YouTube o consulta
+general vinculados a su orden. Para reclamos se registran URL/claim ID y licencia;
+no se promete liberación ni monetización, especialmente cuando intervienen otros
+titulares.
 
 ## 6. Roadmap
 
-| Etapa | Funcionalidad | Prioridad |
+| Etapa | Funcionalidad | Estado |
 |---|---|---|
-| 1 | QR bancario y transferencia con verificación manual | Inicial |
-| 2 | Binance | Futuro |
-| 3 | Google Play Billing | Futuro |
-| 4 | Apple In-App Purchase | Futuro |
-| 5 | API QR dinámica con importe exacto y confirmación automática | Futuro |
-
-Las suscripciones y los pagos se diseñarán desde el inicio para que estos métodos puedan incorporarse sin rehacer la arquitectura del backend.
+| 1 | Premium y audio mediante QR/transferencia con revisión manual | Implementado (Sprints 3A y 3C.1) |
+| 1b | Cupones y códigos de canje con vigencia, límites e idempotencia | Implementado (Sprint 3C.1) |
+| 2 | Binance verificado desde backend | Pendiente |
+| 3 | Google Play Billing y Apple IAP según canal y políticas | Pendiente |
+| 4 | QR dinámico con confirmación automática y conciliación | Pendiente |

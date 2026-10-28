@@ -1,0 +1,39 @@
+meta {
+  name: GoTrue - signup
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{testUserEmail}}",
+    "password": "{{testUserPassword}}"
+  }
+}
+
+tests {
+  test("signup crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 200) {
+      expect(res.getBody().user.email).to.equal(bru.getEnvVar("testUserEmail"));
+    } else {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta real en GoTrue del usuario de desarrollo (`testUserEmail` /
+  `testUserPassword` del entorno). Con `GOTRUE_MAILER_AUTOCONFIRM=true` el
+  correo queda confirmado al instante, sin SMTP.
+
+  Es repetible: ante un segundo signup responde 422 `user_already_exists`
+  y la corrida sigue en verde. Ejecutar antes de "GoTrue - login".
+}

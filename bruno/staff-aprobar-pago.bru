@@ -1,0 +1,50 @@
+meta {
+  name: Staff - aprobar pago
+  type: http
+  seq: 21
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Referencia y comprobante verificados (Bruno E2E)"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.orden_estado: eq paid
+  res.body.ya_estaba_confirmado: eq false
+}
+
+tests {
+  test("primer aprobación: confirma pago; el acceso queda verificado en Mis compras", function() {
+    const creados = res.getBody().accesos_creados;
+    expect(creados).to.be.within(0, 1);
+    // creados = 1 cuando la pista es nueva para el comprador (escenario
+    // fresco tras reset); 0 si ya tenía un entitlement vigente de una
+    // corrida anterior (el índice único impide duplicar acceso, que es
+    // el comportamiento correcto e idempotente).
+  });
+}
+
+docs {
+  Aprobación manual auditada. En UNA transacción: confirma el pago,
+  aprueba el comprobante, marca la orden pagada y crea el entitlement
+  de la pista (grant_source=purchase) salvo que el comprador ya tenga
+  acceso vigente a esa pista.
+
+  El resultado observable garantizado se verifica en "Mis compras":
+  acceso vigente de la pista del flujo. La idempotencia del reintento
+  se verifica en "Staff - aprobar pago otra vez".
+}

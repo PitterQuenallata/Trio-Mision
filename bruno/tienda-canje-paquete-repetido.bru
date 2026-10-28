@@ -1,0 +1,41 @@
+meta {
+  name: Tienda - canje de paquete repetido
+  type: http
+  seq: 91
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "codigo": "PAQUETE-DEMO",
+    "idempotency_key": "bruno-canje-paq-rep-{{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.codigo: eq PAQUETE-DEMO
+  res.body.ya_canjeado: eq true
+  res.body.accesos_creados: eq 0
+}
+
+tests {
+  test("el canje repetido no duplica ni consume otro uso", function() {
+    expect(res.getBody().concedido_en).to.exist;
+  });
+}
+
+docs {
+  El mismo usuario canjea de nuevo el mismo código: la API devuelve el
+  canje original (ya_canjeado=true) sin crear accesos ni consumir otro uso
+  del código. Idempotencia natural por (código, usuario).
+}

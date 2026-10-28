@@ -1,0 +1,36 @@
+meta {
+  name: Staff - listar códigos de canje
+  type: http
+  seq: 116
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/canjes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.canjes: isNotEmpty
+}
+
+tests {
+  test("figuran los códigos del seed y se guarda el del paquete", function() {
+    const canjes = res.getBody().canjes;
+    const paquete = canjes.find(c => c.codigo === "PAQUETE-DEMO");
+    expect(paquete, "PAQUETE-DEMO").to.exist;
+    expect(canjes.find(c => c.codigo === "PREMIUM-DEMO"), "PREMIUM-DEMO").to.exist;
+    expect(paquete.usos).to.be.at.least(1);
+    bru.setEnvVar("canjePaqId", paquete.id);
+  });
+}
+
+docs {
+  Bandeja staff de códigos de canje con usos consumidos. Guarda
+  `canjePaqId` para el detalle con redenciones.
+}

@@ -1,0 +1,46 @@
+meta {
+  name: Tienda - ofertas
+  type: http
+  seq: 13
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tienda/ofertas
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.ofertas: isNotEmpty
+}
+
+tests {
+  test("la oferta demo está vigente con importe en unidades menores", function() {
+    const ofertas = res.getBody().ofertas;
+    const demo = ofertas.find(o => o.producto.tipo === "track" && o.pista.preview_url);
+    expect(demo, "oferta de la pista individual demo").to.exist;
+    expect(demo.monto_minor).to.be.a("number");
+    expect(demo.moneda).to.match(/^[A-Z]{3}$/);
+    expect(demo.pistas_total).to.equal(1);
+    expect(demo.pista.preview_url).to.contain("/public/");
+    bru.setEnvVar("ofertaId", demo.id);
+    bru.setEnvVar("pistaId", demo.pista.id);
+    bru.setEnvVar("previewUrl", demo.pista.preview_url);
+    bru.setEnvVar("montoMinor", String(demo.monto_minor));
+    bru.setEnvVar("moneda", demo.moneda);
+    const paquete = ofertas.find(o => o.producto.tipo === "album");
+    expect(paquete, "oferta del paquete demo").to.exist;
+    expect(paquete.pistas_total).to.equal(2);
+  });
+}
+
+docs {
+  Lista pública de ofertas vigentes. Requiere el seed (`make db-seed`):
+  crea la pista demo "Cuan grande es Él" con master privado, preview
+  público y una oferta de 1500 BOB.
+
+  Guarda `ofertaId`, `pistaId`, `previewUrl`, `montoMinor` y `moneda`.
+  La verificación de anonimato en MinIO está en "Tienda - preview público
+  en MinIO" y "Negativo - master anónimo en MinIO".
+}

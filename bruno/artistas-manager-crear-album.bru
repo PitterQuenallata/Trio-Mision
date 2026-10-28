@@ -1,0 +1,42 @@
+meta {
+  name: Artistas - manager crea álbum
+  type: http
+  seq: 49
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/albumes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "titulo": "Repertorio de concierto 3B",
+    "anio": 2026,
+    "orden": 50
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.titulo: eq "Repertorio de concierto 3B"
+  res.body.publicado: eq false
+}
+
+tests {
+  test("guarda el id del álbum nuevo para las requests siguientes", function() {
+    bru.setEnvVar("albumNuevoId", res.getBody().id);
+  });
+}
+
+docs {
+  POST /api/v1/mis-artistas/{artistId}/albumes con token manager: crea el
+  álbum sin publicar (publicado=false) y deja auditoría "album.creado".
+  Cada corrida crea su propio álbum (clave libre en título); el flujo es
+  repetible sin reset.
+}

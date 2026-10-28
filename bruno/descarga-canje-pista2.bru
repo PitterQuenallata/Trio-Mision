@@ -1,0 +1,34 @@
+meta {
+  name: Descarga - pista conseguida por canje
+  type: http
+  seq: 98
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{accesoIdPista2}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.url: isNotEmpty
+  res.body.mime_type: eq audio/wav
+}
+
+tests {
+  test("la URL apunta al master privado de la segunda pista", function() {
+    expect(res.getBody().url).to.contain("/tracks/");
+    expect(res.getBody().url).not.to.contain("/public/");
+    expect(res.getBody().pista.id).to.equal("00000000-0000-4000-8000-000000000213");
+  });
+}
+
+docs {
+  Un entitlement con origen redemption descarga igual que uno de compra:
+  el master es privado y la URL firmada es breve.
+}

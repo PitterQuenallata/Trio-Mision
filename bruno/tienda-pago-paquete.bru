@@ -1,0 +1,46 @@
+meta {
+  name: Tienda - pago de orden paquete
+  type: http
+  seq: 100
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenPaqueteId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-pagopaq-${Date.now()}`;
+  bru.setEnvVar("pagoPaqueteKey", key);
+}
+
+body:json {
+  {
+    "proveedor": "transfer",
+    "monto_minor": 2500,
+    "idempotency_key": "{{pagoPaqueteKey}}",
+    "referencia": "bruno-e2e-paquete"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq awaiting_evidence
+  res.body.monto_minor: eq 2500
+}
+
+tests {
+  test("guarda el pago de la orden paquete", function() {
+    bru.setEnvVar("pagoPaqueteId", res.getBody().id);
+  });
+}
+
+docs {
+  Intento de pago por transferencia de la orden del paquete. Guarda
+  `pagoPaqueteId`.
+}

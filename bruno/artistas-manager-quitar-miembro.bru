@@ -1,0 +1,27 @@
+meta {
+  name: Artistas - manager quita member
+  type: http
+  seq: 55
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/miembros/{{devUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.eliminado: eq true
+}
+
+docs {
+  DELETE /api/v1/mis-artistas/{artistId}/miembros/{userId} con token manager:
+  revoca la membresía agregada en la request anterior. Audita "rol.revocado"
+  con source=api y deja a dev fuera del artista, estado limpio para la
+  siguiente corrida. devUserId se guarda en "Me con token GoTrue".
+}

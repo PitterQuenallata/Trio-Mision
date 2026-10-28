@@ -1,0 +1,36 @@
+meta {
+  name: Artistas - manager agrega member
+  type: http
+  seq: 54
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/miembros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "email": "dev@triomision.local",
+    "member_role": "member"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.member_role: eq member
+  res.body.email: eq dev@triomision.local
+}
+
+docs {
+  POST /api/v1/mis-artistas/{artistId}/miembros con token manager: asigna una
+  membresía por artista desde la propia API (no requiere SQL). Audita
+  "rol.asignado" con source=api. El usuario debe tener perfil (haber
+  iniciado sesión al menos una vez). La siguiente request lo quita para
+  dejar el estado limpio entre corridas.
+}

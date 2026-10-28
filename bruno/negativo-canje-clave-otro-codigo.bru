@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - clave de canje con otro código
+  type: http
+  seq: 95
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "codigo": "{{canjeClaveBCode}}",
+    "idempotency_key": "{{canjeClaveKey}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  La clave idempotente del canje no se reutiliza con otro código: la clave
+  `canjeClaveKey` ya canjeó el código A y con el código B devuelve 409, igual
+  que la idempotencia de órdenes y pagos. Flujo autocontenido: los códigos
+  A y B se crean frescos por corrida, así que el negativo es repetible.
+}

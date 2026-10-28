@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - login editor
+  type: http
+  seq: 42
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "editor@triomision.local",
+    "password": "EditorPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token_type: eq bearer
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token editor (staff de contenido, sin pagos)", function() {
+    bru.setVar("editorToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del usuario editor: rol staff de contenido. La matriz del Sprint 3B
+  exige que NO pueda operar pagos/accesos (403 en /staff/pagos*).
+}

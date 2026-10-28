@@ -1,0 +1,44 @@
+meta {
+  name: Staff - crear código de canje vencido
+  type: http
+  seq: 107
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/canjes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  const code = `BRU-CANJEVENC-${Date.now()}`;
+  bru.setEnvVar("canjeVencCode", code);
+  const ayer = new Date(Date.now() - 86400000).toISOString();
+  bru.setEnvVar("canjeVencAyer", ayer);
+}
+
+body:json {
+  {
+    "codigo": "{{canjeVencCode}}",
+    "descripcion": "Código de prueba vencido",
+    "tipo": "premium",
+    "plan_id": "{{planPremiumId}}",
+    "max_usos": 10,
+    "termina_en": "{{canjeVencAyer}}",
+    "activo": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq premium
+}
+
+docs {
+  Crea un código de canje ya vencido. Guarda `canjeVencCode` para el
+  negativo de vigencia.
+}

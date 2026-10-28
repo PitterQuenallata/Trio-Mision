@@ -1,0 +1,32 @@
+meta {
+  name: Staff - revocar dispositivo
+  type: http
+  seq: 67
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/dispositivos/{{deviceIdPc}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Revocación operativa de prueba (Bruno 3B)"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocado
+}
+
+docs {
+  POST /api/v1/staff/dispositivos/{id}/revocar con token staff: revoca por el
+  UUID interno del dispositivo (a diferencia del endpoint propio, que usa el
+  install_id). Registra auditoría "dispositivo.revocado" con motivo.
+}
