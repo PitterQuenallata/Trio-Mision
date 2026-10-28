@@ -1,0 +1,25 @@
+meta {
+  name: Descarga - ID de licencia no es audio 404
+  type: http
+  seq: 144
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{grantLicenciaId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Demuestra que un grant de licencia jamás concede audio descargable:
+  el endpoint de descarga solo opera sobre entitlements, devolviendo 404
+  al recibir un ID de licencia.
+}

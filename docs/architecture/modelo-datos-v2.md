@@ -258,20 +258,35 @@ artist_license_profiles
 
 track_license_options
   id, track_id FK, use_code, add_on_amount_minor, currency,
-  enabled, created_at, updated_at
+  enabled, created_at, updated_at,
+  UNIQUE (track_id, use_code)
 
 license_terms_versions
-  id, artist_id FK, version_label, terms_text, published_at
+  id, artist_id FK, version_label, terms_text, published_at, created_at
+
+license_acceptances
+  id, order_id FK, terms_version_id FK, user_id FK, accepted_at,
+  UNIQUE (order_id, terms_version_id)
 
 license_grants
   id, user_id FK, track_id FK, order_item_id NULL FK,
-  terms_version_id FK, accepted_uses jsonb, granted_at, revoked_at
+  license_option_id NULL FK, terms_version_id NULL FK,
+  accepted_uses jsonb, granted_at, revoked_at,
+  UNIQUE parcial por order_item_id
 ```
 
-La opción elegible se configura por pista. Los usos previstos son descarga/escucha,
-práctica, interpretación en iglesia/concierto, grabación vocal, publicación y
-monetización, siempre limitados a los derechos que el vendedor pueda conceder.
-Descargar no transfiere autoría ni concede automáticamente grabación/publicación.
+Implementado en migraciones `00021_licencias_config.sql` y `00022_license_grants.sql`
+(Sprint 3C.2). La oferta efectiva se configura por pista (`track_license_options`):
+una pista es elegible cuando está publicada y tiene al menos una opción habilitada.
+Los usos previstos son práctica, interpretación en iglesia/concierto, grabación vocal,
+publicación y monetización. Descarga/escucha pertenece al audio base.
+Términos inmutables y versionados (append-only); el comprador acepta los términos
+vigentes al crear la orden (`license_acceptances`). Las licencias se adquieren como
+complementos del audio en la misma orden, congelando `license_snapshot` en
+`order_items`. Al aprobarse el pago, se emite el `license_grant` de forma
+transaccional e idempotente. Descargar audio jamás concede licencias; Premium tampoco;
+y las licencias nunca otorgan el archivo master de audio. La revocación staff
+(`revoked_at` y auditoría) es independiente del acceso al audio.
 
 ## 4. Productos, ofertas, órdenes y acceso
 

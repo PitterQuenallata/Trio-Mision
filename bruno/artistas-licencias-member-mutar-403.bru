@@ -1,0 +1,31 @@
+meta {
+  name: Artistas - member no puede mutar licencias 403
+  type: http
+  seq: 124
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pistaId}}/licencias/practica
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 500,
+    "moneda": "BOB",
+    "habilitada": true
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  El rol member solo puede leer licencias; mutar una opción requiere rol manager.
+}

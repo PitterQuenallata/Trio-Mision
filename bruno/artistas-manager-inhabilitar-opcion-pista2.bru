@@ -1,0 +1,34 @@
+meta {
+  name: Artistas - inhabilitar opcion pista 2 (manager)
+  type: http
+  seq: 132
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pista2Id}}/licencias/practica
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 500,
+    "moneda": "BOB",
+    "habilitada": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.uso: eq practica
+  res.body.habilitada: eq false
+}
+
+docs {
+  Inhabilita la opción de la pista 2 para restaurar su estado no elegible
+  hacia futuras corridas del runner.
+}

@@ -13,6 +13,7 @@ import (
 	"encoding/json"
 	"errors"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -99,6 +100,28 @@ func Register(api huma.API, db database.DB, store storage.Client, presignTTL tim
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){staff},
 	}, revocarAcceso(db))
+
+	huma.Register(api, huma.Operation{
+		OperationID: "staff-listar-licencias",
+		Method:      "GET",
+		Path:        "/api/v1/staff/licencias",
+		Summary:     "Listar licencias concedidas",
+		Description: "Grants de licencias con usuario, pista, uso aceptado, términos congelados y estado (vigente/revocado). Filtro opcional por usuario (UUID) o pista (UUID).",
+		Tags:        []string{"staff"},
+		Security:    []map[string][]string{{"bearer": {}}},
+		Middlewares: []func(huma.Context, func(huma.Context)){staff},
+	}, listarLicencias(db))
+
+	huma.Register(api, huma.Operation{
+		OperationID: "staff-revocar-licencia",
+		Method:      "POST",
+		Path:        "/api/v1/staff/licencias/{id}/revocar",
+		Summary:     "Revocar una licencia",
+		Description: "Marca la licencia como revocada con motivo y auditoría. Idempotente si ya estaba revocada. No altera la descarga del audio.",
+		Tags:        []string{"staff"},
+		Security:    []map[string][]string{{"bearer": {}}},
+		Middlewares: []func(huma.Context, func(huma.Context)){staff},
+	}, revocarLicencia(db))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "staff-listar-auditoria",
@@ -320,6 +343,9 @@ type revisarPagoOutput struct {
 		AccesosTotales       int       `json:"accesos_totales" doc:"Accesos vigentes de la orden tras la operación"`
 		SuscripcionesCreados int       `json:"suscripciones_creados" doc:"Períodos Premium creados (0 si no era una orden premium o fue idempotente)"`
 		SuscripcionesTotales int       `json:"suscripciones_totales" doc:"Suscripciones ligadas a la orden tras la operación"`
+		LicenciasCreadas     int       `json:"licencias_creadas" doc:"Permisos adicionales concedidos (0 si no era una orden con licencias o fue idempotente)"`
+		LicenciasCreados     int       `json:"licencias_creados" doc:"Permisos adicionales concedidos (0 si no era una orden con licencias o fue idempotente)"`
+		LicenciasTotales     int       `json:"licencias_totales" doc:"Licencias ligadas a la orden tras la operación"`
 		YaEstabaConfirmado   bool      `json:"ya_estaba_confirmado" doc:"true cuando la aprobación fue idempotente (no duplicó nada)"`
 		ProcesadoEn          time.Time `json:"procesado_en"`
 	}
@@ -383,6 +409,11 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 					(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.SuscripcionesTotales); err != nil {
 				return nil, huma.Error500InternalServerError("error contando las suscripciones", err)
 			}
+			if err := tx.QueryRow(ctx, `
+				select count(*) from license_grants where order_item_id in
+					(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.LicenciasTotales); err != nil {
+				return nil, huma.Error500InternalServerError("error contando las licencias", err)
+			}
 			out.Body.Estado = "confirmed"
 			out.Body.YaEstabaConfirmado = true
 			if err := tx.Commit(ctx); err != nil {
@@ -440,10 +471,11 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			durationDays    int
 			includeFuture   bool
 			contentSnapshot json.RawMessage
+			licenseSnapshot json.RawMessage
 		}
 		items := []itemEfecto{}
 		itemRows, err := tx.Query(ctx, `
-			select id, product_snapshot, content_snapshot
+			select id, product_snapshot, content_snapshot, license_snapshot
 			from order_items where order_id = $1`, orderID)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error consultando los ítems de la orden", err)
@@ -451,7 +483,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 		for itemRows.Next() {
 			var it itemEfecto
 			var productSnapshot json.RawMessage
-			if err := itemRows.Scan(&it.itemID, &productSnapshot, &it.contentSnapshot); err != nil {
+			if err := itemRows.Scan(&it.itemID, &productSnapshot, &it.contentSnapshot, &it.licenseSnapshot); err != nil {
 				itemRows.Close()
 				return nil, huma.Error500InternalServerError("error leyendo los ítems de la orden", err)
 			}
@@ -498,6 +530,18 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 				if creada {
 					out.Body.SuscripcionesCreados++
 				}
+			case it.productType == "licencia":
+				// Permiso adicional: se concede desde el snapshot congelado en
+				// la orden (términos y usos aceptados), nunca desde la
+				// configuración actual. Jamás crea entitlement de audio.
+				creada, err := store.ConcederLicencia(ctx, tx, userID, it.itemID, it.licenseSnapshot)
+				if err != nil {
+					return nil, huma.Error500InternalServerError("error concediendo la licencia", err)
+				}
+				if creada {
+					out.Body.LicenciasCreados++
+					out.Body.LicenciasCreadas++
+				}
 			case it.includeFuture:
 				n, err := store.ConcederPistasProducto(ctx, tx, userID, it.productID, &it.itemID, nil, "purchase")
 				if err != nil {
@@ -523,10 +567,22 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 				(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.SuscripcionesTotales); err != nil {
 			return nil, huma.Error500InternalServerError("error contando las suscripciones", err)
 		}
+		if err := tx.QueryRow(ctx, `
+			select count(*) from license_grants where order_item_id in
+				(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.LicenciasTotales); err != nil {
+			return nil, huma.Error500InternalServerError("error contando las licencias", err)
+		}
 		if err := registrarAuditoria(ctx, tx, staffID, "acceso.concedido", "entitlement", orderID,
 			map[string]any{"orden_id": orderID, "payment_attempt_id": in.ID,
-				"accesos": out.Body.AccesosCreados, "suscripciones": out.Body.SuscripcionesCreados, "usuario_id": userID}); err != nil {
+				"accesos": out.Body.AccesosCreados, "suscripciones": out.Body.SuscripcionesCreados,
+				"licencias": out.Body.LicenciasCreados, "usuario_id": userID}); err != nil {
 			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+		}
+		if out.Body.LicenciasCreados > 0 {
+			if err := registrarAuditoria(ctx, tx, staffID, "licencia.concedida", "license_grant", orderID,
+				map[string]any{"orden_id": orderID, "usuario_id": userID, "licencias_creadas": out.Body.LicenciasCreados}); err != nil {
+				return nil, huma.Error500InternalServerError("error registrando auditoría de licencia", err)
+			}
 		}
 		if err := tx.QueryRow(ctx, `select status from orders where id = $1`, orderID).Scan(&out.Body.OrdenEstado); err != nil {
 			return nil, huma.Error500InternalServerError("error consultando la orden", err)
@@ -765,4 +821,162 @@ func listarAuditoria(db database.DB) func(context.Context, *listarAuditoriaInput
 
 func itoa(n int) string {
 	return strconv.Itoa(n)
+}
+
+// ── Licencias (Staff) ──────────────────────────────────────────────────────
+
+type licenciaStaffItem struct {
+	ID               string          `json:"id"`
+	UsuarioID        string          `json:"usuario_id"`
+	UsuarioMail      string          `json:"usuario_email"`
+	PistaID          string          `json:"pista_id"`
+	PistaTitulo      string          `json:"pista_titulo"`
+	ArtistaID        string          `json:"artista_id,omitempty"`
+	ArtistaNombre    string          `json:"artista_nombre,omitempty"`
+	Uso              string          `json:"uso" doc:"practica | interpretacion | grabacion_vocal | publicacion | monetizacion"`
+	OrderItemID      *string         `json:"order_item_id,omitempty"`
+	LicenseOptionID  *string         `json:"license_option_id,omitempty"`
+	TermsVersionID   *string         `json:"terms_version_id,omitempty"`
+	TerminosEtiqueta string          `json:"terminos_etiqueta,omitempty"`
+	AcceptedUses     json.RawMessage `json:"accepted_uses"`
+	ConcedidoEn      time.Time       `json:"concedido_en"`
+	RevocadoEn       *time.Time      `json:"revocado_en,omitempty"`
+	Estado           string          `json:"estado" doc:"vigente | revocado"`
+}
+
+type listarLicenciasInput struct {
+	Usuario string `query:"usuario" required:"false" format:"uuid" doc:"Filtro opcional por UUID de usuario"`
+	Pista   string `query:"pista" required:"false" format:"uuid" doc:"Filtro opcional por UUID de pista"`
+}
+
+type listarLicenciasOutput struct {
+	Body struct {
+		Licencias []licenciaStaffItem `json:"licencias"`
+	}
+}
+
+func listarLicencias(db database.DB) func(context.Context, *listarLicenciasInput) (*listarLicenciasOutput, error) {
+	return func(ctx context.Context, in *listarLicenciasInput) (*listarLicenciasOutput, error) {
+		where := []string{}
+		args := []any{}
+		if in.Usuario != "" {
+			args = append(args, in.Usuario)
+			where = append(where, "lg.user_id = $"+itoa(len(args)))
+		}
+		if in.Pista != "" {
+			args = append(args, in.Pista)
+			where = append(where, "lg.track_id = $"+itoa(len(args)))
+		}
+		whereClause := ""
+		if len(where) > 0 {
+			whereClause = "where " + strings.Join(where, " and ")
+		}
+
+		rows, err := db.Query(ctx, `
+			select lg.id, lg.user_id, coalesce(au.email, ''),
+			       lg.track_id, t.title, ar.id, ar.name,
+			       coalesce(lg.accepted_uses->>'use_code', ''),
+			       lg.order_item_id, lg.license_option_id, lg.terms_version_id,
+			       coalesce(ltv.version_label, lg.accepted_uses->>'terminos_etiqueta', ''),
+			       lg.accepted_uses, lg.granted_at, lg.revoked_at
+			from license_grants lg
+			join tracks t on t.id = lg.track_id
+			join artists ar on ar.id = t.artist_id
+			left join profiles au on au.id = lg.user_id
+			left join license_terms_versions ltv on ltv.id = lg.terms_version_id
+			`+whereClause+`
+			order by lg.granted_at desc limit 200`, args...)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error consultando las licencias", err)
+		}
+		defer rows.Close()
+
+		out := &listarLicenciasOutput{}
+		out.Body.Licencias = []licenciaStaffItem{}
+		for rows.Next() {
+			var l licenciaStaffItem
+			var acceptedUses json.RawMessage
+			if err := rows.Scan(&l.ID, &l.UsuarioID, &l.UsuarioMail,
+				&l.PistaID, &l.PistaTitulo, &l.ArtistaID, &l.ArtistaNombre,
+				&l.Uso, &l.OrderItemID, &l.LicenseOptionID, &l.TermsVersionID,
+				&l.TerminosEtiqueta, &acceptedUses, &l.ConcedidoEn, &l.RevocadoEn); err != nil {
+				return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+			}
+			l.AcceptedUses = acceptedUses
+			if l.RevocadoEn != nil {
+				l.Estado = "revocado"
+			} else {
+				l.Estado = "vigente"
+			}
+			out.Body.Licencias = append(out.Body.Licencias, l)
+		}
+		if err := rows.Err(); err != nil {
+			return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+		}
+		return out, nil
+	}
+}
+
+type revocarLicenciaInput struct {
+	ID   string `path:"id" format:"uuid" doc:"ID del grant de licencia"`
+	Body struct {
+		Motivo string `json:"motivo" minLength:"3" maxLength:"500" doc:"Motivo de la revocación"`
+	}
+}
+
+type revocarLicenciaOutput struct {
+	Body struct {
+		ID         string    `json:"id"`
+		Estado     string    `json:"estado" doc:"revocado"`
+		RevocadaEn time.Time `json:"revocada_en"`
+		RevocadoEn time.Time `json:"revocado_en,omitempty"`
+	}
+}
+
+func revocarLicencia(db database.DB) func(context.Context, *revocarLicenciaInput) (*revocarLicenciaOutput, error) {
+	return func(ctx context.Context, in *revocarLicenciaInput) (*revocarLicenciaOutput, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok {
+			return nil, huma.Error401Unauthorized("no autenticado")
+		}
+
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+		}
+		defer tx.Rollback(ctx)
+
+		var (
+			revocadoEn time.Time
+			userID     string
+			trackID    string
+		)
+		err = tx.QueryRow(ctx, `
+			update license_grants
+			set revoked_at = coalesce(revoked_at, now())
+			where id = $1
+			returning revoked_at, user_id, track_id`, in.ID).Scan(&revocadoEn, &userID, &trackID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, huma.Error404NotFound("licencia no encontrada")
+		}
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error revocando la licencia", err)
+		}
+
+		if err := registrarAuditoria(ctx, tx, claims.Subject, "licencia.revocada", "license_grant", in.ID,
+			map[string]any{"motivo": in.Body.Motivo, "usuario_id": userID, "track_id": trackID}); err != nil {
+			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+		}
+
+		if err := tx.Commit(ctx); err != nil {
+			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+		}
+
+		out := &revocarLicenciaOutput{}
+		out.Body.ID = in.ID
+		out.Body.Estado = "revocado"
+		out.Body.RevocadaEn = revocadoEn
+		out.Body.RevocadoEn = revocadoEn
+		return out, nil
+	}
 }

@@ -1,0 +1,38 @@
+meta {
+  name: Tienda - permisos de una pista
+  type: http
+  seq: 119
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tienda/pistas/{{pistaId}}/licencias
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.elegible: eq true
+  res.body.opciones: isArray
+  res.body.terminos.etiqueta: isNotEmpty
+}
+
+tests {
+  test("la pista demo ofrece opciones de grabacion_vocal y publicacion con terminos vigentes", function() {
+    bru.setEnvVar("terminosAntesDeOrden", res.getBody().terminos.etiqueta);
+    const ops = res.getBody().opciones;
+    expect(ops.length).to.be.at.least(2);
+    const grab = ops.find(o => o.uso === "grabacion_vocal");
+    expect(grab).to.be.an("object");
+    expect(grab.monto_minor).to.equal(800);
+    expect(grab.moneda).to.equal("BOB");
+    const pub = ops.find(o => o.uso === "publicacion");
+    expect(pub).to.be.an("object");
+    expect(pub.monto_minor).to.equal(1500);
+  });
+}
+
+docs {
+  Consulta pública de permisos adicionales ofrecidos por la pista demo:
+  devuelve solo opciones habilitadas y términos vigentes del artista.
+}

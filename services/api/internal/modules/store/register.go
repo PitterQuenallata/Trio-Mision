@@ -46,14 +46,28 @@ func Register(api huma.API, db database.DB, store storage.Client, presignTTL tim
 	}, obtenerPista(db, store))
 
 	huma.Register(api, huma.Operation{
+		OperationID: "tienda-pista-licencias",
+		Method:      http.MethodGet,
+		Path:        "/api/v1/tienda/pistas/{id}/licencias",
+		Summary:     "Permisos adicionales de una pista",
+		Description: "Opciones de licencia habilitadas de una pista elegible con precio y los términos " +
+			"vigentes de su artista. Las pistas no autorizadas no ofrecen permisos (elegible=false). " +
+			"Comprar o descargar el audio jamás implica estos permisos.",
+		Tags: []string{"tienda"},
+	}, pistaLicencias(db))
+
+	huma.Register(api, huma.Operation{
 		OperationID: "tienda-crear-orden",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/tienda/ordenes",
 		Summary:     "Crear una orden de compra",
 		Description: "Congela oferta, producto y contenido (pista/plan y archivos) en una orden. " +
 			"Acepta coupon_code opcional: el descuento se calcula en backend (subtotal, descuento, total) " +
-			"y jamás produce totales negativos. Idempotente por idempotency_key: un reintento con la misma " +
-			"clave y la misma oferta/cupón devuelve la orden original; con otros datos devuelve 409.",
+			"y jamás produce totales negativos. También acepta licencias: IDs de opciones de permisos " +
+			"adicionales de pistas del contenido, con acepta_terminos=true obligatorio; cada licencia se " +
+			"congela como ítem aparte con sus términos y usos (license_snapshot) y nunca crea entitlement " +
+			"de audio. Idempotente por idempotency_key: un reintento con la misma clave y la misma " +
+			"oferta/cupón/licencias devuelve la orden original; con otros datos devuelve 409.",
 		Tags:     []string{"tienda"},
 		Security: []map[string][]string{{"bearer": {}}},
 	}, crearOrden(db))

@@ -1,0 +1,60 @@
+meta {
+  name: Tienda - crear orden audio con licencia y cupon
+  type: http
+  seq: 135
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-lic-${Date.now()}`;
+  bru.setEnvVar("ordenLicKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenLicKey}}",
+    "coupon_code": "{{cuponPctCode}}",
+    "licencias": [
+      "{{opcionGrabVozId}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq pending
+  res.body.subtotal_minor: eq 2300
+  res.body.descuento_minor: eq 230
+  res.body.total_minor: eq 2070
+  res.body.moneda: eq BOB
+  res.body.items: length 2
+}
+
+tests {
+  test("la orden congela audio base y permiso como items separados con license_snapshot", function() {
+    bru.setEnvVar("ordenLicId", res.getBody().id);
+    const items = res.getBody().items;
+    const licItem = items.find(it => it.license_snapshot);
+    expect(licItem).to.be.an("object");
+    expect(licItem.license_snapshot.use_code).to.equal("grabacion_vocal");
+    expect(licItem.license_snapshot.monto_minor).to.equal(800);
+    expect(licItem.license_snapshot.terminos_etiqueta).to.equal(bru.getEnvVar("terminosAntesDeOrden"));
+  });
+}
+
+docs {
+  Crea una orden con pista de audio (1500) + permiso de grabación vocal (800)
+  con cupón 10%: subtotal 2300, descuento 230, total 2070.
+  Cada licencia se congela como un order_item separado.
+}

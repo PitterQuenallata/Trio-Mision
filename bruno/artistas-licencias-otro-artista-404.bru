@@ -1,0 +1,23 @@
+meta {
+  name: Artistas - licencias de otro artista 404
+  type: http
+  seq: 126
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaCoroId}}/licencias
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un usuario sin membresía en el artista solicitado devuelve 404 (no revela existencia).
+}

@@ -1,0 +1,40 @@
+meta {
+  name: Negativo - orden con licencia repetida
+  type: http
+  seq: 133
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-lic-rep-${Date.now()}`;
+  bru.setVar("ordenLicRepKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenLicRepKey}}",
+    "licencias": [
+      "{{opcionGrabVozId}}",
+      "{{opcionGrabVozId}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Rechaza la solicitud si se repite la misma opción de licencia en la lista.
+}

@@ -1,0 +1,31 @@
+meta {
+  name: Staff - revocar licencia idempotente
+  type: http
+  seq: 148
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/licencias/{{grantLicenciaId}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Reintento de revocación"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{grantLicenciaId}}
+  res.body.estado: eq revocado
+}
+
+docs {
+  Repetir la revocación sobre una licencia ya revocada es idempotente y devuelve 200.
+}

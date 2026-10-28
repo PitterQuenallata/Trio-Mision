@@ -1,7 +1,105 @@
 # CURRENT_TASK — Estado del trabajo
 
 > Archivo de estado vivo. Se actualiza al inicio y al final de cada sesión de trabajo.
-> Última actualización: 2026-10-27
+> Última actualización: 2026-10-28
+
+## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
+
+**Cerrado el 2026-10-28.** API pura 0.8.0: perfiles predeterminados por artista,
+opciones de licencia por pista y uso (`practica`, `interpretacion`,
+`grabacion_vocal`, `publicacion`, `monetizacion`), términos inmutables
+versionados (append-only), aceptaciones registradas por orden, licencias
+adquiridas exclusivamente como complementos de audio en la misma orden con
+snapshot congelado `license_snapshot`, concesión transaccional e idempotente de
+`license_grants` en la aprobación del pago (`license_grants_order_item_uidx`),
+`/mis-compras` con `licencias []`, efectos disjuntos estrictos (poseer audio no
+concede licencias, Premium tampoco; las licencias nunca conceden descarga de
+master: 404), administración por artista (member lee, manager actualiza perfil,
+opciones y términos), y administración staff (listar y revocar licencias con
+auditoría, sin alterar el acceso de descarga de audio). **No se construyó ni
+modificó UI**: los clientes se integran contra
+`docs/development/integracion-api.md`.
+
+| Entregable | Ubicación | Estado |
+|---|---|---|
+| Migraciones 00021-00022 (`artist_license_profiles`, `track_license_options`, `license_terms_versions`, `license_acceptances`, `license_grants` con índice único parcial `license_grants_order_item_uidx`) | `database/migrations/` | Hecho |
+| Seed: perfil y términos v1 de Trío Misión, 2 opciones habilitadas en pista 1 (`grabacion_vocal` 800 BOB, `publicacion` 1500 BOB), pista 2 sin opciones (no elegible), Coro Polifónico sin licencias (aislamiento) | `services/api/cmd/seed/` | Hecho |
+| Módulo `licencias`: administración por artista (`/mis-artistas/{artistId}/licencias…`) para member (lectura) y manager (mutación auditada de perfil, opciones por pista y publicación de términos) | `services/api/internal/modules/licencias/` | Hecho |
+| Oferta pública de licencias: `GET /api/v1/tienda/pistas/{id}/licencias` con elegibilidad, opciones habilitadas y términos vigentes | `services/api/internal/modules/store/licencias.go` | Hecho |
+| `crearOrden` con licencias complementarias: valida opciones habilitadas, pista publicada y en contenido de la oferta, moneda coincidente, `acepta_terminos=true`, congela `license_snapshot` en `order_items` separados y registra `license_acceptances`. Idempotencia con claves coincidentes | `services/api/internal/modules/store/` | Hecho |
+| Concesión transaccional e idempotente: `ConcederLicencia` en aprobación staff (`POST /staff/pagos/{id}/aprobar`) desde `license_snapshot` sin duplicar; audita `licencia.concedida` | `services/api/internal/modules/store/grants.go`, `internal/modules/staff/` | Hecho |
+| Consulta en `/mis-compras`: agrega `licencias []` (pista, uso, términos, fecha y estado vigente/revocado) | `services/api/internal/modules/store/compras.go` | Hecho |
+| Endpoints staff de licencias: `GET /api/v1/staff/licencias` (filtros usuario/pista) y `POST /api/v1/staff/licencias/{id}/revocar` (motivo obligatorio, marca `revoked_at`, audita `licencia.revocada`, idempotente, no afecta audio) | `services/api/internal/modules/staff/staff.go` | Hecho |
+| Colección Bruno: 32 requests nuevos (150 total: 75 tests, 359 aserciones) cubriendo oferta, orden con cupón y licencias, aprobación, re-aprobación, descarga negativa (404), revocación y auditoría | `bruno/` | Hecho |
+
+### Verificación contra sistema real (2026-10-28, tras `make db-reset` desde cero)
+
+- 22 migraciones goose down+up limpias (`make db-reset` de 22 a 0 y de 0 a 22);
+  `make db-security`, GoTrue y seed idempotente aplicados.
+- Colección Bruno completa tras reset desde cero: **150/150 requests,
+  75/75 tests, 359/359 aserciones** en verde; re-ejecución consecutiva sobre
+  los mismos datos vuelve a quedar en verde (100% repetible sin reset).
+- Flujo de licencias real (Bruno + curl):
+  - Orden con audio base (1500 BOB) + opción grabacion_vocal (800 BOB) + cupón
+    10% (subtotal 2300, descuento 230, total 2070 BOB).
+  - Ítems congelados en snapshot independiente con términos v1 del artista.
+  - Publicación posterior de términos v2: la orden conserva los términos v1
+    congelados al momento de la compra.
+  - Aprobación staff: confirma pago, entrega 1 entitlement de audio y 1 grant
+    de licencia (`licencias_totales=1`, `suscripciones_creados=0`).
+  - Re-aprobación idempotente: confirma pago sin duplicar accesos ni licencias.
+  - `/mis-compras`: el usuario ve su licencia activa con sus términos originales.
+  - Aislamiento de descarga: `GET /mis-compras/accesos/{grantId}/descarga` responde
+    404 (las licencias jamás conceden archivo master de audio).
+  - Revocación staff: `POST /staff/licencias/{id}/revocar` marca `revoked_at`,
+    deja la licencia en estado `revocado` en `/mis-compras`, pero el acceso
+    de descarga de audio permanece vigente.
+  - Auditoría: constan `licencia.concedida` y `licencia.revocada` en los eventos
+    de auditoría staff.
+- Casos negativos verificados:
+  - Pista no elegible (sin opciones) → `elegible: false`, `opciones: []`.
+  - Pista inexistente → 404.
+  - Licencia sin aceptar términos → 422.
+  - Licencia con pista fuera del contenido de la oferta → 422.
+  - Opciones de licencia duplicadas en la orden → 422.
+  - Oferta Premium con complementos de licencias → 422.
+  - Reutilizar clave de idempotencia con opciones diferentes → 409.
+  - Member intentando mutar configuración de licencias → 403.
+  - Artista ajeno o pista ajena en `/mis-artistas` → 404.
+  - Staff editor intentando listar o revocar licencias → 403.
+- Principio de privilegios mínimos verificado con `triomision_api`:
+  - `DELETE` denegado en `artist_license_profiles`, `track_license_options`,
+    `license_terms_versions`, `license_acceptances` y `license_grants`.
+  - `UPDATE` denegado en tablas inmutables (`license_terms_versions` y
+    `license_acceptances`).
+- `go build`, `go vet`, `gofmt`, `go test ./...` 100% limpios; OpenAPI 0.8.0
+  con 51 paths y Swagger UI en 200.
+
+### Decisiones y hallazgos del Sprint 3C.2
+
+- **Licencias como complementos de audio**: no existen licencias huérfanas sin
+  audio; cada licencia se compra en la misma orden que el audio de la pista y
+  se congela como un `order_item` con `license_snapshot`.
+- **Efectos estrictamente disjuntos**: comprar o descargar audio nunca otorga
+  licencias; Premium nunca otorga licencias ni audio; poseer una licencia
+  nunca permite descargar el archivo master de audio (`/descarga` devuelve 404).
+- **Términos inmutables y versionados por artista**: actualizar términos
+  consiste en insertar una nueva fila append-only en `license_terms_versions`.
+  La orden congela la versión vigente al momento de compra; publicar una versión
+  posterior no modifica compras pasadas.
+- **Idempotencia en aprobación**: `license_grants_order_item_uidx` garantiza
+  que dobles aprobaciones no dupliquen grants de licencias.
+- **Idempotencia de creación de órdenes con licencias**: `ordenIdempotenteValidada`
+  filtra `where oi.offer_id is not null limit 1` para no confundir las líneas de
+  licencia (`offer_id = NULL`) con el ítem de la oferta al reconstruir la orden.
+
+## Siguiente tarea — Sprint 3C.3: servicios y soporte
+
+**Estado:** no iniciado. Base verificada: API 0.8.0, 22 migraciones, Bruno
+150/150 y 359/359. **Solo API; no construir UI.** Ver alcance en
+`docs/planificacion/README.md`: solicitudes/cotizaciones/proyectos/entregas de
+composición-producción; tickets y mensajes de pagos, descargas, permisos y
+reclamos YouTube, con adjuntos privados y autorización titular/staff.
 
 ## Fase 3 / Sprint 3C.1 — Premium, paquetes de audio, cupones y canjes: COMPLETADA ✅
 
@@ -100,25 +198,6 @@ contra `docs/development/integracion-api.md`.
 - **Bruno**: los ids no secretos se comparten con `bru.setEnvVar` (igual
   que la colección previa); un request sin bloque `auth:bearer` explícito
   hereda el Bearer de colección — siempre declarar el token.
-
-## Siguiente tarea — Sprint 3C.2: licencias y permisos adicionales por pista
-
-**Estado:** no iniciado. Base verificada: API 0.7.1, 20 migraciones, Bruno
-118/118 y 277/277. **Solo API; no construir UI.** Ver alcance en
-`docs/planificacion/README.md`: usos concretos elegibles por pista
-(`track_license_options`), términos versionados (`license_terms_versions`),
-aceptación y `license_grants` con `license_snapshot` en la orden. Después
-3C.3 servicios/soporte.
-
-### Criterio de salida 3C.2
-
-- Pistas elegibles ofrecen permisos adicionales con precio y términos; las
-  no autorizadas no los ofrecen.
-- La compra de un permiso congela términos y usos aceptados
-  (`license_snapshot`), crea `license_grants` auditado e idempotente, y no
-  se ofrece en pistas no elegibles.
-- Regresiones 3A/3B/3C.1 en verde con el mismo rigor (build/tests, Bruno,
-  escenario real, privilegios mínimos).
 
 ## Fase 3 / Sprint 3B — API pura: contratos, autorización por artista y dispositivos: COMPLETADA ✅
 

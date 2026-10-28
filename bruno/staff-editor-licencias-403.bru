@@ -1,0 +1,24 @@
+meta {
+  name: Staff - editor denegado en licencias 403
+  type: http
+  seq: 146
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/licencias
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  El rol editor no tiene permisos para listar ni gestionar licencias de staff
+  (solo admin y vendedor).
+}

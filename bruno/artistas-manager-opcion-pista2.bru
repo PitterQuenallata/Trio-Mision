@@ -1,0 +1,40 @@
+meta {
+  name: Artistas - configurar opcion pista 2 (manager)
+  type: http
+  seq: 129
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pista2Id}}/licencias/practica
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 500,
+    "moneda": "BOB",
+    "habilitada": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.uso: eq practica
+  res.body.habilitada: eq true
+}
+
+tests {
+  test("guarda el id de la opcion de pista 2", function() {
+    bru.setEnvVar("opcionPista2Id", res.getBody().id);
+  });
+}
+
+docs {
+  Configura una opción en la segunda pista para probar después el caso negativo
+  de licencia de pista no perteneciente a la oferta.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Negativo - misma clave con licencias distintas 409
+  type: http
+  seq: 137
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenLicKey}}",
+    "coupon_code": "{{cuponPctCode}}",
+    "licencias": [
+      "{{opcionPublicarId}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Reutilizar la clave idempotente con un conjunto diferente de licencias
+  devuelve 409 Conflict.
+}

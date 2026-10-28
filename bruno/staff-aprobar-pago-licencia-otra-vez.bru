@@ -1,0 +1,38 @@
+meta {
+  name: Staff - aprobar pago con licencia otra vez
+  type: http
+  seq: 142
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoLicId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_confirmado: eq true
+  res.body.accesos_creados: eq 0
+  res.body.licencias_totales: eq 1
+}
+
+tests {
+  test("re-aprobacion es idempotente: no duplica licencias ni accesos", function() {
+    const licCreadas = res.getBody().licencias_creadas !== undefined ? res.getBody().licencias_creadas : res.getBody().licencias_creados;
+    expect(licCreadas).to.equal(0);
+  });
+}
+
+docs {
+  La re-aprobación devuelve el estado confirmado sin duplicar grants ni accesos.
+}

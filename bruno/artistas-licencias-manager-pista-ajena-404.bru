@@ -1,0 +1,31 @@
+meta {
+  name: Artistas - manager pista ajena 404
+  type: http
+  seq: 125
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/00000000-0000-4000-8000-000000000999/licencias/practica
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 500,
+    "moneda": "BOB",
+    "habilitada": true
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Una pista que no pertenece al artista de la ruta devuelve 404 (aislamiento por artista).
+}

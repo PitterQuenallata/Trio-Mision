@@ -1,0 +1,34 @@
+meta {
+  name: Staff - auditoria de licencias
+  type: http
+  seq: 150
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/auditoria?accion=licencia.revocada&limite=5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.eventos: isArray
+}
+
+tests {
+  test("consta la auditoria de la revocacion de la licencia", function() {
+    const evs = res.getBody().eventos;
+    expect(evs).to.be.an("array").that.is.not.empty;
+    const ev = evs.find(e => (e.entidad_id || e.entity_id) === bru.getEnvVar("grantLicenciaId"));
+    expect(ev).to.be.an("object");
+    expect(ev.accion).to.equal("licencia.revocada");
+  });
+}
+
+docs {
+  Verifica que la revocación de la licencia quede registrada en audit_events.
+}

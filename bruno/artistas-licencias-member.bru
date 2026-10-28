@@ -1,0 +1,34 @@
+meta {
+  name: Artistas - licencias de mi artista (member)
+  type: http
+  seq: 122
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/licencias
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.perfil: isDefined
+  res.body.opciones: isArray
+  res.body.terminos: isArray
+}
+
+tests {
+  test("member puede consultar la configuración de licencias de su artista", function() {
+    expect(res.getBody().opciones.length).to.be.at.least(2);
+    expect(res.getBody().terminos.length).to.be.at.least(1);
+    expect(res.getBody().terminos.some(t => t.etiqueta === "v1")).to.be.true;
+  });
+}
+
+docs {
+  Lectura de perfil, opciones y términos de licencia por un miembro del artista.
+}

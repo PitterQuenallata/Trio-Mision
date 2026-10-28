@@ -1,0 +1,35 @@
+meta {
+  name: Staff - listar licencias
+  type: http
+  seq: 145
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/licencias?pista={{pistaId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.licencias: isArray
+}
+
+tests {
+  test("staff lista las licencias concedidas sobre la pista", function() {
+    const lics = res.getBody().licencias;
+    expect(lics).to.be.an("array").that.is.not.empty;
+    const item = lics.find(l => l.id === bru.getEnvVar("grantLicenciaId"));
+    expect(item).to.be.an("object");
+    expect(item.estado).to.equal("vigente");
+    expect(item.uso).to.equal("grabacion_vocal");
+  });
+}
+
+docs {
+  Endpoint staff para consultar licencias con filtro opcional por pista o usuario.
+}

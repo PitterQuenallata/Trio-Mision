@@ -1,0 +1,40 @@
+meta {
+  name: Mis compras - licencias propias
+  type: http
+  seq: 143
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.licencias: isArray
+}
+
+tests {
+  test("el usuario ve su licencia con terminos congelados anteriores (a pesar de haberse publicado nueva version)", function() {
+    const lics = res.getBody().licencias;
+    expect(lics).to.be.an("array").that.is.not.empty;
+    const lic = lics.find(l => l.uso === "grabacion_vocal" && l.estado === "vigente") || lics.find(l => l.uso === "grabacion_vocal");
+    expect(lic).to.be.an("object");
+    bru.setEnvVar("grantLicenciaId", lic.id);
+    expect(lic.estado).to.equal("vigente");
+    expect(lic.pista.id).to.equal(bru.getEnvVar("pistaId"));
+    const etiqueta = (lic.terminos && lic.terminos.etiqueta) || lic.terminos_version;
+    expect(etiqueta).to.equal(bru.getEnvVar("terminosAntesDeOrden"));
+    expect(etiqueta).to.not.equal(bru.getEnvVar("terminosPosteriores"));
+  });
+}
+
+docs {
+  Mis compras incluye las licencias propias con pista, uso, términos congelados
+  y estado vigente/revocado.
+}

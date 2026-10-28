@@ -1,0 +1,38 @@
+meta {
+  name: Mis compras - licencia revocada conserva descarga audio
+  type: http
+  seq: 149
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("la licencia figura revocada pero el acceso de descarga de audio sigue vigente", function() {
+    const lics = res.getBody().licencias;
+    const lic = lics.find(l => l.id === bru.getEnvVar("grantLicenciaId"));
+    expect(lic).to.be.an("object");
+    expect(lic.estado).to.equal("revocado");
+
+    const accesos = res.getBody().accesos;
+    const audioAcceso = accesos.find(a => a.pista.id === bru.getEnvVar("pistaId"));
+    expect(audioAcceso).to.be.an("object");
+    expect(audioAcceso.estado).to.equal("vigente");
+  });
+}
+
+docs {
+  Demuestra que la revocación de una licencia adicional no altera el derecho
+  de descarga del audio base (efectos disjuntos).
+}

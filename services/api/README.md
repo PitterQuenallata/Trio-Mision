@@ -6,20 +6,21 @@ negocio. Ver el alcance en `docs/alcance/` y el plan en `docs/planificacion/`.
 
 ## Estado
 
-**Sprint 3C.1 completado** (2026-10-27): planes Premium con suscripciones
-temporales (extienden el período vigente), productos `premium` vinculados a
-plan y paquetes multi-pista con `include_future_tracks`, cupones
-fijos/porcentuales calculados en backend (subtotal/descuento/total en la
-orden; nunca totales negativos), códigos de canje con vigencia, límites e
-idempotencia (sin pago, `grant_source=redemption`), aprobación generalizada
-de pagos (período Premium o entitlements del snapshot, sin duplicar),
-`/mis-compras` con suscripciones y `premium_activo`, y endpoints staff de
-planes/cupones/canjes con auditoría transaccional. Sobre la base 3A/3B:
-migraciones hasta 00020 (backfill de `orders.coupon_id`), Bruno **118/118
-requests, 63/63 tests, 277/277 aserciones**. API versión **0.7.1**, con la
-aprobación basada en los snapshots y el conflicto concurrente de canjes
-endurecidos tras revisión. Guía de integración en `docs/development/integracion-api.md`.
-Siguiente: Sprint 3C.2 (licencias y permisos adicionales por pista).
+**Sprint 3C.2 completado** (2026-10-28): licencias y permisos adicionales por
+pista adquiridos como complementos de audio en la misma orden, snapshot congelado
+`license_snapshot` en cada ítem de licencia, aceptación inmutable de términos del
+artista (`license_acceptances`), concesión transaccional e idempotente de
+`license_grants` en la aprobación staff del pago (`license_grants_order_item_uidx`),
+consulta en `/mis-compras` con `licencias []`, efectos disjuntos (audio, Premium
+y licencias son independientes; descargar audio no concede licencia y una licencia
+no permite descarga de master), administración de licencias por artista (member
+lee, manager configura perfil, opciones por pista y términos append-only), y
+administración staff (listar licencias y revocar con motivo y auditoría).
+Migraciones hasta 00022 (`00021_licencias_config.sql` y `00022_license_grants.sql`),
+OpenAPI con **51 paths**, Bruno **150/150 requests, 75/75 tests, 359/359
+aserciones** en verde tras reset desde cero y en re-ejecución repetible. API
+versión **0.8.0**. Guía de integración en `docs/development/integracion-api.md`.
+Siguiente: Sprint 3C.3 (servicios y soporte).
 
 ## Autenticación y autorización
 
@@ -51,7 +52,7 @@ internal/auth/      Validación JWT GoTrue (HS256) + middleware
 internal/authz/     Autorización: staff sobre staff_roles y membresía por artista sobre artist_members
 internal/storage/   Cliente S3 compatible (MinIO): URLs firmadas y objetos públicos
 internal/server/    Router chi + OpenAPI (Huma) + middlewares
-internal/modules/   Módulos de negocio (health, me, himnario, catalog, artists, devices, store, staff)
+internal/modules/   Módulos de negocio (health, me, himnario, catalog, artists, devices, store, staff, licencias)
 ```
 
 ## Desarrollo
@@ -102,16 +103,21 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `GET /api/v1/tienda/ofertas` — ofertas vigentes (público; importes enteros, moneda ISO, preview público, `pistas_total` y `plan` en ofertas premium)
 - `GET /api/v1/tienda/planes` — planes Premium activos con beneficios publicados (público)
 - `GET /api/v1/tienda/pistas/{id}` — pista en venta con preview y ofertas vigentes
-- `POST /api/v1/tienda/ordenes` — crea orden e ítem atómicamente congelando oferta/producto/contenido; acepta `coupon_code` y calcula subtotal/descuento/total en backend (idempotente por `idempotency_key`, que conserva oferta, cupón y payload)
-- `GET /api/v1/tienda/ordenes/{id}` — orden propia con ítems (snapshots congelados) e intentos de pago
+- `GET /api/v1/tienda/pistas/{id}/licencias` — licencias disponibles por pista: elegibilidad, opciones habilitadas con precio/moneda y términos vigentes del artista
+- `POST /api/v1/tienda/ordenes` — crea orden e ítem atómicamente congelando oferta/producto/contenido; acepta `coupon_code` y licencias complementarias (`licencias: []`, `acepta_terminos: true`), calcula subtotal/descuento/total en backend y congela snapshots (idempotente por `idempotency_key`, que conserva oferta, cupón, licencias y payload)
+- `GET /api/v1/tienda/ordenes/{id}` — orden propia con ítems (snapshots congelados de producto y licencias) e intentos de pago
 - `POST /api/v1/tienda/ordenes/{id}/pagos` — intento QR/transferencia de una orden propia y vigente; el monto debe coincidir con el total (post-descuento)
 - `POST /api/v1/tienda/pagos/{pagoId}/comprobante` — multipart autenticado; valida titularidad, contenido real JPEG/PNG/WebP y máximo 5 MiB, guarda en `evidence/` privado → `in_review`
 - `POST /api/v1/tienda/canjes` — canjea un código de canje: concede período Premium o entitlements del paquete con `grant_source=redemption`, sin pago; idempotente por clave y por (código, usuario)
-- `GET /api/v1/mis-compras` — compras pagadas, accesos y suscripciones del usuario, con `premium_activo` calculado por tiempo
-- `GET /api/v1/mis-compras/accesos/{id}/descarga` — URL firmada del master solo con entitlement vigente
+- `GET /api/v1/mis-compras` — compras pagadas, accesos, suscripciones y licencias (`licencias []`) del usuario, con `premium_activo` calculado por tiempo
+- `GET /api/v1/mis-compras/accesos/{id}/descarga` — URL firmada del master solo con entitlement vigente (las licencias no conceden descarga de master: 404)
 - `GET /api/v1/mis-artistas` — mis membresías por artista con mi rol (member|manager)
 - `GET /api/v1/mis-artistas/{artistId}` — ficha + álbumes + canciones publicadas de mi artista
 - `GET /api/v1/mis-artistas/{artistId}/canciones/{songId}` — canción con ChordPro (la membresía autoriza la lectura)
+- `GET /api/v1/mis-artistas/{artistId}/licencias` — member/manager: perfil, opciones y versiones de términos de su artista
+- `PUT /api/v1/mis-artistas/{artistId}/licencias/perfil` — manager: actualiza permisos predeterminados del perfil de licencias (auditoría)
+- `PUT /api/v1/mis-artistas/{artistId}/pistas/{trackId}/licencias/{useCode}` — manager: configura opción por pista y uso (precio, moneda, habilitada; valida pertenencia de la pista al artista; auditoría)
+- `POST /api/v1/mis-artistas/{artistId}/terminos-licencia` — manager: publica nueva versión de términos (append-only; inmutable; auditoría)
 - `PATCH /api/v1/mis-artistas/{artistId}` — manager: bio/país/redes/portada de su artista
 - `POST /api/v1/mis-artistas/{artistId}/albumes` · `PATCH …/albumes/{albumId}` — manager: álbumes
 - `POST /api/v1/mis-artistas/{artistId}/canciones` · `PATCH …/canciones/{songId}` — manager: canciones (crear sin publicar; PATCH publica)
@@ -122,10 +128,12 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `POST /api/v1/dispositivos/{installId}/revocar` — revocación propia (idempotente; no se deshace)
 - `GET /api/v1/staff/pagos?estado=` — bandeja de revisión (rol staff)
 - `GET /api/v1/staff/pagos/{id}` — detalle con URL firmada del comprobante (5 min) e ítems congelados
-- `POST /api/v1/staff/pagos/{id}/aprobar` — transacción idempotente con locks: confirma pago + orden pagada + efectos del snapshot (período Premium que extiende el vigente, o entitlements de las pistas congeladas; contenido vigente si `include_future_tracks=true`); solo un pago confirmado por orden
+- `POST /api/v1/staff/pagos/{id}/aprobar` — transacción idempotente con locks: confirma pago + orden pagada + efectos del snapshot (período Premium que extiende el vigente, o entitlements de las pistas congeladas, o grants de licencias adicionales; contenido vigente si `include_future_tracks=true`); solo un pago confirmado por orden
 - `POST /api/v1/staff/pagos/{id}/rechazar` — rechaza con comentario; la orden queda pendiente
-- `GET /api/v1/staff/accesos?usuario=` — entitlements concedidos
+- `GET /api/v1/staff/accesos?usuario=` — entitlements de audio concedidos
 - `POST /api/v1/staff/accesos/{id}/revocar` — revoca acceso con motivo (idempotente)
+- `GET /api/v1/staff/licencias?usuario=&pista=` — grants de licencia concedidos (admin|vendedor)
+- `POST /api/v1/staff/licencias/{id}/revocar` — revoca licencia con motivo (idempotente, auditoría; no afecta descarga de audio)
 - `GET /api/v1/staff/auditoria?entidad=&accion=&limite=` — pista de auditoría
 - `GET /api/v1/staff/dispositivos?usuario=` — dispositivos registrados (admin|vendedor)
 - `POST /api/v1/staff/dispositivos/{id}/revocar` — revoca dispositivo con motivo (idempotente, auditoría)

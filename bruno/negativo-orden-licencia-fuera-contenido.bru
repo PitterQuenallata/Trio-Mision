@@ -1,0 +1,40 @@
+meta {
+  name: Negativo - orden con licencia fuera del contenido
+  type: http
+  seq: 131
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-lic-fuera-${Date.now()}`;
+  bru.setVar("ordenLicFueraKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenLicFueraKey}}",
+    "licencias": [
+      "{{opcionPista2Id}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Rechaza opciones de licencia correspondientes a pistas que no forman parte
+  del contenido congelado de la oferta comprada.
+}

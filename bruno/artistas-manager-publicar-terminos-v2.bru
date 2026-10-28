@@ -1,0 +1,39 @@
+meta {
+  name: Artistas - publicar terminos v2 (manager)
+  type: http
+  seq: 140
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/terminos-licencia
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+script:pre-request {
+  const v = `v-post-${Date.now()}`;
+  bru.setEnvVar("terminosPosteriores", v);
+}
+
+body:json {
+  {
+    "version_label": "{{terminosPosteriores}}",
+    "terms_text": "Términos de licencia publicados con posterioridad a la creación de la orden demo."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.etiqueta: eq {{terminosPosteriores}}
+  res.body.id: isNotEmpty
+}
+
+docs {
+  Publica una nueva versión de términos (v2) mientras la orden anterior
+  está pendiente de aprobación. La aprobación de la orden anterior debe
+  conceder el permiso con v1 (congelado en el snapshot), no con v2.
+}

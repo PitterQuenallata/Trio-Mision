@@ -1,0 +1,39 @@
+meta {
+  name: Negativo - orden premium con licencias
+  type: http
+  seq: 134
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-prem-lic-${Date.now()}`;
+  bru.setVar("ordenPremLicKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaPremiumId}}",
+    "idempotency_key": "{{ordenPremLicKey}}",
+    "licencias": [
+      "{{opcionGrabVozId}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Las órdenes de productos Premium no admiten licencias (conceptos disjuntos).
+}

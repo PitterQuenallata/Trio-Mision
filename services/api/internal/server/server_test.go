@@ -258,6 +258,8 @@ func TestOpenAPI(t *testing.T) {
 		"/api/v1/health", "/api/v1/ready", "/api/v1/me", "bearer",
 		"/api/v1/tienda/ofertas", "/api/v1/tienda/ordenes",
 		"/api/v1/mis-compras", "/api/v1/staff/pagos", "/api/v1/staff/auditoria",
+		"/api/v1/tienda/pistas/{id}/licencias", "/api/v1/mis-artistas/{artistId}/licencias",
+		"/api/v1/staff/licencias",
 	} {
 		if !json.Valid(body) || !strings.Contains(string(body), fragmento) {
 			t.Errorf("el spec OpenAPI no contiene %q", fragmento)

@@ -1,0 +1,45 @@
+meta {
+  name: Staff - aprobar pago con licencia
+  type: http
+  seq: 141
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/pagos/{{pagoLicId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Aprobado con licencia Bruno E2E"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.orden_estado: eq paid
+  res.body.ya_estaba_confirmado: eq false
+  res.body.licencias_totales: eq 1
+  res.body.suscripciones_creados: eq 0
+}
+
+tests {
+  test("la aprobacion crea o conserva entitlement de audio, 1 grant de licencia y 0 suscripciones", function() {
+    expect(res.getBody().accesos_creados).to.be.within(0, 1);
+    const licCreadas = res.getBody().licencias_creadas !== undefined ? res.getBody().licencias_creadas : res.getBody().licencias_creados;
+    expect(licCreadas).to.equal(1);
+    expect(res.getBody().licencias_totales).to.equal(1);
+  });
+}
+
+docs {
+  Aprobación staff de pago de orden con audio + licencia:
+  concede exactamente 1 acceso de audio y 1 grant de licencia;
+  cero suscripciones premium.
+}

@@ -1,0 +1,45 @@
+meta {
+  name: Tienda - crear pago orden con licencia
+  type: http
+  seq: 138
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes/{{ordenLicId}}/pagos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-pagolic-${Date.now()}`;
+  bru.setEnvVar("pagoLicKey", key);
+}
+
+body:json {
+  {
+    "proveedor": "qr",
+    "monto_minor": 2070,
+    "idempotency_key": "{{pagoLicKey}}",
+    "referencia": "pago-licencia-e2e"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq awaiting_evidence
+  res.body.monto_minor: eq 2070
+}
+
+tests {
+  test("guarda el id del intento de pago", function() {
+    bru.setEnvVar("pagoLicId", res.getBody().id);
+  });
+}
+
+docs {
+  Crea el intento de pago para la orden con licencia (2070 BOB).
+}

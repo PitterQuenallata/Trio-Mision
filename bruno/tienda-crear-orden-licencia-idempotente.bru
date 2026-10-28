@@ -1,0 +1,38 @@
+meta {
+  name: Tienda - orden con licencia idempotente
+  type: http
+  seq: 136
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenLicKey}}",
+    "coupon_code": "{{cuponPctCode}}",
+    "licencias": [
+      "{{opcionGrabVozId}}"
+    ],
+    "acepta_terminos": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{ordenLicId}}
+  res.body.total_minor: eq 2070
+}
+
+docs {
+  Reintentar la misma clave con exactamente la misma oferta, cupón y licencias
+  devuelve la orden existente sin duplicar.
+}

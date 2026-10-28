@@ -1,0 +1,31 @@
+meta {
+  name: Staff - revocar licencia
+  type: http
+  seq: 147
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/licencias/{{grantLicenciaId}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Uso comercial no autorizado reportado por el artista"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{grantLicenciaId}}
+  res.body.estado: eq revocado
+}
+
+docs {
+  Staff revoca una licencia con motivo obligatorio y auditoría.
+}

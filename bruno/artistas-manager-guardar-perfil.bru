@@ -1,0 +1,35 @@
+meta {
+  name: Artistas - guardar perfil por defecto (manager)
+  type: http
+  seq: 128
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/licencias/perfil
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "permisos": {
+      "practica": {
+        "monto_minor": 450,
+        "moneda": "BOB"
+      }
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.artist_id: eq {{artistaDemoId}}
+}
+
+docs {
+  Guarda la plantilla de permisos por defecto del artista (solo manager).
+}

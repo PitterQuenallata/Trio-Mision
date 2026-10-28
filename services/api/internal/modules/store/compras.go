@@ -47,17 +47,35 @@ type planCorto struct {
 	Nombre string `json:"nombre"`
 }
 
+type terminosResumen struct {
+	VersionID string `json:"version_id,omitempty"`
+	Etiqueta  string `json:"etiqueta,omitempty"`
+}
+
+type licenciaResumen struct {
+	ID                string          `json:"id"`
+	Pista             pistaResumen    `json:"pista"`
+	Uso               string          `json:"uso" doc:"practica | interpretacion | grabacion_vocal | publicacion | monetizacion"`
+	TerminosVersion   string          `json:"terminos_version,omitempty" doc:"Etiqueta de la versión de términos congelada"`
+	TerminosVersionID string          `json:"terminos_version_id,omitempty" doc:"ID de la versión de términos"`
+	Terminos          terminosResumen `json:"terminos" doc:"Términos aceptados congelados"`
+	ConcedidaEn       time.Time       `json:"concedida_en"`
+	RevocadaEn        *time.Time      `json:"revocada_en,omitempty"`
+	Estado            string          `json:"estado" doc:"vigente | revocado"`
+}
+
 type misComprasOutput struct {
 	Body struct {
 		Compras       []compraResumen      `json:"compras"`
 		Accesos       []accesoResumen      `json:"accesos"`
 		Suscripciones []suscripcionResumen `json:"suscripciones" doc:"Períodos Premium del usuario"`
+		Licencias     []licenciaResumen    `json:"licencias" doc:"Permisos adicionales concedidos al usuario"`
 		PremiumActivo bool                 `json:"premium_activo" doc:"true cuando hay un período vigente ahora"`
 	}
 }
 
-// misCompras lista las compras pagadas, los accesos y las suscripciones del
-// usuario. premium_activo se calcula por tiempo (período vigente ahora);
+// misCompras lista las compras pagadas, los accesos, las suscripciones y las
+// licencias del usuario. premium_activo se calcula por tiempo (período vigente ahora);
 // Premium nunca crea entitlements de audio ni licencias.
 func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOutput, error) {
 	return func(ctx context.Context, _ *struct{}) (*misComprasOutput, error) {
@@ -69,6 +87,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 		out.Body.Compras = []compraResumen{}
 		out.Body.Accesos = []accesoResumen{}
 		out.Body.Suscripciones = []suscripcionResumen{}
+		out.Body.Licencias = []licenciaResumen{}
 
 		rows, err := db.Query(ctx, `
 			select o.id, o.status, o.total_minor, o.currency, o.paid_at,
@@ -151,6 +170,47 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 		}
 		rows3.Close()
 
+		rows4, err := db.Query(ctx, `
+			select lg.id, t.id, t.title, ar.name,
+			       coalesce(lg.accepted_uses->>'use_code', ''),
+			       coalesce(lg.terms_version_id::text, lg.accepted_uses->>'terminos_version_id', ''),
+			       coalesce(ltv.version_label, lg.accepted_uses->>'terminos_etiqueta', ''),
+			       lg.granted_at, lg.revoked_at
+			from license_grants lg
+			join tracks t on t.id = lg.track_id
+			join artists ar on ar.id = t.artist_id
+			left join license_terms_versions ltv on ltv.id = lg.terms_version_id
+			where lg.user_id = $1
+			order by lg.granted_at desc`, claims.Subject)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error consultando las licencias", err)
+		}
+		defer rows4.Close()
+		for rows4.Next() {
+			var (
+				l                 licenciaResumen
+				terminosVersionID string
+				terminosEtiqueta  string
+				revokedAt         *time.Time
+			)
+			if err := rows4.Scan(&l.ID, &l.Pista.ID, &l.Pista.Titulo, &l.Pista.Artista,
+				&l.Uso, &terminosVersionID, &terminosEtiqueta,
+				&l.ConcedidaEn, &revokedAt); err != nil {
+				return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+			}
+			l.RevocadaEn = revokedAt
+			l.Estado = estadoLicencia(revokedAt)
+			l.TerminosVersion = terminosEtiqueta
+			l.TerminosVersionID = terminosVersionID
+			l.Terminos.VersionID = terminosVersionID
+			l.Terminos.Etiqueta = terminosEtiqueta
+			out.Body.Licencias = append(out.Body.Licencias, l)
+		}
+		if err := rows4.Err(); err != nil {
+			return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+		}
+		rows4.Close()
+
 		err = db.QueryRow(ctx, `
 			select exists(
 				select 1 from subscriptions
@@ -172,6 +232,13 @@ func estadoAcceso(revokedAt, validUntil *time.Time) string {
 	default:
 		return "vigente"
 	}
+}
+
+func estadoLicencia(revokedAt *time.Time) string {
+	if revokedAt != nil {
+		return "revocado"
+	}
+	return "vigente"
 }
 
 func estadoSuscripcion(revokedAt *time.Time, fin time.Time) string {

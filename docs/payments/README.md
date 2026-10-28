@@ -2,8 +2,9 @@
 
 > **Estado:** estrategia acordada e implementada en la API para el flujo
 > inicial (QR/transferencia con revisión manual), Premium por períodos,
-> cupones y códigos de canje (Sprints 3A y 3C.1). Proveedores externos
-> (Binance, IAP, QR dinámico) siguen sin integración.
+> cupones, códigos de canje y permisos adicionales por pista (Sprints 3A,
+> 3C.1 y 3C.2). Proveedores externos (Binance, IAP, QR dinámico) siguen sin
+> integración.
 
 ## 1. Principios
 
@@ -32,10 +33,13 @@ aprobación o notificación repetida no debe duplicar acceso, suscripción ni pa
 4. Staff autorizado revisa referencia, importe, fecha y evidencia; aprueba o rechaza
    con comentario y auditoría.
 5. Al aprobar, el backend confirma el pago y concede, en la
-   misma transacción lógica y de forma idempotente, el período Premium o los
-   entitlements de las pistas congeladas en el snapshot de la orden.
+   misma transacción lógica y de forma idempotente, el período Premium, los
+   entitlements de las pistas congeladas en el snapshot de la orden y los
+   grants de licencia (`license_grants`).
    Para paquetes con `include_future_tracks=false` solo se entregan las
    pistas del snapshot; con `true`, el contenido publicado vigente al aprobar.
+   Cada licencia solicitada genera un `license_grant` con usos y condiciones
+   congeladas, protegido contra duplicación con `license_grants_order_item_uidx`.
 6. El cliente consulta el estado. Ninguna pantalla activa acceso por recibir una
    imagen o por escanear el QR.
 
@@ -79,13 +83,16 @@ revisarán las reglas vigentes de la plataforma y el canal de distribución.
 - Verificar webhooks antes de aplicar efectos y tolerar reintentos.
 - No guardar secretos, tokens completos ni comprobantes en logs.
 - Reembolsos, revocaciones y cambios manuales conservan actor, fecha y motivo.
-- Las órdenes congelan oferta, producto, contenido y totales (subtotal,
-  descuento, total) en sus ítems; la aprobación toma de esos snapshots el
-  plan y su duración, y la bandera de contenido futuro, no sus valores
-  actuales. La idempotencia de creación valida que oferta, cupón y payload
+  La revocación staff de una licencia (`revoked_at` no nulo) corta su vigencia
+  sin afectar el entitlement de descarga de audio, y viceversa.
+- Las órdenes congelan oferta, producto, contenido, totales (subtotal,
+  descuento, total) y opciones de licencias en sus ítems; la aprobación toma
+  de esos snapshots el plan y su duración, la bandera de contenido futuro y los
+  términos/usos de licencias vigentes al crear la orden, no sus valores actuales.
+  La idempotencia de creación valida que oferta, cupón, licencias y payload
   coincidan con el reintento.
-- Repetir aprobación o canje nunca duplica suscripciones, pagos ni accesos:
-  índices únicos parciales por `order_item_id`/`redemption_id` y por
+- Repetir aprobación o canje nunca duplica suscripciones, pagos, accesos ni
+  licencias: índices únicos parciales por `order_item_id`/`redemption_id` y por
   (usuario, pista/asset) vigente.
 
 ## 5. Soporte
@@ -101,6 +108,7 @@ titulares.
 |---|---|---|
 | 1 | Premium y audio mediante QR/transferencia con revisión manual | Implementado (Sprints 3A y 3C.1) |
 | 1b | Cupones y códigos de canje con vigencia, límites e idempotencia | Implementado (Sprint 3C.1) |
+| 1c | Licencias y permisos adicionales por pista como complementos de audio | Implementado (Sprint 3C.2) |
 | 2 | Binance verificado desde backend | Pendiente |
 | 3 | Google Play Billing y Apple IAP según canal y políticas | Pendiente |
 | 4 | QR dinámico con confirmación automática y conciliación | Pendiente |

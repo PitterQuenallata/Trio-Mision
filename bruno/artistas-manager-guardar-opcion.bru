@@ -1,0 +1,35 @@
+meta {
+  name: Artistas - configurar permiso de pista (manager)
+  type: http
+  seq: 127
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pistaId}}/licencias/interpretacion
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 600,
+    "moneda": "BOB",
+    "habilitada": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.uso: eq interpretacion
+  res.body.monto_minor: eq 600
+  res.body.moneda: eq BOB
+  res.body.habilitada: eq true
+}
+
+docs {
+  El manager crea o actualiza la opción elegible de una pista de su artista.
+}

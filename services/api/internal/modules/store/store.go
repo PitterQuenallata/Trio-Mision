@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"sort"
 	"strings"
 	"time"
 
@@ -257,9 +258,11 @@ func obtenerPista(db database.DB, store storage.Client) func(context.Context, *o
 
 type crearOrdenInput struct {
 	Body struct {
-		OfertaID       string `json:"oferta_id" format:"uuid" doc:"ID de la oferta"`
-		IdempotencyKey string `json:"idempotency_key" minLength:"8" maxLength:"128" doc:"Clave de cliente para no duplicar la orden ante reintentos"`
-		CouponCode     string `json:"coupon_code,omitempty" maxLength:"64" doc:"Código de cupón opcional; el descuento lo calcula el backend"`
+		OfertaID       string   `json:"oferta_id" format:"uuid" doc:"ID de la oferta"`
+		IdempotencyKey string   `json:"idempotency_key" minLength:"8" maxLength:"128" doc:"Clave de cliente para no duplicar la orden ante reintentos"`
+		CouponCode     string   `json:"coupon_code,omitempty" maxLength:"64" doc:"Código de cupón opcional; el descuento lo calcula el backend"`
+		Licencias      []string `json:"licencias,omitempty" maxItems:"10" doc:"IDs de opciones de licencia habilitadas de pistas del contenido de la oferta"`
+		AceptaTerminos bool     `json:"acepta_terminos,omitempty" doc:"Obligatorio en true cuando se solicitan licencias"`
 	}
 }
 
@@ -333,7 +336,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			`select id from orders where user_id = $1 and idempotency_key = $2`,
 			userID, in.Body.IdempotencyKey).Scan(&existingID)
 		if err == nil {
-			return ordenIdempotenteValidada(ctx, db, existingID, userID, in.Body.OfertaID, couponCode)
+			return ordenIdempotenteValidada(ctx, db, existingID, userID, in.Body.OfertaID, couponCode, in.Body.Licencias)
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error500InternalServerError("error consultando la orden", err)
@@ -373,6 +376,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 
 		var contentSnapshot json.RawMessage
 		var trackID string
+		var pistasContenido []contenidoPista
 		switch productType {
 		case "premium":
 			if planID == "" {
@@ -407,6 +411,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			if len(pistas) == 0 {
 				return nil, huma.Error409Conflict("el producto no tiene contenido publicado")
 			}
+			pistasContenido = pistas
 			trackID = pistas[0].TrackID
 			if productType == "track" {
 				// Formato plano heredado del Sprint 3A (content_snapshot.track_id).
@@ -422,6 +427,14 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			}
 		}
 
+		// Permisos adicionales: solo opciones habilitadas de pistas del
+		// contenido congelado de esta oferta, con los términos vigentes
+		// aceptados por el comprador.
+		licencias, err := resolverLicencias(ctx, db, productType, currency, pistasContenido, in.Body.Licencias, in.Body.AceptaTerminos)
+		if err != nil {
+			return nil, err
+		}
+
 		tx, err := db.Begin(ctx)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
@@ -429,7 +442,11 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 		defer tx.Rollback(ctx)
 
 		// Cupón: validación y descuento exclusivamente en backend.
+		// El subtotal incluye los permisos adicionales congelados.
 		subtotal := amountMinor
+		for _, l := range licencias {
+			subtotal += l.MontoMinor
+		}
 		var discount int64
 		var couponID *string
 		if couponCode != "" {
@@ -512,7 +529,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 				if selErr := db.QueryRow(ctx,
 					`select id from orders where user_id = $1 and idempotency_key = $2`,
 					userID, in.Body.IdempotencyKey).Scan(&orderID); selErr == nil {
-					return ordenIdempotenteValidada(ctx, db, orderID, userID, in.Body.OfertaID, couponCode)
+					return ordenIdempotenteValidada(ctx, db, orderID, userID, in.Body.OfertaID, couponCode, in.Body.Licencias)
 				}
 			}
 			return nil, huma.Error500InternalServerError("error creando la orden", err)
@@ -526,6 +543,16 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			orderID, productID, offerID, trackIDOrNil(trackID), productSnapshot, contentSnapshot, amountMinor)
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error guardando el contenido de la orden", err)
+		}
+
+		// Ítems de licencia: cada permiso adicional congelado es una línea
+		// separada; jamás crea entitlement de audio (efectos disjuntos).
+		if err := insertarItemsLicencia(ctx, tx, orderID, licencias); err != nil {
+			return nil, err
+		}
+		// Aceptación de los términos vigentes: una fila por artista implicado.
+		if err := registrarAceptaciones(ctx, tx, orderID, userID, licencias); err != nil {
+			return nil, err
 		}
 
 		if couponCode != "" {
@@ -628,14 +655,17 @@ func mediaPublicada(ctx context.Context, q database.Querier, trackID string) ([]
 }
 
 // ordenIdempotenteValidada devuelve una orden existente para una clave de
-// cliente, exigiendo que oferta y cupón coincidan con el reintento.
-func ordenIdempotenteValidada(ctx context.Context, db database.DB, orderID, userID, ofertaID, couponCode string) (*crearOrdenOutput, error) {
+// cliente, exigiendo que oferta, cupón y licencias congeladas coincidan con
+// el reintento.
+func ordenIdempotenteValidada(ctx context.Context, db database.DB, orderID, userID, ofertaID, couponCode string, licencias []string) (*crearOrdenOutput, error) {
 	var offerExistente *string
 	var couponExistente *string
 	err := db.QueryRow(ctx, `
 		select oi.offer_id, o.coupon_code
-		from orders o left join order_items oi on oi.order_id = o.id
-		where o.id = $1 and o.user_id = $2`, orderID, userID,
+		from orders o
+		left join order_items oi on oi.order_id = o.id and oi.offer_id is not null
+		where o.id = $1 and o.user_id = $2
+		limit 1`, orderID, userID,
 	).Scan(&offerExistente, &couponExistente)
 	if err != nil {
 		return nil, huma.Error500InternalServerError("error consultando la orden", err)
@@ -649,6 +679,47 @@ func ordenIdempotenteValidada(ctx context.Context, db database.DB, orderID, user
 	}
 	if couponExistenteNorm != couponCode {
 		return nil, huma.Error409Conflict("la clave idempotente ya fue usada con otro cupón")
+	}
+
+	// El reintento debe solicitar exactamente las mismas licencias congeladas.
+	rows, err := db.Query(ctx, `
+		select coalesce(license_snapshot->>'opcion_id', '')
+		from order_items
+		where order_id = $1 and license_snapshot is not null
+		order by 1`, orderID)
+	if err != nil {
+		return nil, huma.Error500InternalServerError("error consultando las licencias de la orden", err)
+	}
+	congeladas := []string{}
+	for rows.Next() {
+		var op string
+		if err := rows.Scan(&op); err != nil {
+			rows.Close()
+			return nil, huma.Error500InternalServerError("error leyendo las licencias de la orden", err)
+		}
+		congeladas = append(congeladas, op)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, huma.Error500InternalServerError("error leyendo las licencias de la orden", err)
+	}
+	solicitadas := []string{}
+	vistas := map[string]bool{}
+	for _, id := range licencias {
+		id = strings.ToLower(id)
+		if !vistas[id] {
+			vistas[id] = true
+			solicitadas = append(solicitadas, id)
+		}
+	}
+	sort.Strings(solicitadas)
+	if len(solicitadas) != len(congeladas) {
+		return nil, huma.Error409Conflict("la clave idempotente ya fue usada con otras licencias")
+	}
+	for i := range solicitadas {
+		if solicitadas[i] != congeladas[i] {
+			return nil, huma.Error409Conflict("la clave idempotente ya fue usada con otras licencias")
+		}
 	}
 	return obtenerOrdenPorID(ctx, db, orderID, userID)
 }

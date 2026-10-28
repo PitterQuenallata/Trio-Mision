@@ -1,0 +1,26 @@
+meta {
+  name: Artistas - licencias de mi artista (manager)
+  type: http
+  seq: 123
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/licencias
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.perfil: isDefined
+  res.body.opciones: isArray
+  res.body.terminos: isArray
+}
+
+docs {
+  Lectura de perfil, opciones y términos de licencia por el manager del artista.
+}

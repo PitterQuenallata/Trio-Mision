@@ -88,9 +88,24 @@ Orden de entrega:
        API 0.7.1 (snapshots e idempotencia concurrente endurecidos); Bruno
        118/118, 63/63 tests y 277/277 aserciones tras reset
        (y en re-ejecución).
-   - **3C.2 — Licencias adicionales por pista:** perfiles por artista, opciones
-     elegibles, versiones de términos, grants y snapshots de usos aceptados.
-     No ofrecer permisos sin derechos suficientes ni asumirlos al descargar.
+   - **3C.2 — Licencias adicionales por pista** ✅ (completado y
+     endurecido; **sin construir UI**):
+     - Perfiles predeterminados por artista (`artist_license_profiles`), opciones
+       elegibles por pista y uso (`track_license_options`), términos inmutables
+       y versionados (`license_terms_versions`, append-only), y aceptaciones
+       congeladas del comprador (`license_acceptances`).
+     - Licencias adquiridas exclusivamente como complementos de audio en la misma
+       orden con snapshot congelado `license_snapshot` en cada ítem de licencia.
+     - Aprobación staff transaccional e idempotente que emite `license_grants`
+       sin duplicar (`license_grants_order_item_uidx`).
+     - Efectos disjuntos garantizados: ni audio ni Premium conceden licencias;
+       las licencias jamás conceden acceso al master de audio (404 al intentar
+       descarga).
+     - Consulta en `/mis-compras` con `licencias []` y administración staff
+       (listar y revocar con motivo y auditoría, sin afectar la descarga de audio).
+     - Migraciones 00021-00022, API 0.8.0 (51 paths OpenAPI), Bruno 150/150
+       requests, 75/75 tests y 359/359 aserciones tras reset desde cero y en
+       re-ejecución repetible.
    - **3C.3 — Servicios y soporte:** solicitudes/cotizaciones/proyectos/entregas
      de composición-producción; tickets y mensajes de pagos, descargas, permisos
      y reclamos YouTube, con adjuntos privados y autorización titular/staff.

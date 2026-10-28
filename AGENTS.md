@@ -51,6 +51,19 @@ Docker o PostgreSQL estén ausentes. Verificar con
   días, paquete de dos pistas, cupón y códigos de canje. Bruno 118/118
   requests, 63/63 tests y 277/277 aserciones tras reset desde cero, en
   verde también en re-ejecución.
+- **Sprint 3C.2 de Fase 3 completado** (2026-10-28): API pura 0.8.0,
+  migraciones 00021 y 00022 (perfiles y opciones de licencias, términos
+  versionados append-only, aceptaciones registradas por orden y grants
+  congelados), permisos como complementos de audio en la misma orden con
+  snapshot congelado `license_snapshot`, aprobación staff transaccional e
+  idempotente (`license_grants_order_item_uidx`), `/mis-compras` con
+  `licencias []`, efectos disjuntos garantizados (descargar audio no concede
+  licencias; Premium tampoco; una licencia nunca permite descarga de
+  master), administración por artista (member lee, manager actualiza perfil,
+  opciones por pista y publica términos inmutables), endpoints staff para
+  listar y revocar licencias con auditoría (sin alterar descargas de audio),
+  51 paths OpenAPI y Bruno 150/150 requests, 75/75 tests y 359/359 aserciones
+  en verde tras reset desde cero y en re-ejecución repetible.
 - Fase 2 incluye migraciones (6), seed, himnario, catálogo de solo lectura y
   GoTrue en `compose.yaml` con login real de extremo a extremo
   (signup → token → `/api/v1/me`, perfil creado en el primer request).
@@ -67,10 +80,10 @@ Docker o PostgreSQL estén ausentes. Verificar con
 - Premium nunca concede audio descargable ni licencias: se calcula por
   períodos de suscripción; los paquetes congelan su contenido en el snapshot
   de la orden (`include_future_tracks=false`).
-- Siguiente tarea: Sprint 3C.2 de API pura (licencias y permisos adicionales
-  por pista), sin construir UI. Después 3C.3 servicios/soporte, según
-  `docs/planificacion/README.md`.
-- API actual: versión 0.7.1.
+- Siguiente tarea: Sprint 3C.3 de API pura (servicios y soporte: solicitudes,
+  cotizaciones, entregas y tickets/mensajes con adjuntos y reclamos YouTube),
+  sin construir UI.
+- API actual: versión 0.8.0.
 
 ## Convenciones
 

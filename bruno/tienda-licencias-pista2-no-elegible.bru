@@ -1,0 +1,29 @@
+meta {
+  name: Tienda - pista no elegible para licencias
+  type: http
+  seq: 120
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tienda/pistas/{{pista2Id}}/licencias
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 200
+  res.body.elegible: eq false
+  res.body.opciones: length 0
+}
+
+tests {
+  test("la pista demo 2 sin opciones habilitadas figura no elegible", function() {
+    expect(res.getBody().elegible).to.be.false;
+    expect(res.getBody().opciones).to.be.an("array").that.is.empty;
+  });
+}
+
+docs {
+  Una pista sin opciones de licencia habilitadas devuelve elegible=false
+  y lista de opciones vacía; no se ofrecen permisos sin autorización suficiente.
+}

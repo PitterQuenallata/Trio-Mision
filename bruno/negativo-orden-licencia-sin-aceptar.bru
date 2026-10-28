@@ -1,0 +1,39 @@
+meta {
+  name: Negativo - orden con licencia sin aceptar terminos
+  type: http
+  seq: 130
+}
+
+post {
+  url: {{baseUrl}}/api/v1/tienda/ordenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-sin-aceptar-${Date.now()}`;
+  bru.setVar("ordenSinAceptarKey", key);
+}
+
+body:json {
+  {
+    "oferta_id": "{{ofertaId}}",
+    "idempotency_key": "{{ordenSinAceptarKey}}",
+    "licencias": [
+      "{{opcionGrabVozId}}"
+    ],
+    "acepta_terminos": false
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Una orden que incluye licencias exige obligatoriamente acepta_terminos=true.
+}

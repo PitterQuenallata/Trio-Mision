@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 
@@ -68,4 +69,42 @@ func ConcederPistasProducto(ctx context.Context, q database.Querier, userID, pro
 		return 0, err
 	}
 	return tag.RowsAffected(), nil
+}
+
+// ConcederLicencia otorga el permiso adicional congelado en el
+// license_snapshot de un ítem de licencia: inserta el grant con sus usos y
+// condiciones aceptadas. Idempotente por order_item_id (índice único
+// parcial): ni la doble aprobación ni una carrera de dos clics duplican la
+// licencia del mismo ítem. Jamás crea entitlements de audio: la licencia es
+// un efecto separado de la compra del audio.
+func ConcederLicencia(ctx context.Context, q database.Querier, userID, orderItemID string, snapshot json.RawMessage) (bool, error) {
+	var s struct {
+		TrackID  string `json:"track_id"`
+		OpcionID string `json:"opcion_id"`
+		Terminos string `json:"terminos_version_id"`
+	}
+	if err := json.Unmarshal(snapshot, &s); err != nil || s.TrackID == "" {
+		return false, errors.New("snapshot de licencia inválido")
+	}
+	var id string
+	err := q.QueryRow(ctx, `
+		insert into license_grants (user_id, track_id, order_item_id, license_option_id, terms_version_id, accepted_uses)
+		values ($1, $2, $3, $4, $5, $6)
+		on conflict do nothing
+		returning id`, userID, s.TrackID, orderItemID, uuidPtr(s.OpcionID), uuidPtr(s.Terminos), snapshot).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// uuidPtr convierte un UUID en texto a puntero (nil cuando viene vacío).
+func uuidPtr(id string) *string {
+	if id == "" {
+		return nil
+	}
+	return &id
 }

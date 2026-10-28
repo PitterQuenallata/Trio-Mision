@@ -1,0 +1,19 @@
+meta {
+  name: Tienda - licencias de pista inexistente 404
+  type: http
+  seq: 121
+}
+
+get {
+  url: {{baseUrl}}/api/v1/tienda/pistas/00000000-0000-4000-8000-000000000999/licencias
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Una pista inexistente o no publicada devuelve 404.
+}

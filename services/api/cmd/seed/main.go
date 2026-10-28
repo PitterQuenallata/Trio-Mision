@@ -81,6 +81,9 @@ func main() {
 	if err := seedComercial(ctx, tx); err != nil {
 		log.Fatalf("seed comercial: %v", err)
 	}
+	if err := seedLicencias(ctx, tx); err != nil {
+		log.Fatalf("seed de licencias: %v", err)
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		log.Fatalf("confirmar transacción: %v", err)
