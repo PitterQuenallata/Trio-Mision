@@ -117,9 +117,17 @@ Docker o PostgreSQL estén ausentes. Verificar con
   descarga del master. OpenAPI 75 paths; Bruno 239/239 requests, 113/113
   tests y 534/534 aserciones en verde tras reset desde cero y en
   re-ejecución.
+- **Revisión del Sprint 4A completada** (2026-11-01): correcciones en el
+  árbol sin commit — Premium solo licencia offline pistas publicadas (los
+  entitlements de encargos sí), cabecera de `integracion-api.md` a 0.10.0 y
+  doc del cursor del sync. Recordatorio para próximos agentes: al cambiar la
+  versión de la API hay que actualizar la cabecera "Versión de contrato" de
+  `docs/development/integracion-api.md`. Verificado con Bruno 239/239, 113/113
+  y 534/534 tras reset.
 - API actual: versión 0.10.0.
 - Siguiente tarea: Sprint 4B de Fase 4 (worker + conversión PDF→ChordPro con
-  cola de tareas y seguimiento desde la API); después 4C (FCM).
+  cola de tareas y seguimiento desde la API) — **plan detallado listo en
+  `CURRENT_TASK.md`** ("Siguiente tarea — Fase 4"); después 4C (FCM).
 
 ## Convenciones
 

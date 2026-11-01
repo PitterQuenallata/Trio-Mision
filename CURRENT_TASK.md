@@ -4,13 +4,16 @@
 > Última actualización: 2026-11-01
 
 > [!IMPORTANT]
-> **SPRINT 4A DE FASE 4 COMPLETADO (2026-11-01, Kimi):** sync incremental del
-> catálogo y licencias de descarga offline en API pura 0.10.0 (migración
-> 00026, módulo `sync`, cascadas de revocación en la misma transacción). **Bruno
-> 239/239 requests, 113/113 tests y 534/534 aserciones en verde** tras
-> `make db-reset` desde cero y en re-ejecución consecutiva. Detalle en la
-> sección "Fase 4 / Sprint 4A" más abajo. El siguiente paso es el **Sprint 4B**
-> (worker PDF→ChordPro) y después el 4C (FCM); **no se construyó ni modificó UI**.
+> **SPRINT 4A DE FASE 4 COMPLETADO Y REVISADO (2026-11-01, Kimi):** sync
+> incremental del catálogo y licencias de descarga offline en API pura 0.10.0
+> (migración 00026, módulo `sync`, cascadas de revocación en la misma
+> transacción). La revisión corrigió 3 hallazgos (ver la sección de revisión
+> más abajo; **correcciones aún sin commit**). **Bruno 239/239 requests,
+> 113/113 tests y 534/534 aserciones en verde** tras `make db-reset` desde
+> cero, verificado de forma independiente con las correcciones aplicadas.
+> El siguiente paso es el **Sprint 4B** (worker PDF→ChordPro), con plan
+> detallado listo en la sección "Siguiente tarea — Fase 4", y después el 4C
+> (FCM); **no se construyó ni modificó UI**.
 
 ## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
 
@@ -305,15 +308,186 @@ cascadas de revocación. **No se construyó ni modificó UI.**
   que toda baja/despublicación actualice `updated_at` (contrato de escritura
   del catálogo).
 
+### Revisión del Sprint 4A (2026-11-01, Kimi) — CERRADA ✅
+
+Alcance revisado: migración 00026, módulo `sync` (delta, licencias del titular
+y staff), cascadas en `devices.go` y `staff/staff.go`, registro en el servidor,
+colección Bruno nueva y documentación. Verificación independiente completa:
+`make db-reset` desde cero (26 migraciones) + db-security + seed + GoTrue +
+signups + roles, `go build/vet/gofmt/test` limpios, OpenAPI 0.10.0 con 75
+paths, Swagger 200 y **Bruno 239/239 requests, 113/113 tests y 534/534
+aserciones** con las correcciones aplicadas.
+
+**Hallazgos corregidos (sin commit, en el árbol de trabajo):**
+
+1. **Premium licenciaba offline pistas no publicadas**: `accesoVigente` solo
+   exigía que la pista existiera; cualquier suscriptor Premium podía obtener
+   licencias offline de borradores o de pistas de encargos ajenos adivinando
+   el UUID. Ahora el origen `premium` exige `is_published`; el origen
+   `entitlement` sigue valiendo para cualquier pista (los encargos entregados
+   no se publican en la tienda).
+2. **`integracion-api.md` desactualizado otra vez**: la cabecera quedó en
+   0.9.0 con la API en 0.10.0 (mismo olvido que en la revisión del 3C.3;
+   queda como recordatorio para los próximos agentes). Actualizada a 0.10.0.
+3. **Doc del campo `cursor` engañosa**: decía "vacío cuando has_more=false",
+   pero el contrato real (intencional) es devolver el cursor de la última fila
+   en toda página, incluida la final, para encadenar el próximo delta.
+   Descripción corregida en el spec.
+
+**Observaciones menores registradas (sin corrección):**
+
+- Las concesiones/renovaciones de licencias offline no auditan (las
+  renovaciones serían ruido; las revocaciones staff y cascadas sí auditan).
+- La cascada por entitlement revocado usa `origen='entitlement'`: si el
+  usuario además tiene Premium, su licencia se revoca igual y puede
+  re-solicitarla (volvería como `origen=premium`). Comportamiento aceptable.
+- El agente commiteó el sprint (1021eef, junto con la revisión 3C.2 y el 3C.3
+  en ff4abeb y eabc9de); solo las correcciones de esta revisión quedan sin
+  commit.
+
 ## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
 
 **Estado:** Sprint 4A ✅ completado el 2026-11-01 (ver sección superior).
-Pendientes de la fase: **4B — Worker + conversión PDF→ChordPro**
-(`services/worker`, cola de tareas, seguimiento del trabajo desde la API) y
-**4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens). El plan
-4A que siguió la sesión se conserva abajo como referencia.
+Pendiente de la fase: **4B — Worker + conversión PDF→ChordPro**, con plan
+detallado **listo** abajo para ejecutar, y después **4C — FCM** (`push_tokens`,
+envío desde backend, limpieza de tokens). El plan 4A se conserva al final como
+referencia.
 
-### Sprint 4A — Sync incremental y descargas offline (plan detallado)
+### Sprint 4B — Worker + conversión PDF→ChordPro (plan detallado)
+
+**Solo backend (API + worker); no construir ni modificar UI.**
+
+**Objetivo vertical:** un staff sube un PDF editorial de canciones/himnos →
+la API crea un `media_job` encolado con el PDF en MinIO → el worker
+(`services/worker`, proceso Go separado) lo toma de la cola, extrae el texto
+posicionado y lo convierte a ChordPro (port del algoritmo determinista de
+`legacy/panelweb-triomision-lyrics/src/lib/pdfToCho.ts`) guardando el
+resultado en el job → staff revisa el resultado por API y **publica
+manualmente** las canciones aprobadas como borradores del catálogo/himnario.
+La conversión es **editorial** (staff), no de usuarios finales: los PDFs
+personales no se suben (alcance §7). Nada se publica sin revisión humana.
+
+**1. Modelo y migraciones (00027; sin alterar las aplicadas)**
+
+- `media_jobs` (id, job_type `pdf_chordpro` CHECK extensible, parameters_json
+  jsonb, tool_version text, status `queued|running|done|failed`, progress
+  int 0-100, error_code text nullable, result_json jsonb nullable,
+  created_by FK profiles, created_at, started_at, completed_at) — según
+  `docs/architecture/modelo-datos-v2.md` §4, con `result_json` añadido
+  (documentar el cambio en el modelo).
+- `media_job_assets` (media_job_id FK, media_asset_id FK, input_output_role
+  `input|output`, PK compuesta) — el PDF de entrada vive en MinIO como
+  `media_assets` privado vinculado al job.
+- Idempotencia: `idempotency_key` UNIQUE por `created_by` en `media_jobs`
+  (mismo patrón de `service_requests`/`support_tickets`: clave repetida con
+  otro payload → 409).
+- Grants mínimos para `api_app` (sin DELETE; UPDATE permitido en
+  `media_jobs` para que el worker avance estados — el worker usa la misma
+  cuenta o una propia `worker_app` si el agente lo justifica, documentando
+  la decisión) y verificación con `scripts/db-security.sh`. Migración
+  reversible (down+up desde cero).
+- Sin seed nuevo.
+
+**2. Contratos de la API (módulo `importaciones` o similar)**
+
+Todos staff admin/vendedor (editor → 403; sin token → 401):
+
+- `POST /api/v1/staff/importaciones/pdf` (multipart PDF ≤ 20 MiB, MIME por
+  contenido siguiendo el patrón de `store/pagos.go` y `artists/master.go`,
+  campos de formulario con validación manual de UUIDs donde aplique,
+  `idempotency_key`) → sube el PDF a MinIO (`imports/`), crea
+  `media_assets` + `media_job` `queued` + `media_job_assets(input)` en la
+  misma tx con auditoría (`importacion.creada`).
+- `GET /api/v1/staff/importaciones` (filtro por estado, paginado) y
+  `GET /api/v1/staff/importaciones/{id}` (estado, progreso, error_code y,
+  cuando `done`, el resultado: lista de canciones con título detectado,
+  chordpro, status `ok|revisar` e issues por canción).
+- `POST /api/v1/staff/importaciones/{id}/publicar`: body con los índices de
+  canciones aprobadas y el destino (álbum/catálogo de artista existente o
+  colección del himnario, según el tipo de contenido) → crea las canciones/
+  himnos como **borradores** (`is_published=false`) en la misma tx con
+  auditoría (`importacion.publicada` con conteo e ids). Idempotente:
+  publicar dos veces los mismos índices no duplica filas (marcar en
+  `result_json` o tabla auxiliar los índices ya publicados; repetir devuelve
+  el estado actual sin duplicar).
+- `POST /api/v1/staff/importaciones/{id}/reintentar`: solo si `failed` →
+  vuelve a `queued` (limpiando error/progreso) con auditoría.
+- El worker **nunca** escribe en el catálogo: solo la API publica, tras la
+  revisión humana explícita.
+
+**3. Worker (`services/worker`)**
+
+- Módulo Go propio (`go.mod` `triomision/worker`) que comparte solo
+  PostgreSQL y MinIO con la API (mismo `.env` raíz; `make worker-run`).
+- Loop de cola sobre PostgreSQL con `SELECT … FOR UPDATE SKIP LOCKED` (sin
+  infraestructura nueva: la cola es la tabla `media_jobs`), con sleep
+  configurable y flag `--once` (procesa los pendientes y sale) para la
+  verificación automatizada.
+- Ciclo de vida del job: `queued → running` (started_at, progreso) →
+  `done` (result_json, completed_at) o `failed` (error_code estable, p. ej.
+  `pdf_invalido`, `sin_texto_extraible`, completed_at). Un job fallido se
+  puede reintentar por la API.
+- Extracción de texto **posicionada** (x/y por item): la alineación
+  acorde-sobre-letra la exige. El agente elige y documenta una de:
+  (a) `pdftotext -bbox` (poppler) vía `os/exec`, declarando el prerequisito
+  (`brew install poppler`) en `services/worker/README.md` y fallando con
+  error claro si falta; o (b) una librería Go pura con posiciones de texto.
+  En ambos casos: verificación E2E obligatoria con el PDF real
+  `content/himnario/source/Acordes_para_el_himnario_adventista_2020_3.pdf`.
+- Conversión: port fiel a Go del algoritmo de
+  `legacy/panelweb-triomision-lyrics/src/lib/pdfToCho.ts` (es la
+  especificación): agrupar items por líneas, separar líneas de acordes de
+  líneas de letra, emitir ChordPro, conversión latina→anglosajona,
+  detección de título/número/tono/capo/autor y `issues` por canción con
+  `status: ok|revisar`. 100 % determinista; **sin** OCR ni IA.
+- `result_json` por canción: `{indice, titulo, numero, tono, capo, autor,
+  chordpro, status, issues[]}`. `tool_version` registra la versión del
+  conversor (constante del worker).
+
+**4. Pruebas obligatorias**
+
+- E2E real: `POST` del PDF del himnario → job `queued` → `worker --once` →
+  job `done` con canciones extraídas (asertar al menos una canción con
+  chordpro no vacío y título detectado) → `publicar` un índice → la canción
+  existe como borrador visible para el manager del artista destino vía API;
+  re-publicar el mismo índice no duplica.
+- PDF inválido (fixture que no es PDF o sin texto) → `failed` con
+  error_code; `reintentar` lo vuelve `queued`; worker lo procesa de nuevo.
+- Idempotencia de creación (clave repetida → mismo job; con otro payload →
+  409). Editor → 403 en todos los endpoints; sin token → 401; job ajeno no
+  aplica (todos son staff), pero validar roles.
+- Worker: con cola vacía `--once` sale limpio; dos workers no toman el
+  mismo job (SKIP LOCKED, verificable con un job lento o retraso
+  artificial); job `running` huérfano (worker muerto) documentado
+  (reintentar manual por ahora).
+- Bruno en dos tiempos (crear job, correr `worker --once` entre requests —
+  puede orquestarse en el flujo de verificación o con worker en segundo
+  plano) con aserciones de estados y resultado; colección Bruno completa en
+  verde tras `make db-reset` desde cero y en re-ejecución.
+- Privilegios SQL verificados (`api_app`/`worker_app` sin DELETE en tablas
+  nuevas, sin acceso a `auth`); MinIO: el PDF queda privado y solo se sirve
+  con URL firmada a staff.
+- `go build`, `go vet`, `gofmt`, `go test ./...` limpios **en ambos
+  módulos** (api y worker); Swagger 200.
+
+**5. Documentación y salida**
+
+- Bump a **0.11.0**. Actualizar: `docs/development/integracion-api.md`
+  (**incluida la cabecera "Versión de contrato"**, no olvidar),
+  `docs/architecture/modelo-datos-v2.md` §4/§5 (`result_json`, esquema
+  real), `services/api/README.md`, `services/worker/README.md` (prerequisitos,
+  `--once`, ciclo de vida, prerequisito poppler si aplica), `Makefile`
+  (`worker-run`), `AGENTS.md` y este archivo con resultados reales.
+- **No** implementar en 4B: FCM/push_tokens (4C), derivados/transcodificación
+  de audio, OCR, IA/LLM para la conversión, edición del ChordPro resultante
+  por API (la revisión es aprobar/rechazar índices; la edición fina llega con
+  el panel en Fase 5), ni UI.
+- **Criterio de salida:** importación de un PDF procesada por el worker con
+  seguimiento desde la API (criterio de la fase en
+  `docs/planificacion/README.md`), conversión determinista verificada con el
+  himnario real y publicación como borrador únicamente tras revisión humana.
+
+### Sprint 4A — Sync incremental y descargas offline (plan detallado, referencia)
 
 **Solo API; no construir ni modificar UI.**
 
