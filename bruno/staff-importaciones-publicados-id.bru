@@ -1,0 +1,35 @@
+meta {
+  name: Staff importaciones - id de la canción publicada
+  type: http
+  seq: 259
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.publicados: isNotEmpty
+}
+
+tests {
+  test("el índice 0 quedó marcado como publicado y expone el id", function() {
+    const pub = res.getBody().publicados.find(p => p.indice === 0);
+    expect(pub, "publicado índice 0").to.exist;
+    expect(pub.tipo).to.eq("cancion");
+    bru.setEnvVar("importadaCancionId", pub.id);
+  });
+}
+
+docs {
+  El detalle expone los índices ya publicados con sus ids: fuente estable del
+  id de la canción borrador para las aserciones siguientes (primeras y
+  re-ejecuciones).
+}

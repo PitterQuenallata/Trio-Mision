@@ -1,0 +1,44 @@
+meta {
+  name: Staff importaciones - detalle demo done con canciones
+  type: http
+  seq: 251
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq done
+  res.body.tool_version: eq pdfchordpro-go/1
+  res.body.total_canciones: gte 5
+  res.body.pdf.url: contains X-Amz-Signature
+}
+
+tests {
+  test("canciones con título y ChordPro no vacío", function() {
+    const canciones = res.getBody().canciones;
+    expect(canciones.length, "total_canciones").to.be.at.least(5);
+    const primera = canciones[0];
+    expect(primera.titulo, "título detectado").to.not.be.empty;
+    expect(primera.chordpro, "chordpro con acordes").to.contain("[");
+    expect(["ok", "revisar"], "status").to.include(primera.status);
+    const conAcordes = canciones.filter(c => c.chordpro.includes("[")).length;
+    expect(conAcordes, "canciones con acordes").to.be.at.least(5);
+    bru.setEnvVar("importacionCancionesTotal", String(canciones.length));
+  });
+}
+
+docs {
+  El worker convirtió el PDF: job done con result_json. Se aserta al menos
+  una canción con título detectado y ChordPro no vacío, la versión del
+  conversor (tool_version) y que el PDF original se sirve con URL firmada
+  (privado en MinIO). Requiere el worker corriendo (make worker-run).
+}

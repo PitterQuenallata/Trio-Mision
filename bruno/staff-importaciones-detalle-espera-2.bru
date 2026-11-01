@@ -1,0 +1,32 @@
+meta {
+  name: Staff importaciones - detalle en procesamiento (espera 2)
+  type: http
+  seq: 248
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  // Segunda pausa de margen (8 s): entre ambas esperas el worker completa
+  // el job demo aunque su ciclo de sondeo sea de varios segundos.
+  await new Promise(r => setTimeout(r, 8000));
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{importacionDemoId}}
+}
+
+docs {
+  Segundo detalle de espaciado, con pausa real de 8 s en el pre-request
+  script; el detalle definitivo con las aserciones de estado viene a
+  continuación.
+}

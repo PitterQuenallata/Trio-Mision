@@ -1,0 +1,20 @@
+meta {
+  name: Staff importaciones - sin token 401
+  type: http
+  seq: 250
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+}
+
+docs {
+  Sin Bearer el middleware de auth responde 401 (todos los endpoints de
+  importaciones exigen autenticación).
+}

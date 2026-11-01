@@ -1,0 +1,35 @@
+meta {
+  name: Staff importaciones - destino con UUID inválido 422
+  type: http
+  seq: 262
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [1],
+    "destino": {
+      "tipo": "album",
+      "album_id": "no-es-un-uuid"
+    }
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Los UUIDs de los campos condicionales del destino se validan a mano
+  (Huma no aplica format en sub-esquemas condicionales): un álbum_id mal
+  formado devuelve 422, no 500.
+}

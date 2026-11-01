@@ -25,6 +25,8 @@ make db-seed        # seed idempotente
 make api-run        # API en http://localhost:8080
 make api-test       # tests de la API
 make api-build      # compilación
+make worker-run     # worker (requiere poppler: brew install poppler)
+make worker-test    # tests del worker
 ```
 
 `ECONNREFUSED 127.0.0.1:8080` normalmente indica que falta `make api-run`, no que
@@ -125,9 +127,34 @@ Docker o PostgreSQL estén ausentes. Verificar con
   `docs/development/integracion-api.md`. Verificado con Bruno 239/239, 113/113
   y 534/534 tras reset.
 - API actual: versión 0.10.0.
-- Siguiente tarea: Sprint 4B de Fase 4 (worker + conversión PDF→ChordPro con
-  cola de tareas y seguimiento desde la API) — **plan detallado listo en
-  `CURRENT_TASK.md`** ("Siguiente tarea — Fase 4"); después 4C (FCM).
+- **Sprint 4B de Fase 4 completado** (2026-11-01): worker + conversión
+  editorial PDF→ChordPro en API pura 0.11.0. Migración 00027 (`media_jobs`
+  con `result_json`/`tool_version`/UNIQUE (creador, clave) y
+  `media_job_assets` append-only; grants sin DELETE), módulo
+  `importaciones` (staff: subir PDF ≤ 20 MiB idempotente por clave+checksum,
+  listar, detalle con canciones y URL firmada, publicar borradores por
+  índices a álbum/himnario idempotentemente, reintentar failed) y
+  `services/worker` (cola con FOR UPDATE SKIP LOCKED sobre `media_jobs`,
+  extracción posicionada con `pdftotext -bbox` —poppler, prerequisito
+  documentado— y port determinista del conversor legacy; el worker jamás
+  escribe en el catálogo y comparte la cuenta `api_app`). Seed: UUID
+  determinista de la colección del himnario. OpenAPI 80 paths; Bruno
+  275/275 requests, 136/136 tests y 582/582 aserciones en verde tras reset
+  desde cero y en re-ejecución consecutiva. El flujo 4B en Bruno requiere
+  `make worker-run` corriendo. No se construyó ni modificó UI.
+- **Revisión del Sprint 4B completada** (2026-11-01): correcciones sin
+  commit — el port de `ENGLISH_RE` recuperó el bajo opcional del legacy
+  ("C"/"F#m" sin bajo ya se detectan) y las esperas del flujo 4B en Bruno
+  ahora duermen de verdad (`script:pre-request`, 8 s): la primera corrida
+  tras reset quedó en verde (275/275, 136/136, 582/582). El reporte del
+  agente afirmaba verde tras reset y no era cierto: verificar siempre la
+  primera corrida tras `make db-reset`.
+- Siguiente tarea: Sprint 4B.5 — normalización del himnario .cho (acordes
+  solo en primera estrofa + coro, enfoque guitarra, ambas versiones) —
+  **plan detallado listo en `CURRENT_TASK.md`** ("Siguiente tarea — Fase 4");
+  después 4C (FCM). La versión "simplificada/modo fácil" espera el análisis
+  REA de Chord AI (`reverse-lab/projects/chord-ai/` aún vacío).
+- API actual: versión 0.11.0.
 
 ## Convenciones
 

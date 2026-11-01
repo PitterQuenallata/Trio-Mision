@@ -1,0 +1,45 @@
+meta {
+  name: Staff importaciones - publicar en himnario ya existente
+  type: http
+  seq: 265
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [1],
+    "destino": {
+      "tipo": "himnario",
+      "coleccion_id": "{{coleccionHimnarioId}}"
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("el himno ya existe en la colección: no se duplica ni se toca", function() {
+    expect(res.getBody().destino.tipo).to.eq("himnario");
+    expect(res.getBody().ya_existentes).to.include(1);
+    expect(res.getBody().creados).to.have.lengthOf(0);
+  });
+}
+
+docs {
+  Destino himnario: el himno 2 del demo ya existe en la colección sembrada
+  (el seed carga los himnos 1-614): ON CONFLICT DO NOTHING lo reporta en
+  ya_existentes sin modificar el himnario versionado. El índice NO queda
+  marcado como publicado (no se creó nada), así que la aserción es estable
+  en la primera corrida y en re-ejecuciones.
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Staff importaciones - publicar job fallido 409
+  type: http
+  seq: 264
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionSinTextoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [0],
+    "destino": {
+      "tipo": "album",
+      "album_id": "{{albumNuevoId}}"
+    }
+  }
+}
+
+tests {
+  test("solo los jobs done se pueden publicar (409 si aún está en cola/running)", function() {
+    // En re-ejecuciones inmediatas el worker puede tener el reintento aún
+    // en cola; el invariante es que nunca sea 200.
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(409);
+  });
+}
+
+docs {
+  El job del PDF sin texto está failed (o en reintento): publicar exige
+  estado done y responde 409 en cualquier otro caso.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Importaciones - la canción importada apareció en el delta
+  type: http
+  seq: 273
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("el borrador importado viajó en alguna página del delta", function() {
+    expect(bru.getEnvVar("borradorVisto"), "vista en las páginas 269-272").to.eq("1");
+  });
+}
+
+docs {
+  Cierre del recorrido multipágina del delta: la canción importada como
+  borrador fue encontrada (con publicado=false) en alguna de las páginas
+  269-272. El request va a /me solo para cerrar con una llamada
+  autenticada trivial; la aserción es sobre la bandera acumulada.
+}

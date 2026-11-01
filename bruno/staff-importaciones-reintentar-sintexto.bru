@@ -1,0 +1,31 @@
+meta {
+  name: Staff importaciones - reintentar PDF sin texto
+  type: http
+  seq: 254
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionSinTextoId}}/reintentar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+tests {
+  test("reintento: 200 con estado queued, o 409 si el worker ya lo tomó", function() {
+    expect(res.getStatus()).to.be.oneOf([200, 409]);
+    if (res.getStatus() === 200) {
+      expect(res.getBody().estado).to.eq("queued");
+    }
+  });
+}
+
+docs {
+  reintentar solo admite jobs failed: limpia error/resultado y vuelve a
+  queued para que el worker lo reprocese (auditoría importacion.reintentada).
+  El worker en segundo plano volverá a fallarlo con sin_texto_extraible; el
+  detalle final lo verifica.
+}

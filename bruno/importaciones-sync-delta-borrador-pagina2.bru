@@ -1,0 +1,43 @@
+meta {
+  name: Importaciones - borrador en el delta del sync (pagina 2)
+  type: http
+  seq: 270
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?desde={{syncDeltaCursor}}&limite=500
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("busca la canción importada y encadena la paginación del delta", function() {
+    const songs = res.getBody().songs || [];
+    const importada = songs.find(s => s.id === bru.getEnvVar("importadaCancionId"));
+    if (importada) {
+      expect(importada.publicado, "es borrador").to.eq(false);
+      expect(importada.bpm, "BPM actualizado por el manager").to.eq(72);
+      expect(importada.chordpro, "lleva su ChordPro").to.contain("[");
+      bru.setEnvVar("borradorVisto", "1");
+    }
+    const cursor = res.getBody().cursor || "";
+    if (cursor) {
+      bru.setEnvVar("syncDeltaCursor", cursor);
+    }
+  });
+}
+
+docs {
+  Página 2 del recorrido del delta del sync buscando la canción
+  importada como borrador (la página 1 la abre la request 269 desde
+  syncCursorBorrador; estas páginas encadenan syncDeltaCursor). La
+  presencia efectiva se verifica en la request 273 (borradorVisto).
+}

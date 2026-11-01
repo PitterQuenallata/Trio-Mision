@@ -1,0 +1,46 @@
+meta {
+  name: Staff importaciones - publicar índice 0 como borrador en álbum
+  type: http
+  seq: 258
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [0],
+    "destino": {
+      "tipo": "album",
+      "album_id": "{{albumNuevoId}}"
+    }
+  }
+}
+
+tests {
+  test("publica el borrador la primera vez; en re-ejecuciones ya está publicado", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(200);
+    expect(res.getBody().destino.tipo).to.eq("album");
+    expect(res.getBody().total_creados).to.be.oneOf([0, 1]);
+    if (res.getBody().total_creados === 1) {
+      expect(res.getBody().creados[0].tipo).to.eq("cancion");
+    } else {
+      expect(res.getBody().ya_publicados).to.include(0);
+    }
+  });
+}
+
+docs {
+  Revisión humana explícita: el staff aprueba el índice 0 (primera canción
+  convertida) y la publica como BORRADOR (is_published=false) en el álbum
+  creado por el manager en el flujo 3B. La creación comparte transacción con
+  la auditoría importacion.publicada y el marcado del índice en result_json:
+  repetir la misma publicación no duplica la canción.
+}

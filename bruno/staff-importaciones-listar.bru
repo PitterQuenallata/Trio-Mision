@@ -1,0 +1,25 @@
+meta {
+  name: Staff importaciones - listar con filtro
+  type: http
+  seq: 247
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones?limite=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.importaciones: isNotEmpty
+}
+
+docs {
+  Listado paginado (limite/desde) con filtro opcional por estado. Este
+  request también espacia la corrida para darle tiempo al worker.
+}

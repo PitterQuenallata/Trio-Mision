@@ -1,0 +1,38 @@
+meta {
+  name: Staff importaciones - PDF corrupto en procesamiento
+  type: http
+  seq: 253
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionCorruptoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{importacionCorruptoId}}
+}
+
+tests {
+  test("failed con pdf_invalido, o aún en cola/running a esta altura", function() {
+    const body = res.getBody();
+    if (body.estado === "failed") {
+      expect(body.error_code).to.eq("pdf_invalido");
+    } else {
+      expect(body.estado, "el worker aún no lo toma (sleep 1s)").to.be.oneOf(["queued", "running"]);
+    }
+  });
+}
+
+docs {
+  Estado del PDF corrupto poco después de subirlo: según el polling del
+  worker (1s) puede estar queued/running; cuando falla lo hace con
+  error_code pdf_invalido. El estado final failed se verifica
+  estrictamente al cierre de la corrida.
+}

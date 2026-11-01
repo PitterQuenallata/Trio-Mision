@@ -1,0 +1,32 @@
+meta {
+  name: Staff importaciones - reintentar PDF corrupto
+  type: http
+  seq: 255
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionCorruptoId}}/reintentar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+tests {
+  test("reintento: 200 con estado queued, o 409 si el worker aún lo está procesando", function() {
+    expect(res.getStatus()).to.be.oneOf([200, 409]);
+    if (res.getStatus() === 200) {
+      expect(res.getBody().estado).to.eq("queued");
+    }
+  });
+}
+
+docs {
+  El reintento exige estado failed: responde 200 y vuelve a queued, o 409
+  mientras el worker lo tiene queued/running (carrera con el polling de 1s).
+  Al cierre de la corrida el job está failed de nuevo con pdf_invalido
+  (detalle final). El reintento sobre el job done se prueba aparte (409
+  estricto, request 256).
+}

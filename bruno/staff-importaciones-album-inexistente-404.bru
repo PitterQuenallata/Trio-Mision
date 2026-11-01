@@ -1,0 +1,34 @@
+meta {
+  name: Staff importaciones - álbum destino inexistente 404
+  type: http
+  seq: 263
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [1],
+    "destino": {
+      "tipo": "album",
+      "album_id": "11111111-2222-4333-8444-555555555555"
+    }
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Álbum destino inexistente → 404 (no se revela nada más; no se inserta
+  nada en la tx).
+}

@@ -1,0 +1,37 @@
+meta {
+  name: Staff importaciones - detalle final del PDF corrupto
+  type: http
+  seq: 275
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionCorruptoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+script:pre-request {
+  // Pausa real: el job se reencoló en el request 255 y el worker (sondeo de
+  // ~5 s por defecto) debe tomarlo y volver a fallarlo antes de asertar.
+  await new Promise(r => setTimeout(r, 8000));
+}
+
+tests {
+  test("tras el reintento el worker lo volvió a fallar con pdf_invalido", function() {
+    const body = res.getBody();
+    expect(body.estado, JSON.stringify(body)).to.eq("failed");
+    expect(body.error_code).to.eq("pdf_invalido");
+    expect(body.iniciado_en, "se reprocesó (iniciado_en renovado)").to.exist;
+  });
+}
+
+docs {
+  Cierre del ciclo de reintento: el job corrupto se reencoló (request 255) y
+  el worker lo reprocesó y volvió a fallar con pdf_invalido. Va al final de
+  la corrida y el pre-request script duerme 8 s para darle al worker tiempo
+  de tomarlo antes de la aserción.
+}

@@ -1,0 +1,24 @@
+meta {
+  name: Staff importaciones - usuario sin rol staff 403
+  type: http
+  seq: 274
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Un usuario autenticado sin rol staff (token del usuario principal) recibe
+  403 en los endpoints de importaciones: la conversión es editorial.
+}

@@ -1,0 +1,34 @@
+meta {
+  name: Importaciones - manager renueva el borrador importado
+  type: http
+  seq: 267
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/canciones/{{importadaCancionId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "bpm": 72
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.bpm: eq 72
+}
+
+docs {
+  El manager del artista destino ajusta el BPM de la canción importada: la
+  canción borrador es administrable por el panel de su artista y el UPDATE
+  renueva updated_at, con lo que la fila viaja en el siguiente delta del
+  sync (visibilidad verificada en la request 269). No se publica: sigue
+  is_published=false.
+}

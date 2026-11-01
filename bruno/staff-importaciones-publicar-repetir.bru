@@ -1,0 +1,44 @@
+meta {
+  name: Staff importaciones - republicar mismos índices no duplica
+  type: http
+  seq: 260
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [0],
+    "destino": {
+      "tipo": "album",
+      "album_id": "{{albumNuevoId}}"
+    }
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.total_creados: eq 0
+}
+
+tests {
+  test("los índices ya publicados se reportan sin crear nada", function() {
+    expect(res.getBody().ya_publicados).to.include(0);
+    expect(res.getBody().creados).to.have.lengthOf(0);
+  });
+}
+
+docs {
+  Idempotencia dura: publicar de nuevo el índice 0 no crea otra canción; el
+  índice consta en result_json.publicados y se reporta en ya_publicados.
+  Comportamiento idéntico en la primera corrida (tras el request 258) y en
+  re-ejecuciones.
+}

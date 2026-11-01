@@ -1,0 +1,46 @@
+meta {
+  name: Staff importaciones - subir PDF demo
+  type: http
+  seq: 240
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-demo-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq pdf_chordpro
+  res.body.id: isNotEmpty
+}
+
+tests {
+  test("crea el job encolado (o devuelve el existente en re-ejecución)", function() {
+    expect(res.getBody().estado, JSON.stringify(res.getBody())).to.be.oneOf(["queued", "running", "done"]);
+    bru.setEnvVar("importacionDemoId", res.getBody().id);
+  });
+}
+
+docs {
+  El staff sube el PDF editorial de demostración (fixture generado por
+  scripts/gen-import-fixtures.sh desde services/worker/cmd/pdfdemo con los
+  primeros 10 cantos del himnario en notación latina, acordes sobre letra).
+  La API crea el media_job pdf_chordpro encolado con el PDF privado en MinIO
+  (imports/) y audita importacion.creada. El worker (make worker-run en
+  segundo plano) lo procesa de forma asíncrona; las aserciones de estado
+  están en las requests de detalle posteriores.
+}

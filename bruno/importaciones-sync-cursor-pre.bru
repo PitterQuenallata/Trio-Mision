@@ -1,0 +1,35 @@
+meta {
+  name: Sync - cursor antes del bump del borrador
+  type: http
+  seq: 266
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("guarda el cursor para el delta posterior al bump", function() {
+    expect(res.getBody().cursor, "cursor estable").to.not.be.empty;
+    bru.setEnvVar("syncCursorBorrador", res.getBody().cursor);
+    bru.setEnvVar("borradorVisto", "");
+    bru.setEnvVar("syncDeltaCursor", "");
+  });
+}
+
+docs {
+  Cursor del catálogo inmediatamente antes de que el manager renueve la
+  canción importada: el delta siguiente debe contenerla con
+  publicado=false (borrador visible vía sync). El bump (request 267)
+  garantiza que la fila viaje en cada corrida, primera o re-ejecución.
+}

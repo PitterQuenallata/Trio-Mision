@@ -3,7 +3,7 @@
 # Migraciones: requiere goose (go install github.com/pressly/goose/v3/cmd/goose@v3.24.3)
 GOOSE ?= goose
 
-.PHONY: help up down check api-run api-build api-test db-migrate db-security db-status db-reset db-seed
+.PHONY: help up down check api-run api-build api-test worker-run worker-build worker-test db-migrate db-security db-status db-reset db-seed
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -30,6 +30,15 @@ api-build: ## Compila la API
 
 api-test: ## Ejecuta los tests de la API
 	cd services/api && go test ./...
+
+worker-run: ## Corre el worker en desarrollo (requiere make up + .env + poppler)
+	set -a && . ./.env && set +a && cd services/worker && go run ./cmd/worker
+
+worker-build: ## Compila el worker
+	cd services/worker && go build ./...
+
+worker-test: ## Ejecuta los tests del worker
+	cd services/worker && go test ./...
 
 api-token: ## Genera un JWT de desarrollo para probar endpoints protegidos (Bruno/curl)
 	@./scripts/mint-dev-token.sh

@@ -1,0 +1,35 @@
+meta {
+  name: Staff importaciones - listar solo fallidas
+  type: http
+  seq: 277
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones?estado=failed&limite=20
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.importaciones: isNotEmpty
+}
+
+tests {
+  test("todas las filas del filtro están failed", function() {
+    const list = res.getBody().importaciones;
+    expect(list.every(j => j.estado === "failed"), JSON.stringify(list)).to.eq(true);
+    const ids = list.map(j => j.id);
+    expect(ids, "incluye los jobs de las pruebas").to.include(bru.getEnvVar("importacionCorruptoId"));
+    expect(ids).to.include(bru.getEnvVar("importacionSinTextoId"));
+  });
+}
+
+docs {
+  El filtro por estado funciona: solo jobs failed (los dos de las pruebas
+  negativas, tras sus reintentos y reprocesamientos por el worker).
+}

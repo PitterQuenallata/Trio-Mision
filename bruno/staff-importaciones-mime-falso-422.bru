@@ -1,0 +1,32 @@
+meta {
+  name: Staff importaciones - MIME falso 422
+  type: http
+  seq: 243
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-falso-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Un PNG renombrado a .pdf se detecta por contenido (http.DetectContentType)
+  y se rechaza con 422: el job jamás se crea.
+}

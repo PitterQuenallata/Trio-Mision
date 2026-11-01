@@ -1,0 +1,29 @@
+meta {
+  name: Staff importaciones - detalle final del PDF sin texto
+  type: http
+  seq: 276
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionSinTextoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+tests {
+  test("tras el reintento el worker lo volvió a fallar con sin_texto_extraible", function() {
+    const body = res.getBody();
+    expect(body.estado, JSON.stringify(body)).to.eq("failed");
+    expect(body.error_code).to.eq("sin_texto_extraible");
+  });
+}
+
+docs {
+  El reintento del PDF escaneado también vuelve a fallar: el rechazo es
+  determinista (no hay capa de texto que extraer, y OCR está fuera del
+  alcance).
+}

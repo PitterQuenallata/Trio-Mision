@@ -96,6 +96,38 @@ docs {
   delta se verifica con SQL actualizando `deleted_at` y `updated_at` (ver
   guía de integración §6.1).
 
+  ## Sprint 4B — Worker y conversión PDF→ChordPro
+
+  Flujos nuevos (seq 240-273): subida del PDF demo (fixture generado por
+  `scripts/gen-import-fixtures.sh` desde los primeros 10 cantos del
+  himnario en `services/worker/cmd/pdfdemo`), idempotencia de clave (mismo
+  archivo → mismo job; otro → 409), MIME falso → 422, PDF sin texto y PDF
+  corrupto → failed con `sin_texto_extraible`/`pdf_invalido`, reintento
+  (reencola y el worker vuelve a fallar), detalle con canciones (título,
+  ChordPro no vacío, `tool_version`), publicación como borrador en el álbum
+  del manager (primera vez crea; repetir no duplica), negativos de
+  publicación (índice 422, destino 422/404, job no done 409), destino
+  himnario ya existente (sin tocar el himnario versionado), visibilidad del
+  borrador en el delta del sync con `publicado=false` (con bump del manager
+  para hacerlo determinista en cada corrida), y autorización
+  (editor → 403, usuario → 403, sin token → 401).
+
+  **Prerequisito:** el worker debe estar corriendo durante la colección
+  (los jobs se procesan asíncronos):
+
+  ```bash
+  make worker-run   # en otra terminal; polling cada 5s por defecto
+  # o más rápido para las pruebas:
+  (cd services/worker && go run ./cmd/worker --sleep 1s)
+  ```
+
+  La colección espacia las aserciones de estado (detalles intermedios) para
+  darle tiempo al worker; en re-ejecución los jobs ya existen y las
+  aserciones son estables. El PDF real del himnario
+  (`content/himnario/source/…pdf`) es un escaneo sin capa de texto: la
+  conversión sin OCR lo rechaza por diseño (la ruta feliz se verifica con
+  el PDF demo de texto posicionado).
+
   ## Puesta en marcha tras un reset
 
   `make db-reset` deja también vacío el esquema `auth` de GoTrue, y los

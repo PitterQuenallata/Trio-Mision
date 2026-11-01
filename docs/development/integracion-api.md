@@ -1,8 +1,9 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.10.0 (Sprint 4A: sync incremental del catálogo y
-> licencias de descarga offline; Premium solo concede licencias offline de
-> pistas publicadas). Esta guía es el contrato de
+> **Versión de contrato:** 0.11.0 (Sprint 4B: worker con conversión
+> editorial PDF→ChordPro, cola de trabajos en PostgreSQL y publicación de
+> borradores tras revisión humana; la conversión es staff y el worker jamás
+> escribe en el catálogo). Esta guía es el contrato de
 > integración para los clientes del ecosistema (APK, PC, `apps/web`, panel
 > admin y panel usuario). Cualquier cambio que rompa compatibilidad exige bump
 > de versión y nota de migración. La especificación viva y ejecutable es
@@ -396,6 +397,49 @@ mientras el período esté activo).
 (filtros `usuario`/`dispositivo`) y `POST /api/v1/staff/descargas-offline/{id}/revocar`
 (motivo + auditoría `descarga_offline.revocada`, idempotente).
 
+## 6.2 Importación editorial PDF→ChordPro (Sprint 4B)
+
+Conversión **staff** (admin|vendedor; editor → 403) de PDFs editoriales con
+letra y acordes a ChordPro, con worker asíncrono (`services/worker`). El
+worker **jamás escribe en el catálogo**: solo llena `result_json`; la
+publicación es siempre borrador (`is_published=false`) y exclusiva de la API,
+tras la revisión humana explícita.
+
+**Subir**: `POST /api/v1/staff/importaciones/pdf` — multipart con `archivo`
+(PDF ≤ 20 MiB, MIME detectado por contenido) e `idempotency_key`. Crea el
+`media_job` `pdf_chordpro` encolado con el PDF privado en MinIO (`imports/`)
+y audita `importacion.creada`. Idempotente por (staff, clave): mismo archivo
+(mismo checksum) → mismo job; otro archivo → 409.
+
+**Seguimiento**: `GET /api/v1/staff/importaciones` (filtro `estado`,
+paginado `limite`/`desde`) y `GET /api/v1/staff/importaciones/{id}`: estado
+(`queued | running | done | failed`), `progreso`, `error_code`
+(`pdf_invalido | sin_texto_extraible | entrada_faltante | error_interno`),
+`tool_version` y, cuando está `done`, `canciones[]` con `indice`, `titulo`,
+`numero`, `tono`, `capo`, `autor`, `chordpro`, `status` (`ok | revisar`) e
+`issues[]`, más `publicados[]` (índices ya publicados) y `pdf.url` firmada
+breve del original. Un PDF escaneado sin capa de texto falla con
+`sin_texto_extraible` (sin OCR).
+
+**Publicar borradores**: `POST /api/v1/staff/importaciones/{id}/publicar`
+con `{indices: [...], destino: {tipo: "album", album_id} | {tipo: "himnario",
+coleccion_id}}`. Solo jobs `done` (409 en otro estado). Crea canciones del
+álbum o himnos con su versión `chords_full` como **borradores** en la misma
+transacción, marca los índices en `result_json` y audita
+`importacion.publicada`. Repetir los mismos índices no duplica filas
+(`ya_publicados`); los himnos cuyo `(colección, número)` ya existe se
+reportan en `ya_existentes` sin tocar el himnario versionado. El destino
+álbum/colección ajeno → 404; UUIDs de destino mal formados → 422.
+
+**Reintentar**: `POST /api/v1/staff/importaciones/{id}/reintentar` — solo
+jobs `failed`: vuelve a `queued` limpiando error/resultado (auditoría
+`importacion.reintentada`). Un job `running` huérfano (worker muerto) se
+reseta por SQL por ahora (documentado en `services/worker/README.md`).
+
+Los borradores publicados son visibles para el manager/owner vía el delta del
+sync (§6.1: viajan con `publicado=false` cuando cambian desde el cursor) y
+son administrables por el manager con su membresía (§5).
+
 ## 7. Matriz de permisos por rol
 
 | Recurso | anónimo | usuario autenticado | member | manager | editor | vendedor | admin |
@@ -418,6 +462,7 @@ mientras el período esté activo).
 | sync catálogo (`GET /sync/catalogo`) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | descargas offline propias | — | ✓ (solo sus dispositivos; 404 ajeno) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | staff descargas offline | — | — | — | — | — (403) | ✓ | ✓ |
+| staff importaciones PDF (subir, listar, detalle, publicar, reintentar) | — | — | — | — | — (403) | ✓ | ✓ |
 
 Los roles staff se asignan solo por SQL (`make db-staff`) y los por-artista
 desde la API por un manager (o `make db-artist-role` de arranque). Los claims
@@ -436,25 +481,31 @@ del token **nunca** autorizan por sí solos.
 | Sync | `GET /sync/catalogo`, `POST|GET /dispositivos/{installId}/descargas-offline` | autenticado (solo sus dispositivos; 404 ajeno) |
 | Servicios | `POST|GET /servicios/solicitudes`, `GET /servicios/solicitudes/{id}`, `POST /servicios/cotizaciones/{id}/aceptar|rechazar`, `POST /servicios/proyectos/{id}/pagos`, `GET /servicios/proyectos/{id}` | autenticado (solo propios; 404 ajeno) |
 | Soporte | `POST|GET /soporte/tickets`, `GET /soporte/tickets/{id}`, `POST /soporte/tickets/{id}/mensajes` | autenticado (solo propios; 404 ajeno) |
-| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado` | staff (admin+vendedor) |
+| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado`, `POST /staff/importaciones/pdf`, `GET /staff/importaciones`, `GET /staff/importaciones/{id}`, `POST /staff/importaciones/{id}/publicar|reintentar` | staff (admin+vendedor) |
 
 ## 9. Verificación y pruebas
 
 La colección Bruno (`bruno/`) ejecuta el contrato completo contra el sistema
-real: 239 requests, 113 tests y 534 aserciones en verde tras reset desde cero
-(y en re-ejecución repetible), cubriendo los flujos 3A, 3B, 3C.1, 3C.2, 3C.3
-y 4A: compra de audio con licencias adicionales y cupón, aprobación
-transaccional e idempotente que concede entitlements y license grants sin
-duplicar, inmutabilidad de términos con snapshot congelado, servicios por
-encargo, soporte, subida de master por manager, sync incremental del catálogo
-(paginación por cursor estable, delta con alta/edición y tombstone) y
-licencias de descarga offline (entitlement y premium, renovación idempotente,
-cascadas por revocación de dispositivo o entitlement, revocación staff). Las
-mutaciones manager/staff y su auditoría comparten transacción; el último
-manager no puede eliminarse y el heartbeat revocado no modifica actividad.
-Tras `make db-reset` el orden de puesta en marcha es: migraciones + seed,
-`docker compose restart gotrue`, **signups** de la colección (crean los
-usuarios en GoTrue) y recién entonces `make db-staff` / `make db-artist-role`
-(los scripts resuelven el usuario por email en `auth.users`). Ver
-`docs/development/` para el entorno y `services/api/README.md` para el
-código.
+real: 275 requests, 136 tests y 582 aserciones en verde tras reset desde cero
+(y en re-ejecución consecutiva sobre los mismos datos), cubriendo los flujos
+3A, 3B, 3C.1, 3C.2, 3C.3, 4A y 4B: compra de audio con licencias adicionales
+y cupón, aprobación transaccional e idempotente que concede entitlements y
+license grants sin duplicar, inmutabilidad de términos con snapshot
+congelado, servicios por encargo, soporte, subida de master por manager, sync
+incremental del catálogo (paginación por cursor estable, delta con
+alta/edición y tombstone), licencias de descarga offline (entitlement y
+premium, renovación idempotente, cascadas por revocación) e importación
+editorial PDF→ChordPro (subida idempotente con MIME por contenido,
+procesamiento asíncrono por el worker con `pdftotext -bbox` y conversión
+determinista, seguimiento por estados, errores estables `pdf_invalido` /
+`sin_texto_extraible`, reintento, publicación como borrador idempotente por
+índices a álbum o himnario, y visibilidad del borrador en el delta del sync
+con `publicado=false`). Las mutaciones manager/staff y su auditoría comparten
+transacción; el último manager no puede eliminarse y el heartbeat revocado no
+modifica actividad. El flujo 4B requiere el worker corriendo (`make
+worker-run`; ver `services/worker/README.md`). Tras `make db-reset` el orden
+de puesta en marcha es: migraciones + seed, `docker compose restart gotrue`,
+**signups** de la colección (crean los usuarios en GoTrue) y recién entonces
+`make db-staff` / `make db-artist-role` (los scripts resuelven el usuario por
+email en `auth.users`). Ver `docs/development/` para el entorno y
+`services/api/README.md` para el código.

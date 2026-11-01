@@ -233,11 +233,14 @@ track_media
   PRIMARY KEY (track_id, media_asset_id, role)
 
 media_jobs
-  id, job_type, parameters_json, tool_version, status, progress,
-  error_code, created_at, started_at, completed_at
+  id, job_type (pdf_chordpro), parameters_json, tool_version, status
+  (queued|running|done|failed), progress 0-100, error_code nullable,
+  result_json nullable,        -- Sprint 4B: resultado del worker
+  created_by FK profiles, idempotency_key UNIQUE (created_by, clave),
+  created_at, started_at, completed_at
 
 media_job_assets
-  media_job_id FK, media_asset_id FK, input_output_role,
+  media_job_id FK, media_asset_id FK, input_output_role (input|output),
   PRIMARY KEY (media_job_id, media_asset_id, input_output_role)
 ```
 
@@ -249,6 +252,18 @@ módulo se implemente.
 Los roles de media incluyen `master`, `preview`, `instrumental`, `vocal`,
 `accompaniment`, `stem` y `practice_mix`. Los masters son inmutables; una corrección
 crea otro asset y cambia la relación publicada tras revisión.
+
+`media_jobs`/`media_job_assets` se implementan en la migración
+`00027_importaciones.sql` (Sprint 4B) con el diseño vigente: la cola de
+trabajos vive en `media_jobs` (claiming atómico con `FOR UPDATE SKIP
+LOCKED`), el PDF de entrada es un `media_assets` privado vinculado con
+`input_output_role='input'`, y `result_json` guarda el resultado del worker
+(`tool_version`, `total_canciones`, `canciones[]` con ChordPro e `issues`,
+`publicados[]` con los índices que la API publicó como borradores). El worker
+(`services/worker`, misma cuenta PostgreSQL `api_app`) solo llena
+`result_json` y los estados; la publicación en catálogo/himnario es siempre
+borrador (`is_published=false`) y exclusiva de la API tras revisión humana.
+Ver §5 y `services/worker/README.md`.
 
 ### Permisos de uso
 
@@ -494,6 +509,14 @@ pista, o Premium activo), se renueva por solicitud y se revoca en cascada con
 el dispositivo o con el entitlement que la originó. Habilita la reproducción
 cifrada offline del cliente; jamás la descarga del master por la vía de la
 tienda.
+
+El procesamiento asíncrono de media se agrega en Fase 4: `media_jobs`/
+`media_job_assets` (§3, migración 00027) implementan la cola y el ciclo de
+vida (`queued|running|done|failed`) de la conversión editorial PDF→ChordPro
+del Sprint 4B: el worker llena `result_json` con las canciones convertidas y
+la API publica, tras revisión humana, los índices aprobados como borradores
+del catálogo o del himnario (auditoría `importacion.publicada`); los
+derivados de audio quedan para un sprint posterior.
 
 Soporte y operación agregan `notifications`, `support_tickets`,
 `support_messages`, `audit_events`, `app_config` y `telemetry_events`. Tickets y

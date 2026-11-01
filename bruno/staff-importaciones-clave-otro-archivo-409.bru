@@ -1,0 +1,39 @@
+meta {
+  name: Staff importaciones - clave con otro archivo 409
+  type: http
+  seq: 242
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-corrupto-clave-demo-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 409
+}
+
+tests {
+  test("conflicto de clave: mismo idempotency_key con checksum distinto", function() {
+    expect(res.getBody().detail ?? "").to.contain("clave idempotente");
+  });
+}
+
+docs {
+  La clave bruno-import-demo-v1 ya existe (fixture demo); reutilizarla con
+  otro archivo (checksum distinto) debe devolver 409, igual que los
+  comprobantes y solicitudes de servicios.
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Staff importaciones - subir PDF sin texto (escaneado)
+  type: http
+  seq: 244
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-sintexto-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isNotEmpty
+}
+
+tests {
+  test("guarda el job del PDF escaneado", function() {
+    bru.setEnvVar("importacionSinTextoId", res.getBody().id);
+  });
+}
+
+docs {
+  PDF válido pero sin capa de texto (fixture de pdfdemo -kind vacio): la
+  subida se acepta (es un PDF real) y el worker lo falla después con
+  error_code sin_texto_extraible (OCR fuera del alcance, como en la
+  herramienta legacy).
+}

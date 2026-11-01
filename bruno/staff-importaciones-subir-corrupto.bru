@@ -1,0 +1,41 @@
+meta {
+  name: Staff importaciones - subir PDF corrupto
+  type: http
+  seq: 245
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-corrupto-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isNotEmpty
+}
+
+tests {
+  test("guarda el job del PDF corrupto", function() {
+    bru.setEnvVar("importacionCorruptoId", res.getBody().id);
+  });
+}
+
+docs {
+  PDF con firma %PDF pero contenido dañado: la subida pasa el MIME por
+  contenido y el worker lo falla con error_code pdf_invalido al correr
+  pdftotext. Sirve además para probar el reintento (reintentar lo reencola y
+  el worker vuelve a fallarlo).
+}

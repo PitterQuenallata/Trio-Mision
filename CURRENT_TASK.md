@@ -4,16 +4,261 @@
 > Última actualización: 2026-11-01
 
 > [!IMPORTANT]
-> **SPRINT 4A DE FASE 4 COMPLETADO Y REVISADO (2026-11-01, Kimi):** sync
-> incremental del catálogo y licencias de descarga offline en API pura 0.10.0
-> (migración 00026, módulo `sync`, cascadas de revocación en la misma
-> transacción). La revisión corrigió 3 hallazgos (ver la sección de revisión
-> más abajo; **correcciones aún sin commit**). **Bruno 239/239 requests,
-> 113/113 tests y 534/534 aserciones en verde** tras `make db-reset` desde
-> cero, verificado de forma independiente con las correcciones aplicadas.
-> El siguiente paso es el **Sprint 4B** (worker PDF→ChordPro), con plan
-> detallado listo en la sección "Siguiente tarea — Fase 4", y después el 4C
-> (FCM); **no se construyó ni modificó UI**.
+> **SPRINT 4B DE FASE 4 COMPLETADO Y REVISADO (2026-11-01, Kimi):** worker +
+> conversión editorial PDF→ChordPro en API pura 0.11.0 (migración 00027,
+> módulo `importaciones`, `services/worker` con cola SKIP LOCKED y extracción
+> `pdftotext -bbox`). La revisión corrigió 2 hallazgos (ver la sección de
+> revisión más abajo; **correcciones aún sin commit**). **Bruno 275/275
+> requests, 136/136 tests y 582/582 aserciones en verde en la primera
+> corrida tras `make db-reset` desde cero** y en re-ejecución, con el worker
+> corriendo. **No se construyó ni modificó UI.** El siguiente paso es la
+> normalización de los himnos .cho (ver la discusión más abajo) o el
+> **Sprint 4C** (FCM); ver "Siguiente tarea — Fase 4".
+
+## Fase 4 / Sprint 4B — Worker + conversión PDF→ChordPro: COMPLETADA ✅
+
+**Cerrado el 2026-11-01.** Un staff (admin/vendedor) sube un PDF editorial
+con letra y acordes; la API crea un `media_job` encolado con el PDF privado
+en MinIO; el worker lo toma de la cola (PostgreSQL, `FOR UPDATE SKIP
+LOCKED`), extrae el texto posicionado con `pdftotext -bbox` (poppler) y lo
+convierte a ChordPro con un port fiel y 100% determinista del algoritmo
+legacy (`pdfToCho.ts`), llenando `result_json`; el staff revisa por API y
+publica manualmente los índices aprobados como **borradores**
+(`is_published=false`) del álbum de un artista o del himnario. Nada se
+publica sin revisión humana; el worker jamás escribe en el catálogo.
+
+| Entregable | Ubicación | Estado |
+|---|---|---|
+| Migración 00027 (`media_jobs` con `result_json`, `tool_version`, CHECK extensible de estados y UNIQUE (created_by, idempotency_key); `media_job_assets` append-only con PK compuesta; grants sin DELETE) | `database/migrations/` | Hecho |
+| Módulo `importaciones` (subir PDF ≤ 20 MiB idempotente por clave+checksum con MIME por contenido, listado filtrado/paginado, detalle con canciones y URL firmada, publicar borradores por índices idempotente, reintentar failed) | `services/api/internal/modules/importaciones/` | Hecho |
+| Worker (`--once`, `--sleep`, claiming SKIP LOCKED, ciclo de vida queued→running→done/failed con error_code estable, tool_version constante) | `services/worker/` (módulo Go propio `triomision/worker`) | Hecho |
+| Conversor determinista (port fiel de pdfToCho.ts: líneas, acordes-sobre-letra con x posicionada, latina→anglosajona, título/número/tono/capo/autor, issues, {soc}/{eoc}) | `services/worker/internal/convert/` | Hecho |
+| Extracción posicionada `pdftotext -bbox` (adaptación H=alto/0.925 para recuperar el tamaño de fuente real; eje Y invertido de poppler negado) | `services/worker/internal/extract/` | Hecho |
+| Herramienta de fixture `pdfdemo` (PDF editorial demo de los primeros 10 cantos del himnario, stdlib puro, determinista) y `scripts/gen-import-fixtures.sh` | `services/worker/cmd/pdfdemo/`, `scripts/` | Hecho |
+| Seed: UUID determinista de la colección del himnario (convención de UUIDs del seed) | `services/api/cmd/seed/main.go` | Hecho |
+| Colección Bruno: 36 requests nuevos (275 total: 136 tests, 582 aserciones) | `bruno/` | Hecho |
+| Documentación (guía de integración 0.11.0 con cabecera, modelo de datos §3/§5, READMEs, Makefile `worker-run/-build/-test`) | `docs/`, `services/*/README.md`, `Makefile` | Hecho |
+
+### Verificación contra sistema real (2026-11-01, tras `make db-reset` desde cero)
+
+- 27 migraciones goose down+up limpias; `make db-security`, GoTrue healthy y
+  seed aplicados (orden: reset → restart gotrue → signups → roles). El
+  worker corrió en segundo plano (`go run ./cmd/worker --sleep 1s`).
+- Colección Bruno completa: **275/275 requests, 136/136 tests y 582/582
+  aserciones** en verde tras el reset y **re-ejecución consecutiva** sobre
+  los mismos datos (repetible).
+- Flujo real (colección + curl): PDF demo (primeros 10 cantos, notación
+  latina, acordes sobre letra) → job `queued` → worker → `done` con
+  `tool_version=pdfchordpro-go/1`, 10 canciones (primera: número 1,
+  "Cantad alegres al Señor", tono D, autor detectado, ChordPro con
+  acordes `[Re]…`) y URL firmada del PDF (`X-Amz-Signature`). PDF sin
+  texto → `failed`/`sin_texto_extraible`; PDF corrupto →
+  `failed`/`pdf_invalido`; `reintentar` reencola y el worker vuelve a
+  fallarlos (verificado en los detalles finales). `reintentar` sobre job
+  `done` → 409.
+- Publicación: índice 0 → borrador en el álbum del manager
+  (`is_published=false` verificado en SQL; `sort_order` siguiente;
+  `publication_access=free`); republicar → `total_creados=0` +
+  `ya_publicados=[0]` (sin duplicar); himnario con himno existente →
+  `ya_existentes=[1]` sin tocar el himnario versionado. Negativos: índice
+  999 → 422, destino UUID inválido → 422, álbum/colección inexistente →
+  404, publicar job no done → 409. Auditoría `importacion.creada` /
+  `.publicada` / `.reintentada` en la misma transacción.
+- Visibilidad del borrador: bump del manager (PATCH BPM) y recorrido del
+  delta del sync (paginado; las filas del seed comparten `updated_at`):
+  la canción importada viaja con `publicado=false` y su ChordPro.
+- Idempotencia de subida: misma clave+mismo archivo → mismo job (200);
+  misma clave+otro checksum → 409; MIME falso (PNG) → 422.
+- Autorización cruzada: editor → 403, usuario sin rol → 403, sin token →
+  401 en todos los endpoints nuevos.
+- Worker: `--once` con cola vacía sale limpio (exit 0); dos workers `--once`
+  concurrentes tomaron cada uno un job distinto (SKIP LOCKED, un solo
+  procesamiento por job); job `running` huérfano documentado (reset manual
+  SQL por ahora, README del worker).
+- SQL con `triomision_api`: DELETE denegado en `media_jobs` y
+  `media_job_assets`; SELECT/INSERT/UPDATE de `media_jobs` permitidos; sin
+  acceso a `auth`. El worker operó con la misma cuenta sin ampliar grants.
+- MinIO: el PDF quedó privado (GET anónimo → 403) y solo se sirve firmado;
+  la cuenta de servicio sigue sin admin (`mc admin user list` → Access
+  Denied).
+- `go build`, `go vet`, `gofmt -l`, `go test ./...` limpios en **ambos**
+  módulos (`services/api` y `services/worker`); Swagger UI 200,
+  `/openapi.json` 0.11.0 con **80 paths** (75 + 5 nuevos).
+- Sin commit: el sprint entero queda en el árbol de trabajo junto a las
+  correcciones de la revisión 4A; el commit es decisión del dueño.
+
+### Decisiones y hallazgos del Sprint 4B
+
+- **El PDF real del himnario es un escaneo puro** (166 imágenes JPEG,
+  cero fuentes/capa de texto): ninguna extracción posicionada puede leerlo
+  y OCR está prohibido. Decisión con el usuario: la ruta feliz se verifica
+  con un **PDF demo sintético de texto posicionado** (primeros 10 cantos,
+  generado por `cmd/pdfdemo`, determinista) y el comportamiento del escaneo
+  real queda representado por el fixture sin texto (`sin_texto_extraible`).
+  El himnario completo ya vive como `.cho` en `content/himnario/` (Fase 2).
+- **poppler `-bbox` no da el tamaño de fuente directamente**: la caja de
+  cada palabra mide exactamente `0.925·s` (ascent+descent de la fuente),
+  así que el extractor calcula `H = alto/0.925` y recupera el tamaño real
+  que el algoritmo (afinado con pdf.js) espera; el eje Y de poppler tiene
+  origen arriba-izquierda y se niega. Con otra fuente, el cuerpo modal por
+  página preserva las razones del clasificador.
+- **El worker comparte la cuenta `api_app`** (decisión documentada en
+  `services/worker/README.md`): los grants mínimos de 00027 ya cubren su
+  operación (SELECT/UPDATE de `media_jobs`, SELECT de vínculos y assets);
+  `WORKER_DATABASE_URL` queda como válvula futura sin cambios de código.
+- **Hallazgo en la especificación legacy (port fiel)**: ~~`ENGLISH_RE` exige
+  bajo~~ **Corregido en la revisión: era un error de lectura del agente.**
+  El legacy sí tiene el bajo opcional (`(?:\/[A-G][#b]?)?$` con `?`); ver la
+  sección de revisión del 4B.
+- **Dos workers no colisionan** (SKIP LOCKED verificado en vivo) y un job
+  fallido es reintentable por API; la observación de un `running` huérfano
+  queda documentada como limitación operativa del sprint.
+- Bruno: el flujo 4B requiere el worker corriendo (`make worker-run`); las
+  aserciones de estado medianas toleran la carrera con el polling (1s) y
+  las aserciones estrictas viven al cierre de la corrida. El delta del sync
+  pagina por el `updated_at` compartido del seed: la visibilidad del
+  borrador se recorre multipágina con una bandera acumulada (requests
+  269-273).
+- Seed sin datos nuevos: solo se fijó el UUID de la colección del himnario
+  (convención de UUIDs deterministas ya usada por la tienda).
+
+### Revisión del Sprint 4B (2026-11-01, Kimi) — CERRADA ✅
+
+Alcance revisado: migración 00027, módulo `importaciones` (5 endpoints),
+worker completo (cola, extracción, conversor, main/config/store), `pdfdemo`,
+registro en el servidor, seed, Makefile, colección Bruno nueva y
+documentación, comparados además contra el panel v1
+(`legacy/panelweb-triomision-lyrics/src/features/import` y `hymnal`) como
+referencia funcional. Verificación independiente completa: `make db-reset`
+desde cero (27 migraciones) + db-security + seed + GoTrue + signups + roles,
+`go build/vet/gofmt/test` limpios en ambos módulos, OpenAPI 0.11.0 con 80
+paths, Swagger 200, privilegios SQL (sin DELETE en tablas nuevas, sin
+`auth`) y **Bruno 275/275 requests, 136/136 tests y 582/582 aserciones en
+la primera corrida tras el reset** y en re-ejecución, con las correcciones
+aplicadas.
+
+**Hallazgos corregidos (sin commit, en el árbol de trabajo):**
+
+1. **El port de `ENGLISH_RE` perdió el `?` del bajo** (`convert.go`): el
+   legacy es `(?:\/[A-G][#b]?)?$` (bajo opcional) y el port lo dejó
+   obligatorio, así que un acorde anglosajón sin bajo ("C", "F#m", "G7")
+   no se detectaba. El agente además lo documentó como "quirk fiel al spec"
+   y lo fijó en un test: era un error de lectura del regex legacy.
+   Corregido el regex, los tests (ahora asertan "C"→"C", "F#m"→"F#m") y la
+   nota en "Decisiones y hallazgos".
+2. **La colección Bruno NO estaba en verde tras un reset desde cero** (la
+   afirmación del reporte era incorrecta): las "esperas" del flujo 4B eran
+   requests sin pausa real y la corrida llegaba a las aserciones de `done`
+   antes de que el worker procesara (9 fallos en la primera corrida; 3 más
+   en los cierres de reintento). Ahora `staff-importaciones-detalle-espera-1/2`
+   y `staff-importaciones-corrupto-final` duermen 8 s reales en
+   `script:pre-request` (async soportado por Bruno CLI): primera corrida tras
+   reset en verde completo, y también la re-ejecución consecutiva.
+
+**Observaciones registradas (sin corrección):**
+
+- El PDF real del himnario es un escaneo sin capa de texto (hallazgo del
+  agente, verificado en su reporte): la vía PDF→ChordPro no aplica para
+  rehacer el himnario; los .cho de `content/himnario/` son la fuente.
+- Respecto al panel v1: la importación v1 permitía editar el ChordPro por
+  canción antes de importar, destino por canción y metadatos (temas,
+  arreglista, gratis). El 4B deja la edición para Fase 5 (decisión del plan)
+  y el destino es por lote; suficiente para el flujo editorial por API.
+- El agente no commiteó (instrucción del prompt); todo el 4B quedó en el
+  árbol junto a estas correcciones.
+
+## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
+
+**Estado:** Sprint 4A ✅ y Sprint 4B ✅ completados y revisados el 2026-11-01
+(ver secciones superiores). Siguiente: **4B.5 — Normalización del himnario
+.cho** (plan detallado listo abajo, decisión del usuario 2026-11-01) y después
+**4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens). Los
+planes detallados ya ejecutados se conservan abajo como referencia.
+
+### Sprint 4B.5 — Normalización del himnario .cho, enfoque guitarra (plan detallado)
+
+**Sprint de contenido + tooling; la API no cambia de contrato (sin bump).**
+
+**Diagnóstico (verificado 2026-11-01):** los .cho de
+`content/himnario/acordes-completos/` (versión `chords_full`/`full_song`, 615
+archivos) repiten los acordes en **todas** las estrofas — estilo partitura,
+no guitarra. La convención del producto (app REA, ver
+`reverse-lab/projects/guitartuna/experiments/afinador-copia/`) es: acordes
+solo en la **primera estrofa + coro**; las estrofas 2+ van solo con letra (el
+guitarrista repite la armonía de la primera). La otra versión,
+`fiel-pdf/` (`verse_chorus`, 614 archivos), ya sigue ese formato salvo **5
+archivos** (343, 368, 372, 474, 523) que traen acordes en la estrofa 2.
+Además hay un duplicado stray `acordes-completos/01 - copia.cho`, y 12
+archivos (600-611) usan directivas `{verse N}`/`{chorus}` en vez de
+`{sov}`/`{soc}`. El PDF real del himnario es un escaneo sin capa de texto:
+la fuente de verdad son los .cho, no la importación PDF.
+
+**Objetivo vertical:** las dos versiones del himnario quedan en formato
+guitarra (acordes en primera estrofa + coro únicamente), corregidas con una
+herramienta determinista con reporte, y el himnario servido por la API
+(`hymn_versions.chordpro`) refleja el cambio tras re-seed.
+
+**1. Herramienta `chonorm` (Go stdlib puro, determinista, con tests)**
+
+- Ubicación: `services/worker/cmd/chonorm/` (módulo del worker, sin
+  dependencias nuevas) con `make himnario-normalize` (dry-run por defecto;
+  `-write` para aplicar). Nada de scripts de una sola ejecución sin tests.
+- Parser de .cho por bloques: directivas `{title/key/time/lyricist/composer/
+  capo/subtitle/comment}` se preservan byte a byte; bloques de estrofa
+  (`{sov}…{eov}` y `{verse N}`) y de coro (`{soc}…{eoc}` y `{chorus}`).
+- Regla de normalización:
+  - **Primera estrofa** del archivo (primer bloque de estrofa): conserva
+    acordes tal cual.
+  - **Coros** (todos): conservan acordes tal cual.
+  - **Estrofas 2+**: se eliminan los tokens `[acorde]` y se colapsa el
+    espaciado resultante (sin dejar dobles espacios ni espacios antes de
+    puntuación); la letra (incluidos guiones de sílabas en fiel-pdf) no se
+    toca.
+  - Líneas de solo acordes fuera de bloques (intro/interludio) se conservan.
+- Modo dry-run imprime reporte: archivos afectados, estrofas despojadas,
+  acordes eliminados por archivo y cualquier anomalía (estrofa 1 sin
+  acordes, coro sin acordes, bloques desbalanceados).
+- Invariancia: correr dos veces con `-write` es idempotente (segunda corrida
+  reporta 0 cambios).
+- Eliminar `acordes-completos/01 - copia.cho` (duplicado stray del 01.cho).
+- Tests unitarios del parser/normalizador (casos: estrofas numeradas,
+  coro entre estrofas, acordes pegados `[D][A]`, letra con corchete literal
+  escapado si existiera, archivo ya normalizado → sin cambios).
+
+**2. Aplicación y verificación**
+
+- `chonorm -write` sobre `content/himnario/acordes-completos/` (614 archivos
+  reales) y sobre los 5 archivos de `fiel-pdf/`; reporte guardado en el
+  resultado del sprint.
+- Verificación global con un chequeo (script o test): ningún bloque de
+  estrofa 2+ contiene `[` en ninguna de las dos versiones; todo coro
+  conserva acordes; conteos de directivas estables (solo bajan {soc} si el
+  straggler los tenía mal — no debe).
+- `make db-reset` + seed + GoTrue + signups + roles (orden de
+  `bruno/collection.bru`) y verificación por API: el himno 1 en ambas
+  versiones muestra acordes solo en la primera estrofa y el coro; muestreo
+  de himnos con coro (p. ej. 8, 102) y de los 5 corregidos.
+- Colección Bruno completa en verde tras el reset y en re-ejecución (hay
+  aserciones sobre contenido del himnario: revisar las que asuman acordes
+  en estrofas 2+ y ajustarlas al nuevo contrato de contenido).
+- `go build/vet/gofmt/test` limpios en los módulos tocados.
+
+**3. Documentación y salida**
+
+- Actualizar `content/himnario/README.md` (convención de formato guitarra
+  por versión y la herramienta), `docs/architecture/modelo-datos-v2.md`
+  (semántica de `chord_scope`: `full_song` = acordes completos en primera
+  estrofa + coro; `verse_chorus` = fiel al impreso), `AGENTS.md` y este
+  archivo con resultados reales. Sin bump de versión de API (contenido, no
+  contrato).
+- **No** implementar: versión "simplificada/modo fácil" por himno
+  (`chords_easy`) — depende del análisis REA de **Chord AI**, cuyos
+  experiments aún no existen en `reverse-lab/projects/chord-ai/` (está la
+  plantilla vacía); tampoco acentuaciones/rasgueos ni UI de visualización
+  (Fase 5). No renumerar ni re-letrar himnos; no tocar la letra.
+- **Criterio de salida:** las dos versiones del himnario en formato
+  guitarra verificadas por API y por chequeo global, con herramienta
+  idempotente testeada y Bruno en verde desde cero.
 
 ## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
 
@@ -345,13 +590,11 @@ aserciones** con las correcciones aplicadas.
   en ff4abeb y eabc9de); solo las correcciones de esta revisión quedan sin
   commit.
 
-## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
+## Planes detallados de Fase 4 (referencia ya ejecutada)
 
-**Estado:** Sprint 4A ✅ completado el 2026-11-01 (ver sección superior).
-Pendiente de la fase: **4B — Worker + conversión PDF→ChordPro**, con plan
-detallado **listo** abajo para ejecutar, y después **4C — FCM** (`push_tokens`,
-envío desde backend, limpieza de tokens). El plan 4A se conserva al final como
-referencia.
+> Los sprints 4A y 4B se completaron el 2026-11-01 (ver secciones
+> superiores con resultados reales). Estos planes se conservan como
+> referencia histórica; el pendiente de la fase es solo el 4C (FCM).
 
 ### Sprint 4B — Worker + conversión PDF→ChordPro (plan detallado)
 

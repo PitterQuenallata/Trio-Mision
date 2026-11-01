@@ -1,0 +1,24 @@
+meta {
+  name: Staff importaciones - editor 403
+  type: http
+  seq: 249
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  El rol editor (editorToken) no administra importaciones: 403 en todos los
+  endpoints staff de importaciones (solo admin/vendedor).
+}

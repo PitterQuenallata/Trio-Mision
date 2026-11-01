@@ -1,0 +1,33 @@
+meta {
+  name: Staff importaciones - reintento idempotente devuelve el mismo job
+  type: http
+  seq: 241
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/import-demo-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{importacionDemoId}}
+}
+
+docs {
+  Repetir la subida con la misma clave idempotente y el mismo archivo
+  (mismo checksum) devuelve el job original: no se duplica ni se reencola.
+}

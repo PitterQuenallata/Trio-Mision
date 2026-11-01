@@ -1,0 +1,39 @@
+meta {
+  name: Staff importaciones - PDF sin texto en procesamiento
+  type: http
+  seq: 252
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionSinTextoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{importacionSinTextoId}}
+}
+
+tests {
+  test("failed con sin_texto_extraible, o aún en cola/running a esta altura", function() {
+    const body = res.getBody();
+    if (body.estado === "failed") {
+      expect(body.error_code).to.eq("sin_texto_extraible");
+    } else {
+      expect(body.estado, "el worker aún no lo toma (sleep 1s)").to.be.oneOf(["queued", "running"]);
+    }
+  });
+}
+
+docs {
+  Estado del PDF escaneado poco después de subirlo: según el momento del
+  polling del worker (1s) puede estar queued/running; cuando falla lo hace
+  con error_code estable sin_texto_extraible (OCR fuera del alcance). El
+  estado final failed queda verificado estrictamente en las requests de
+  cierre (reintento y detalle final).
+}

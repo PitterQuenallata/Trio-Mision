@@ -168,11 +168,14 @@ func seedCatalog(ctx context.Context, tx pgx.Tx) error {
 }
 
 // seedHimnario carga la colección completa desde los .cho de ambas versiones.
+// El id de la colección es determinista (convención de UUIDs del seed) para
+// que las pruebas de integración y el flujo staff de importaciones puedan
+// referenciarlo sin consultas auxiliares.
 func seedHimnario(ctx context.Context, tx pgx.Tx, root string) error {
 	var collectionID string
 	err := tx.QueryRow(ctx, `
-		insert into hymn_collections (slug, name, edition_label, language_code)
-		values ('himnario-adventista', 'Himnario Adventista', '2020', 'es')
+		insert into hymn_collections (id, slug, name, edition_label, language_code)
+		values ('00000000-0000-4000-8000-000000000301', 'himnario-adventista', 'Himnario Adventista', '2020', 'es')
 		on conflict (slug) do update set edition_label = excluded.edition_label
 		returning id`).Scan(&collectionID)
 	if err != nil {

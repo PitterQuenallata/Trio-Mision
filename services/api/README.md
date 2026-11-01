@@ -6,21 +6,23 @@ negocio. Ver el alcance en `docs/alcance/` y el plan en `docs/planificacion/`.
 
 ## Estado
 
-**Sprint 4A de Fase 4 completado** (2026-11-01): sync incremental del
-catálogo y licencias de descarga offline. Migración 00026
-(`offline_downloads`, índice único parcial por dispositivo+pista vigente).
-Módulo `sync`: `GET /api/v1/sync/catalogo` (delta por cursor opaco
-`updated_at|id`, tombstones para `deleted_at`, despublicadas con
-`publicado=false`, ChordPro de canciones e himnos, cursor estable también en
-la página final), licencias offline por dispositivo (origen
-`entitlement|premium` según acceso vigente, 30 días renovables, idempotencia
-por el índice parcial) y operación staff con auditoría. Cascadas en la misma
-transacción: revocar dispositivo o entitlement revoca sus licencias offline.
-La licencia offline jamás habilita la descarga del master. OpenAPI con
-**75 paths**, Bruno **239/239 requests, 113/113 tests, 534/534 aserciones**
-en verde tras reset desde cero y en re-ejecución repetible. API versión
-**0.10.0**. Guía de integración en `docs/development/integracion-api.md`.
-Siguiente: Sprint 4B (worker PDF→ChordPro).
+**Sprint 4B de Fase 4 completado** (2026-11-01): worker con conversión
+editorial PDF→ChordPro y cola de trabajos en PostgreSQL. Migración 00027
+(`media_jobs` con `result_json`, `tool_version` y UNIQUE (creador, clave);
+`media_job_assets` append-only; grants mínimos sin DELETE). Módulo
+`importaciones` (staff admin/vendedor): subida multipart de PDF (≤ 20 MiB,
+MIME por contenido, idempotente por clave+checksum), listado filtrado,
+detalle con canciones convertidas (título/número/tono/capo/autor/ChordPro/
+status/issues) y URL firmada del PDF, publicación transaccional de borradores
+(`is_published=false`) por índices aprobados a álbum o himnario (idempotente
+por marcado en `result_json`; himnos existentes en `ya_existentes`) y
+reintento de jobs failed. El worker (`services/worker`) toma los jobs con
+`FOR UPDATE SKIP LOCKED`, extrae con `pdftotext -bbox` (poppler) y convierte
+con un port determinista del algoritmo legacy; jamás escribe en el catálogo.
+OpenAPI con **80 paths**, Bruno **275/275 requests, 136/136 tests, 582/582
+aserciones** en verde tras reset desde cero y en re-ejecución repetible. API
+versión **0.11.0**. Guía de integración en `docs/development/integracion-api.md`.
+Siguiente: Sprint 4C (FCM/push_tokens).
 
 ## Autenticación y autorización
 
@@ -52,8 +54,11 @@ internal/auth/      Validación JWT GoTrue (HS256) + middleware
 internal/authz/     Autorización: staff sobre staff_roles y membresía por artista sobre artist_members
 internal/storage/   Cliente S3 compatible (MinIO): URLs firmadas y objetos públicos
 internal/server/    Router chi + OpenAPI (Huma) + middlewares
-internal/modules/   Módulos de negocio (health, me, himnario, catalog, artists, devices, store, staff, licencias)
+internal/modules/   Módulos de negocio (health, me, himnario, catalog, artists, devices, store, staff, licencias, servicios, soporte, sync, importaciones)
 ```
+
+El worker de procesamiento asíncrono vive en `services/worker` (proceso Go
+independiente que comparte solo PostgreSQL y MinIO; ver su README).
 
 ## Desarrollo
 
@@ -161,6 +166,11 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `GET /api/v1/dispositivos/{installId}/descargas-offline` — licencias del dispositivo con vencimiento y estado (404 ajeno, 409 revocado); la licencia offline jamás habilita la descarga del master
 - `GET /api/v1/staff/descargas-offline?usuario=&dispositivo=` — licencias offline registradas (admin+vendedor)
 - `POST /api/v1/staff/descargas-offline/{id}/revocar` — revoca licencia offline con motivo y auditoría (idempotente)
+- `POST /api/v1/staff/importaciones/pdf` — sube un PDF editorial (multipart ≤ 20 MiB, MIME por contenido, `idempotency_key`); crea el `media_job` pdf_chordpro encolado con el PDF privado en MinIO y auditoría `importacion.creada` (idempotente por clave+checksum; 409 con otro archivo)
+- `GET /api/v1/staff/importaciones?estado=&limite=&desde=` — jobs de importación (estado, progreso, error_code, tool_version, total de canciones)
+- `GET /api/v1/staff/importaciones/{id}` — detalle: estado/resultado (`canciones[]` con título, número, tono, capo, autor, ChordPro, status e issues; `publicados[]`) y `pdf.url` firmada breve; 404 si no existe
+- `POST /api/v1/staff/importaciones/{id}/publicar` — publica los índices aprobados como borradores (`is_published=false`) en un álbum (canciones) o colección del himnario (himnos con versión `chords_full`); solo jobs `done`; idempotente por índice (los ya publicados van en `ya_publicados`; himnos existentes en `ya_existentes`); auditoría `importacion.publicada` en la misma transacción
+- `POST /api/v1/staff/importaciones/{id}/reintentar` — solo jobs `failed`: vuelve a `queued` limpiando error/resultado (auditoría `importacion.reintentada`); 409 en cualquier otro estado
 
 ## Conventions
 

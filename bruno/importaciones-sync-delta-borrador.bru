@@ -1,0 +1,46 @@
+meta {
+  name: Importaciones - borrador en el delta del sync (pagina 1)
+  type: http
+  seq: 269
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?desde={{syncCursorBorrador}}&limite=500
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("busca la canción importada y encadena la paginación del delta", function() {
+    const songs = res.getBody().songs || [];
+    const importada = songs.find(s => s.id === bru.getEnvVar("importadaCancionId"));
+    if (importada) {
+      expect(importada.publicado, "es borrador").to.eq(false);
+      expect(importada.bpm, "BPM actualizado por el manager").to.eq(72);
+      expect(importada.chordpro, "lleva su ChordPro").to.contain("[");
+      bru.setEnvVar("borradorVisto", "1");
+    }
+    const cursor = res.getBody().cursor || "";
+    if (cursor) {
+      bru.setEnvVar("syncDeltaCursor", cursor);
+    }
+  });
+}
+
+docs {
+  La canción publicada como borrador por la importación es visible vía API
+  en el delta del sync con publicado=false: el mecanismo con el que el
+  manager/owner ve y consume sus borradores. Las filas del seed comparten
+  `updated_at`, así que el delta ocupa varias páginas y la canción (bump
+  del manager, request 267) viaja al final: se recorre la paginación
+  (requests 269-272) y la request 273 verifica que apareció. Si aparece en
+  esta página, se validan sus campos y se marca borradorVisto.
+}
