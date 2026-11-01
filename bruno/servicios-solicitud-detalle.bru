@@ -1,0 +1,33 @@
+meta {
+  name: Servicios - detalle de mi solicitud
+  type: http
+  seq: 155
+}
+
+get {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes/{{solicitudServicioId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{solicitudServicioId}}
+  res.body.estado: eq nueva
+  res.body.referencias.ejemplo: eq https://ejemplo.local/ref
+}
+
+tests {
+  test("sin cotizaciones todavía", function() {
+    expect(res.getBody().cotizaciones.length).to.equal(0);
+  });
+}
+
+docs {
+  Detalle de la solicitud propia con referencias, cotizaciones y
+  proyecto (null hasta aceptar una cotización).
+}

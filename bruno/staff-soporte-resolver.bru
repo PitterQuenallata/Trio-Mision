@@ -1,0 +1,31 @@
+meta {
+  name: Staff soporte - resolver ticket
+  type: http
+  seq: 207
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets/{{ticketId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "resolver",
+    "motivo": "Pago ubicado y confirmado; se informa al usuario."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq resuelto
+}
+
+docs {
+  abierto/en_atencion → resuelto con auditoría ticket.estado.
+}

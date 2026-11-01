@@ -1,0 +1,35 @@
+meta {
+  name: GoTrue - login servicios
+  type: http
+  seq: 18
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "servicios@triomision.local",
+    "password": "ServiciosPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token del usuario de servicios", function() {
+    bru.setVar("serviciosToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del usuario de servicios. Guarda `serviciosToken`, usado por el
+  flujo completo de solicitud → cotización → aceptación → comprobante →
+  entrega → descarga del Sprint 3C.3.
+}

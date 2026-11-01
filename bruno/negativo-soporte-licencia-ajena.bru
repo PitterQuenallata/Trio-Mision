@@ -1,0 +1,38 @@
+meta {
+  name: Negativo - ticket con licencia ajena
+  type: http
+  seq: 196
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-tlic-${Date.now()}`;
+  bru.setVar("ticketLicAjenaKey", key);
+}
+
+body:json {
+  {
+    "categoria": "permisos",
+    "asunto": "Consulta sobre una licencia que no es mía",
+    "license_grant_id": "{{grantLicenciaId}}",
+    "idempotency_key": "{{ticketLicAjenaKey}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  license_grant_id referenciado debe pertenecer al titular del ticket;
+  uno ajeno → 404.
+}

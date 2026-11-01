@@ -1,0 +1,33 @@
+meta {
+  name: Soporte - listar mis tickets
+  type: http
+  seq: 198
+}
+
+get {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.tickets: isArray
+}
+
+tests {
+  test("el reclamo está en la lista del titular", function() {
+    const t = res.getBody().tickets.find(x => x.id === bru.getEnvVar("ticketYoutubeId"));
+    expect(t, "ticket presente").to.exist;
+    expect(t.estado).to.equal("abierto");
+  });
+}
+
+docs {
+  Lista los tickets del titular. El ticket del usuario principal (otra
+  cuenta) no aparece aquí: aislamiento por titular.
+}

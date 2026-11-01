@@ -1,0 +1,39 @@
+meta {
+  name: Servicios - acceso vinculado en mis compras
+  type: http
+  seq: 185
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.premium_activo: eq false
+  res.body.licencias: isArray
+}
+
+tests {
+  test("el acceso de servicio aparece con origen service y sin licencias", function() {
+    const accesos = res.getBody().accesos;
+    const servicio = accesos.find(a => a.origen === "service" && a.pista.id === bru.getEnvVar("pistaId"));
+    expect(servicio, "acceso service presente").to.exist;
+    expect(servicio.estado).to.equal("vigente");
+    expect(res.getBody().licencias.length).to.equal(0);
+    bru.setEnvVar("accesoServicioId", servicio.id);
+  });
+}
+
+docs {
+  La entrega de pista vendida aparece en /mis-compras → accesos [] con
+  origen service: el cliente descarga el master por la vía existente
+  (/mis-compras/accesos/{id}/descarga). La entrega no creó licencias
+  (licencias [] vacío) ni Premium (premium_activo=false).
+}

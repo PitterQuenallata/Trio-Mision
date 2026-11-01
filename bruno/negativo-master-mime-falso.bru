@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - master con MIME falso
+  type: http
+  seq: 170
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pistaId}}/master
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/master-falso-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  El contenido se detecta por bytes (no por la extensión declarada):
+  texto disfrazado de WAV → 422. El límite de 100 MiB + 1 byte se verifica
+  con curl en la guía de integración.
+}

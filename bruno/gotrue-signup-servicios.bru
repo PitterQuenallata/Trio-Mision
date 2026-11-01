@@ -1,0 +1,37 @@
+meta {
+  name: GoTrue - signup servicios
+  type: http
+  seq: 17
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "servicios@triomision.local",
+    "password": "ServiciosPass123!"
+  }
+}
+
+tests {
+  test("signup crea el usuario de servicios, o informa que ya existe", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 200) {
+      expect(res.getBody().user.email).to.equal("servicios@triomision.local");
+    } else {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta del usuario limpio para los flujos de servicios del Sprint 3C.3
+  (sin compras ni accesos previos, para probar el entitlement
+  grant_source=service). Repetible: 422 user_already_exists en
+  re-ejecuciones.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Soporte - mensaje con adjunto
+  type: http
+  seq: 200
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}/mensajes
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/mensaje-texto-adjunto-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.autor: eq usuario
+}
+
+docs {
+  Mensaje con adjunto real (PNG, máximo 5 MiB): el objeto queda privado
+  en support/ y se entrega solo con URL firmada breve al titular/staff.
+}

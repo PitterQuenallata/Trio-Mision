@@ -1,0 +1,31 @@
+meta {
+  name: Staff servicios - tomar solicitud
+  type: http
+  seq: 158
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes/{{solicitudServicioId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "tomar",
+    "motivo": "Se revisa alcance y referencias."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq en_revision
+}
+
+docs {
+  Transición válida nueva → en_revision con auditoría servicio.estado.
+}

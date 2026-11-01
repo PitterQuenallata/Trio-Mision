@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - ticket con clave de otro payload
+  type: http
+  seq: 193
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "categoria": "descargas",
+    "asunto": "Otro asunto con la misma clave",
+    "idempotency_key": "{{ticketKey}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Reutilizar la clave idempotente con otra categoría/asunto devuelve 409.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - mensaje en ticket cerrado
+  type: http
+  seq: 210
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}/mensajes
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/mensaje-texto-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Los mensajes se rechazan en tickets cerrados (409), tanto para el
+  titular como para staff.
+}

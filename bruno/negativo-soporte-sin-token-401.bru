@@ -1,0 +1,20 @@
+meta {
+  name: Negativo - soporte sin token
+  type: http
+  seq: 203
+}
+
+get {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: none
+  auth: none
+}
+
+assert {
+  res.status: eq 401
+}
+
+docs {
+  Sin token → 401 (middleware de autenticación). Aplica a todos los
+  endpoints autenticados nuevos y existentes.
+}

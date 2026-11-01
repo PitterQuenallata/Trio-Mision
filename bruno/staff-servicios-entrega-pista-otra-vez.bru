@@ -1,0 +1,35 @@
+meta {
+  name: Staff servicios - re-entrega de pista no duplica acceso
+  type: http
+  seq: 182
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/entregas
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-pista-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.entrega.tipo: eq pista
+  res.body.acceso_creado: eq false
+}
+
+docs {
+  Re-entregar la misma pista crea otra fila de entrega (append-only) pero
+  ON CONFLICT DO NOTHING sobre el índice único vigente no duplica el
+  entitlement: acceso_creado=false.
+}

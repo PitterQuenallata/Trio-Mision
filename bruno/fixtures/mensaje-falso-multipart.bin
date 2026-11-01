@@ -1,0 +1,6 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="archivo"; filename="evidencia-falsa.png"
+Content-Type: image/png
+
+esto no es un archivo permitido, solo texto plano
+--------------------------------triomision--

@@ -1,0 +1,21 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="titulo"
+
+Partitura y acordes del tema (PDF)
+--------------------------------triomision
+Content-Disposition: form-data; name="nota"
+
+Material de referencia de la entrega.
+--------------------------------triomision
+Content-Disposition: form-data; name="archivo"; filename="partitura.pdf"
+Content-Type: application/pdf
+
+%PDF-1.4
+1 0 obj
+<<>>
+endobj
+trailer
+<<>>
+%%EOF
+
+--------------------------------triomision--

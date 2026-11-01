@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - segundo comprobante en revisión
+  type: http
+  seq: 175
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/proyectos/{{proyectoServicioId}}/pagos
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/servicio-pago-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Solo un comprobante en revisión por proyecto (guard atómico en el
+  INSERT): un segundo intento mientras el primero se revisa → 409.
+}

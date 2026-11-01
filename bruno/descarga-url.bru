@@ -17,7 +17,6 @@ auth:bearer {
 assert {
   res.status: eq 200
   res.body.url: isNotEmpty
-  res.body.mime_type: eq audio/wav
 }
 
 tests {
@@ -25,6 +24,9 @@ tests {
     expect(res.getBody().url).to.contain("/tracks/");
     expect(res.getBody().url).not.to.contain("/public/");
     expect(res.getBody().pista.id).to.equal(bru.getEnvVar("pistaId"));
+    // audio/wav (master del seed) o audio/wave (master subido por API en
+    // el flujo de servicios, que reemplaza al anterior): ambos WAV.
+    expect(res.getBody().mime_type).to.match(/^audio\/(wav|wave)$/);
     bru.setVar("downloadUrl", res.getBody().url);
   });
 }

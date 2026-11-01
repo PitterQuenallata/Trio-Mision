@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - editor no gestiona soporte
+  type: http
+  seq: 190
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Los endpoints staff de soporte exigen admin o vendedor; el editor staff
+  recibe 403.
+}

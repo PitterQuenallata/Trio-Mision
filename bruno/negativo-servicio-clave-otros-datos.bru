@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - servicio con clave de otro payload
+  type: http
+  seq: 153
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+body:json {
+  {
+    "tipo": "produccion",
+    "titulo": "Otro encargo distinto",
+    "descripcion": "Reutiliza la clave con un payload diferente para provocar el conflicto.",
+    "idempotency_key": "{{servicioSolicitudKey}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Reutilizar la clave idempotente con otro tipo/título devuelve 409:
+  la clave ya fue usada con otra solicitud.
+}

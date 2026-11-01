@@ -1,0 +1,48 @@
+meta {
+  name: Soporte - crear ticket
+  type: http
+  seq: 191
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const key = `bruno-ticket-${Date.now()}`;
+  bru.setVar("ticketKey", key);
+}
+
+body:json {
+  {
+    "categoria": "pagos",
+    "asunto": "Duda sobre la fecha de mi último pago",
+    "order_id": "{{ordenId}}",
+    "idempotency_key": "{{ticketKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.categoria: eq pagos
+  res.body.estado: eq abierto
+  res.body.order_id: eq {{ordenId}}
+}
+
+tests {
+  test("guarda el ticket", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("ticketId", res.getBody().id);
+  });
+}
+
+docs {
+  Ticket de soporte vinculado a una orden propia (order_id). Idempotente
+  por (usuario, clave). Auditoría ticket.creado.
+}

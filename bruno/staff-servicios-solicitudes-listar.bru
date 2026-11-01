@@ -1,0 +1,33 @@
+meta {
+  name: Staff servicios - listar solicitudes
+  type: http
+  seq: 157
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes?estado=nueva
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.solicitudes: isArray
+}
+
+tests {
+  test("la solicitud nueva está en la lista staff", function() {
+    const s = res.getBody().solicitudes.find(x => x.id === bru.getEnvVar("solicitudServicioId"));
+    expect(s, "solicitud visible para staff").to.exist;
+    expect(s.usuario_email).to.exist;
+  });
+}
+
+docs {
+  Listado staff con filtro por estado. El staff ve al usuario titular;
+  el editor recibe 403 (middleware de rol staff).
+}

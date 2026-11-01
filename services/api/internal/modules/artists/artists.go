@@ -19,12 +19,13 @@ import (
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
 	"triomision/api/internal/database"
+	"triomision/api/internal/storage"
 )
 
 // Register registra los endpoints de membresía por artista bajo
 // /api/v1/mis-artistas. Las lecturas admiten member y manager; las mutaciones
 // solo manager (middleware authz.RequireArtistRole).
-func Register(api huma.API, db database.DB) {
+func Register(api huma.API, db database.DB, objects storage.Client) {
 	miembros := authz.RequireArtistRole(api, db, "artistId", "member")
 	managers := authz.RequireArtistRole(api, db, "artistId", "manager")
 
@@ -142,6 +143,21 @@ func Register(api huma.API, db database.DB) {
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){managers},
 	}, quitarMiembro(db))
+
+	huma.Register(api, huma.Operation{
+		OperationID: "artistas-subir-master",
+		Method:      http.MethodPost,
+		Path:        "/api/v1/mis-artistas/{artistId}/pistas/{trackId}/master",
+		Summary:     "Subir el master de una pista (manager)",
+		Description: "Multipart con audio (WAV, MP3, AIFF u OGG) de máximo 100 MiB, MIME detectado por contenido. " +
+			"Sube el objeto privado a MinIO y publica el master de la pista (media_assets + track_media, " +
+			"despublicando el anterior) con auditoría en la misma transacción. La pista puede seguir sin " +
+			"publicarse en el catálogo: el acceso del comprador depende de su entitlement, no de la tienda.",
+		MaxBodyBytes: maxMasterBytes + 64*1024,
+		Tags:         []string{"artistas"},
+		Security:     []map[string][]string{{"bearer": {}}},
+		Middlewares:  []func(huma.Context, func(huma.Context)){managers},
+	}, subirMaster(db, objects))
 }
 
 // ── Tipos de respuesta ─────────────────────────────────────────────────────

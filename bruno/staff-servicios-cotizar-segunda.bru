@@ -1,0 +1,41 @@
+meta {
+  name: Staff servicios - segunda cotización
+  type: http
+  seq: 160
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes/{{solicitudServicioId}}/cotizar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 4200,
+    "moneda": "BOB",
+    "terms_text": "Alternativa con arreglo coral incluido y tres revisiones; entrega de master WAV, pista y stems."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq enviada
+  res.body.monto_minor: eq 4200
+}
+
+tests {
+  test("guarda la segunda cotización", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("cotizacionServicio2Id", res.getBody().id);
+  });
+}
+
+docs {
+  Una solicitud admite re-cotizaciones; solo una puede quedar aceptada
+  (el proyecto es unique por quote_id).
+}

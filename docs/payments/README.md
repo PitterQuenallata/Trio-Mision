@@ -2,9 +2,10 @@
 
 > **Estado:** estrategia acordada e implementada en la API para el flujo
 > inicial (QR/transferencia con revisión manual), Premium por períodos,
-> cupones, códigos de canje y permisos adicionales por pista (Sprints 3A,
-> 3C.1 y 3C.2). Proveedores externos (Binance, IAP, QR dinámico) siguen sin
-> integración.
+> cupones, códigos de canje, permisos adicionales por pista (Sprints 3A,
+> 3C.1 y 3C.2) y pagos de servicios por encargo con soporte y reclamos
+> YouTube (Sprint 3C.3). Proveedores externos (Binance, IAP, QR dinámico)
+> siguen sin integración.
 
 ## 1. Principios
 
@@ -19,6 +20,11 @@ La API es la fuente de verdad y distingue:
   el subtotal de una orden.
 - **Canje:** concesión de suscripción o entitlements con `grant_source=
   redemption`, mediante código, sin pago.
+- **Pago de servicio:** comprobante de un proyecto de composición/producción.
+  Su aprobación confirma el pago **sin conceder acceso alguno**: los servicios
+  jamás crean entitlements, suscripciones ni licencias por un pago. El único
+  acceso posible de ese dominio es el entitlement de la pista entregada
+  (`grant_source=service`), que concede la entrega, no el pago.
 
 Premium no incluye automáticamente audio descargable ni permisos de uso. Los pagos
 pueden fallar, revisarse, reembolsarse o revertirse sin borrar el historial. Una
@@ -97,10 +103,14 @@ revisarán las reglas vigentes de la plataforma y el canal de distribución.
 
 ## 5. Soporte
 
-El comprador puede abrir casos de pago, descarga/archivo, permiso/YouTube o consulta
-general vinculados a su orden. Para reclamos se registran URL/claim ID y licencia;
-no se promete liberación ni monetización, especialmente cuando intervienen otros
-titulares.
+El comprador abre casos de pago, descarga/archivo, permiso/YouTube u otra
+categoría vinculados a su cuenta; puede referenciar su orden o licencia
+(referencias ajenas → 404). Los mensajes admiten adjuntos privados (imagen o
+PDF, máximo 5 MiB) que se entregan con URL firmada breve. El staff toma,
+resuelve, reabre y cierra los tickets con auditoría; los reclamos YouTube
+exigen URL y claim ID, y el artista ayudará cuando tenga autoridad: **no se
+promete liberación ni monetización**, especialmente cuando intervienen otros
+titulares. Implementado en el Sprint 3C.3 (migración 00024, módulo `soporte`).
 
 ## 6. Roadmap
 
@@ -109,6 +119,7 @@ titulares.
 | 1 | Premium y audio mediante QR/transferencia con revisión manual | Implementado (Sprints 3A y 3C.1) |
 | 1b | Cupones y códigos de canje con vigencia, límites e idempotencia | Implementado (Sprint 3C.1) |
 | 1c | Licencias y permisos adicionales por pista como complementos de audio | Implementado (Sprint 3C.2) |
+| 1d | Servicios por encargo (solicitud → cotización → proyecto → entrega) y soporte con reclamos YouTube | Implementado (Sprint 3C.3) |
 | 2 | Binance verificado desde backend | Pendiente |
 | 3 | Google Play Billing y Apple IAP según canal y políticas | Pendiente |
 | 4 | QR dinámico con confirmación automática y conciliación | Pendiente |

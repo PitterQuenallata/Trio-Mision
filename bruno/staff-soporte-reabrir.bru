@@ -1,0 +1,31 @@
+meta {
+  name: Staff soporte - reabrir ticket
+  type: http
+  seq: 208
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets/{{ticketId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "reabrir",
+    "motivo": "El usuario agregó una duda adicional."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq abierto
+}
+
+docs {
+  resuelto → abierto (reabrir) con auditoría ticket.estado.
+}

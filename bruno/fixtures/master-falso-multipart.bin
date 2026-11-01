@@ -1,0 +1,6 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="archivo"; filename="master-falso.wav"
+Content-Type: audio/wav
+
+esto no es un archivo permitido, solo texto plano
+--------------------------------triomision--

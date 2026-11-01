@@ -1,0 +1,5 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="cuerpo"
+
+Verificamos el pago y la entrega. ¿Algo más en que ayudar?
+--------------------------------triomision--

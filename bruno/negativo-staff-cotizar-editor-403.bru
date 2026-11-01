@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - editor no cotiza servicios
+  type: http
+  seq: 161
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes/{{solicitudServicioId}}/cotizar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 100,
+    "moneda": "BOB",
+    "terms_text": "El editor staff intenta cotizar sin rol comercial."
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Los endpoints staff de servicios exigen admin o vendedor; el editor
+  staff recibe 403 (mismo patrón que pagos/cupones/licencias).
+}

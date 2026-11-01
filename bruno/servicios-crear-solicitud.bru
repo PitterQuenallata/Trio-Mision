@@ -1,0 +1,53 @@
+meta {
+  name: Servicios - crear solicitud
+  type: http
+  seq: 151
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+script:pre-request {
+  const key = `bruno-serv-${Date.now()}`;
+  bru.setVar("servicioSolicitudKey", key);
+}
+
+body:json {
+  {
+    "tipo": "composicion",
+    "titulo": "Composición de tema para campaña 2027",
+    "descripcion": "Tema original de apertura para campaña juvenil, estilo acústico, con entrega de master y pista.",
+    "referencias": {
+      "ejemplo": "https://ejemplo.local/ref",
+      "nota": "Tempo medio, mayores"
+    },
+    "idempotency_key": "{{servicioSolicitudKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq composicion
+  res.body.estado: eq nueva
+  res.body.cotizaciones: isArray
+}
+
+tests {
+  test("guarda la solicitud de servicio", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("solicitudServicioId", res.getBody().id);
+  });
+}
+
+docs {
+  Solicitud de encargo (composicion | produccion | arreglo) con clave
+  idempotente única por corrida. Idempotencia por (usuario, clave):
+  repetir con el mismo payload devuelve la misma solicitud; con otro → 409.
+}

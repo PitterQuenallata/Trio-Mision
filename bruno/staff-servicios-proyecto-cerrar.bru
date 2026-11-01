@@ -1,0 +1,32 @@
+meta {
+  name: Staff servicios - cerrar proyecto
+  type: http
+  seq: 188
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "cerrar",
+    "motivo": "Proyecto concluido y aceptado por el cliente."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq cerrado
+}
+
+docs {
+  entregado → cerrado con auditoría servicio.proyecto_estado. El proyecto
+  cerrado ya no admite pagos ni entregas (409/409).
+}

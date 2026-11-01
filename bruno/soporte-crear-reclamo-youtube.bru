@@ -1,0 +1,46 @@
+meta {
+  name: Soporte - crear reclamo YouTube
+  type: http
+  seq: 197
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "categoria": "reclamo_youtube",
+    "asunto": "Reclamo de tercero sobre mi cover",
+    "youtube_url": "https://www.youtube.com/watch?v=ejemplo123",
+    "youtube_claim_id": "claim-ABC-123",
+    "idempotency_key": "{{ticketYoutubeKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.categoria: eq reclamo_youtube
+  res.body.youtube_url: eq https://www.youtube.com/watch?v=ejemplo123
+  res.body.youtube_claim_id: eq claim-ABC-123
+  res.body.estado: eq abierto
+}
+
+tests {
+  test("guarda el ticket de reclamo", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("ticketYoutubeId", res.getBody().id);
+  });
+}
+
+docs {
+  Reclamo YouTube válido: URL del video y claim ID obligatorios. El
+  artista ayudará cuando tenga autoridad; no se promete liberación ni
+  monetización.
+}

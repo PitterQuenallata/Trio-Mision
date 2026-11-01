@@ -1,0 +1,33 @@
+meta {
+  name: Staff soporte - listar tickets
+  type: http
+  seq: 204
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets?estado=abierto&categoria=pagos
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.tickets: isArray
+}
+
+tests {
+  test("el ticket de pagos está en la lista staff", function() {
+    const t = res.getBody().tickets.find(x => x.id === bru.getEnvVar("ticketId"));
+    expect(t, "ticket visible para staff").to.exist;
+    expect(t.mensajes).to.equal(2);
+  });
+}
+
+docs {
+  Listado staff con filtros de estado y categoría, usuario titular y
+  conteo de mensajes.
+}

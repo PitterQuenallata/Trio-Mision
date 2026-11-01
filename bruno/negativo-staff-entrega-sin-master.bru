@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - entrega de pista sin master
+  type: http
+  seq: 180
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/entregas
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-pista-sin-master-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Entregar con track_id exige una pista con master publicado; una pista
+  inexistente o sin master → 422. La verificación es en la misma tx que
+  la entrega y el acceso.
+}

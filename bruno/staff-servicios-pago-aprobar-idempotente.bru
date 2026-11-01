@@ -1,0 +1,32 @@
+meta {
+  name: Staff servicios - aprobar pago idempotente
+  type: http
+  seq: 177
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/pagos/{{pagoServicioId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Reaprobación: no debe duplicar efectos."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_revisado: eq true
+}
+
+docs {
+  Doble aprobación idempotente: devuelve el estado actual sin duplicar
+  ni crear acceso alguno.
+}

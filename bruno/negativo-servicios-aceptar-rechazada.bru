@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - aceptar cotización rechazada
+  type: http
+  seq: 163
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/cotizaciones/{{cotizacionServicio2Id}}/aceptar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Una cotización rechazada no se puede aceptar (409). La idempotencia
+  solo cubre repetir la aceptación de una cotización ya aceptada.
+}

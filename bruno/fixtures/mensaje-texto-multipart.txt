@@ -1,0 +1,5 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="cuerpo"
+
+Adjunto el comprobante de la transferencia, gracias.
+--------------------------------triomision--

@@ -1,0 +1,32 @@
+meta {
+  name: Staff soporte - cerrar ticket
+  type: http
+  seq: 209
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets/{{ticketId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "cerrar",
+    "motivo": "Caso concluido."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq cerrado
+}
+
+docs {
+  Cualquier estado abierto → cerrado con auditoría ticket.estado. El
+  ticket cerrado no admite más mensajes (409).
+}

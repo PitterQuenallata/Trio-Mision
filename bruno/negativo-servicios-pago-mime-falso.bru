@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - comprobante de servicio con MIME falso
+  type: http
+  seq: 174
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/proyectos/{{proyectoServicioId}}/pagos
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-falsa-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  El comprobante se valida por contenido: texto disfrazado de imagen → 422.
+}

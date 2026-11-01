@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - master en artista ajeno
+  type: http
+  seq: 172
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaCoroId}}/pistas/{{pistaId}}/master
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/master-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  El manager de trio-mision no es miembro del coro: el middleware devuelve
+  404 (no se revela la existencia del artista ajeno).
+}

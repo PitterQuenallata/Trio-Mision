@@ -1,0 +1,33 @@
+meta {
+  name: Staff servicios - aprobar pago
+  type: http
+  seq: 176
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/pagos/{{pagoServicioId}}/aprobar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "comentario": "Transferencia verificada: monto y fecha coinciden."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq confirmed
+  res.body.ya_estaba_revisado: eq false
+}
+
+docs {
+  La aprobación confirma el pago del servicio con auditoría
+  servicio.pago_confirmado. NO concede acceso alguno: los servicios jamás
+  crean entitlements por un pago (diferencia clave con la tienda).
+}

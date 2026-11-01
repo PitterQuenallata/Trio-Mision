@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - cotizar solicitud ya aceptada
+  type: http
+  seq: 167
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes/{{solicitudServicioId}}/cotizar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 999,
+    "moneda": "BOB",
+    "terms_text": "Intento de cotizar una solicitud que el cliente ya aceptó."
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  Una solicitud aceptada no admite re-cotización (409). El flujo sigue
+  por el proyecto: comprobante, entregas y estados.
+}

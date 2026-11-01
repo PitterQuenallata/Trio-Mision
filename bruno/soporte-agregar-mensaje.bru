@@ -1,0 +1,33 @@
+meta {
+  name: Soporte - mensaje de texto
+  type: http
+  seq: 199
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}/mensajes
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/mensaje-texto-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.autor: eq usuario
+}
+
+docs {
+  Mensaje del titular: multipart con campo de texto cuerpo (el adjunto
+  es opcional). Auditoría ticket.mensaje.
+}

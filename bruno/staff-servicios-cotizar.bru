@@ -1,0 +1,42 @@
+meta {
+  name: Staff servicios - cotizar solicitud
+  type: http
+  seq: 159
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/solicitudes/{{solicitudServicioId}}/cotizar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "monto_minor": 3500,
+    "moneda": "BOB",
+    "terms_text": "Incluye composición completa, dos revisiones y entrega de master WAV más pista. El pago se acuerda por transferencia/QR y se confirma con comprobante."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq enviada
+  res.body.monto_minor: eq 3500
+  res.body.moneda: eq BOB
+}
+
+tests {
+  test("guarda la cotización", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("cotizacionServicioId", res.getBody().id);
+  });
+}
+
+docs {
+  Cotización staff (monto entero en unidades menores, moneda ISO, términos).
+  La solicitud pasa a cotizada. Auditoría servicio.cotizado.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - member no sube master
+  type: http
+  seq: 171
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pistaId}}/master
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/master-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Subir master exige rol manager del artista: el member recibe 403
+  (RequireArtistRole manager). Mismo patrón que las mutaciones del módulo
+  artistas.
+}

@@ -1,0 +1,48 @@
+meta {
+  name: Staff servicios - entrega de pista vendida
+  type: http
+  seq: 181
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/entregas
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-pista-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.entrega.tipo: eq pista
+  res.body.entrega.pista.id: eq {{pistaId}}
+}
+
+tests {
+  test("entrega de pista: acceso creado solo la primera vez", function() {
+    // Tras reset: true (la entrega concede el entitlement grant_source=
+    // service). En re-ejecuciones consecutivas: false, porque el acceso
+    // del usuario sigue vigente (índice único parcial, ON CONFLICT DO
+    // NOTHING). La no-duplicación dura se verifica en la re-entrega y en
+    // /mis-compras.
+    expect(res.getBody().acceso_creado).to.be.a("boolean");
+  });
+}
+
+docs {
+  Entrega de la pista vendida (track_id de la pista demo, que tiene
+  master publicado): concede en la misma transacción el entitlement del
+  cliente con grant_source=service cuando aún no lo tiene. El cliente lo
+  verá en /mis-compras y podrá descargar el master. Auditoría
+  servicio.entregado + acceso.concedido. Jamás crea licencias ni Premium.
+}

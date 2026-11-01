@@ -1,0 +1,40 @@
+meta {
+  name: Soporte - detalle del ticket cerrado
+  type: http
+  seq: 211
+}
+
+get {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: eq {{ticketId}}
+  res.body.estado: eq cerrado
+  res.body.order_id: eq {{ordenId}}
+}
+
+tests {
+  test("conversación completa con adjunto firmado", function() {
+    const t = res.getBody();
+    expect(t.mensajes.length).to.equal(3);
+    expect(t.mensajes[0].autor).to.equal("usuario");
+    expect(t.mensajes[1].autor).to.equal("usuario");
+    expect(t.mensajes[2].autor).to.equal("staff");
+    expect(t.mensajes[1].adjunto.url).to.include("X-Amz-Signature");
+    expect(t.mensajes[1].adjunto.mime).to.equal("image/png");
+  });
+}
+
+docs {
+  El titular ve la conversación completa: sus mensajes (uno con adjunto
+  cuya URL firmada breve se emite al vuelo) y la respuesta staff. Estado
+  final cerrado.
+}

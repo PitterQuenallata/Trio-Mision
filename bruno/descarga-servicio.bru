@@ -1,0 +1,35 @@
+meta {
+  name: Descarga - master del acceso de servicio
+  type: http
+  seq: 186
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{accesoServicioId}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.pista.id: eq {{pistaId}}
+}
+
+tests {
+  test("URL firmada del master subido por el manager", function() {
+    expect(res.getBody().url).to.include("X-Amz-Signature");
+    // audio/wav (master del seed) o audio/wave (master subido por API,
+    // detectado por contenido con net/http): ambos WAV válidos.
+    expect(res.getBody().mime_type).to.match(/^audio\/(wav|wave)$/);
+  });
+}
+
+docs {
+  El titular del servicio descarga el master de la pista entregada con
+  URL firmada breve: es el master subido por el manager por API (reemplazó
+  al del seed), servido desde MinIO privado.
+}

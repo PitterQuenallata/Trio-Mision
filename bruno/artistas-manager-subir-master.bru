@@ -1,0 +1,44 @@
+meta {
+  name: Artistas manager - subir master
+  type: http
+  seq: 169
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/pistas/{{pistaId}}/master
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/master-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.mime: eq audio/wave
+  res.body.master_publicado: eq true
+  res.body.pista_id: eq {{pistaId}}
+}
+
+tests {
+  test("guarda el asset del master", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("masterAssetId", res.getBody().asset_id);
+  });
+}
+
+docs {
+  El manager del artista sube el master por API (multipart audio real,
+  máximo 100 MiB, MIME por contenido): objeto privado en MinIO +
+  media_assets + track_media publicado (despublica el anterior) con
+  auditoría en la misma transacción. Reemplaza al master del seed.
+}

@@ -1,0 +1,35 @@
+meta {
+  name: Staff servicios - entrega de archivo
+  type: http
+  seq: 178
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/entregas
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-titulo-archivo-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.entrega.tipo: eq archivo
+  res.body.acceso_creado: eq false
+}
+
+docs {
+  Entrega de archivo privado (PDF de partitura, máximo 5 MiB, MIME por
+  contenido) en services/. El titular la recibe con URL firmada breve al
+  consultar el proyecto. No concede acceso de audio.
+}

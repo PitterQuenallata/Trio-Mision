@@ -1,0 +1,31 @@
+meta {
+  name: Servicios - aceptar cotización idempotente
+  type: http
+  seq: 166
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/cotizaciones/{{cotizacionServicioId}}/aceptar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.ya_estaba_aceptada: eq true
+}
+
+tests {
+  test("no duplica el proyecto", function() {
+    expect(res.getBody().proyecto.id).to.equal(bru.getEnvVar("proyectoServicioId"));
+  });
+}
+
+docs {
+  Repetir la aceptación devuelve el mismo proyecto (unique por quote_id):
+  la doble aceptación no duplica proyectos.
+}

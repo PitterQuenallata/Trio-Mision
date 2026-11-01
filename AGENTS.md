@@ -80,11 +80,37 @@ Docker o PostgreSQL estén ausentes. Verificar con
 - Premium nunca concede audio descargable ni licencias: se calcula por
   períodos de suscripción; los paquetes congelan su contenido en el snapshot
   de la orden (`include_future_tracks=false`).
-- Siguiente tarea: Revisión obligatoria con Kimi 3.1 del Sprint 3C.2 (el avance
-  queda pausado por el momento hasta que se revise); posteriormente Sprint 3C.3
-  de API pura (servicios y soporte: solicitudes, cotizaciones, entregas y tickets/mensajes
-  con adjuntos y reclamos YouTube), sin construir UI.
-- API actual: versión 0.8.0.
+- **Revisión del Sprint 3C.2 completada** (2026-11-01): se corrigieron campos
+  duplicados en el contrato staff de licencias (`licencias_creadas` y
+  `revocada_en` de la revocación retirados; quedan `licencias_creados` y
+  `revocado_en`). API pura 0.8.1; Bruno 150/150, 75/75 y 359/359 en verde.
+- **Sprint 3C.3 de Fase 3 completado** (2026-11-01): API pura 0.9.0,
+  migraciones 00023 y 00024 (`service_requests`/`service_quotes`/
+  `service_projects`/`service_deliverables`/`service_payments` y
+  `support_tickets`/`support_messages`), módulos `servicios` y `soporte`, y
+  subida de master por manager (`POST /mis-artistas/{artistId}/pistas/{trackId}/master`,
+  audio ≤ 100 MiB por contenido). El catálogo de
+  `entitlements.grant_source` incluye ahora `'service'` (drop/add del
+  constraint en 00023). Flujo de servicios completo (solicitud idempotente →
+  cotización staff → aceptación con proyecto congelado → comprobante →
+  aprobación sin efectos de acceso → entregas con URL firmada → entrega de
+  pista con entitlement `grant_source=service` que se descarga por la vía
+  existente) y soporte (tickets por categoría, mensajes con adjuntos privados,
+  reclamos YouTube con URL/claim, estados staff). Los servicios jamás crean
+  Premium ni licencias. OpenAPI 71 paths; Bruno 213/213 requests, 98/98 tests
+  y 484/484 aserciones en verde tras reset desde cero y en re-ejecución.
+  Hallazgo corregido en el camino: el seed usaba `ON CONFLICT DO UPDATE`
+  sobre `license_terms_versions` (append-only sin UPDATE para la API) y
+  exigía privilegio que la cuenta no tiene; ahora `DO NOTHING`. Tras
+  `make db-reset`, el orden es migraciones+seed → restart de GoTrue →
+  signups de la colección → `make db-staff`/`db-artist-role`.
+- API actual: versión 0.9.0.
+- **Revisión del Sprint 3C.3 completada** (2026-11-01): correcciones de
+  contrato y migración 00025 (`service_payments_in_review_uidx`); verificado
+  de forma independiente con Bruno 213/213, 98/98 y 484/484 tras reset.
+- Siguiente tarea: Fase 4 en tres sprints (4A sync + descargas offline, 4B
+  worker PDF→ChordPro, 4C FCM). Plan detallado de 4A listo en
+  `CURRENT_TASK.md` (sección "Siguiente tarea — Fase 4").
 
 ## Convenciones
 

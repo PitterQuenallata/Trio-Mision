@@ -44,8 +44,7 @@ func seedLicencias(ctx context.Context, tx pgx.Tx) error {
 			'Cada uso concreto (grabación vocal, publicación, monetización) requiere su permiso ' ||
 			'correspondiente y queda sujeto a los derechos que el artista puede conceder. ' ||
 			'La descarga del audio por sí sola no habilita ningún permiso adicional.')
-		on conflict (id) do update set version_label = excluded.version_label,
-			terms_text = excluded.terms_text`,
+		on conflict (id) do nothing`,
 		terminosV1ID, artistaDemoID); err != nil {
 		return fmt.Errorf("términos de licencia v1: %w", err)
 	}

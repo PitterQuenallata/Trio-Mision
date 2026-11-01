@@ -65,6 +65,37 @@ docs {
   premium, paquete de dos pistas, cupones BIENVENIDA10/FIJO500, códigos
   PREMIUM-DEMO/PAQUETE-DEMO).
 
+  ## Sprint 3C.3 — Servicios por encargo y soporte
+
+  Flujos nuevos (seq 17-18 y 151-211): usuario limpio `servicios@…`
+  (signup/login tolerantes 200/422), servicios completos (solicitud
+  idempotente → staff toma/cotiza → cliente rechaza una cotización y
+  acepta otra: proyecto congelado → comprobante → aprobación idempotente
+  sin efectos de acceso → entrega de archivo con URL firmada → entrega de
+  pista con `acceso_creado` → re-entrega sin duplicar → proyecto entregado
+  y cerrado → `/mis-compras` con `origen: service` y descarga del master;
+  ajeno → 404 en todo), subida de master por manager (WAV real por
+  contenido, 100 MiB máx; MIME falso/member/artista ajeno negativos) y
+  soporte completo (ticket de pagos con orden propia, mensaje con adjunto,
+  respuesta staff, tomar/resolver/reabrir/cerrar, mensaje en cerrado → 409,
+  reclamo YouTube con y sin URL/claim, referencias ajenas → 404). Los
+  fixtures multipart crudos viven en `fixtures/` (delimitador `--` +
+  boundary). Los servicios jamás crean Premium ni licencias.
+
+  ## Puesta en marcha tras un reset
+
+  `make db-reset` deja también vacío el esquema `auth` de GoTrue, y los
+  scripts de roles resuelven al usuario por email en `auth.users`. Orden:
+
+      make db-reset && make db-security && make db-seed
+      docker compose restart gotrue   # esperar el healthcheck
+      # correr los signups GoTrue de la colección (crean los usuarios)
+      make db-staff EMAIL=staff@triomision.local ROLE=vendedor
+      make db-staff EMAIL=editor@triomision.local ROLE=editor
+      make db-artist-role EMAIL=manager@triomision.local ROLE=manager ARTIST=trio-mision
+      make db-artist-role EMAIL=member@triomision.local ROLE=member ARTIST=trio-mision
+      (cd bruno && npx @usebruno/cli run . --env Local --env-var "gotrueToken=$GT")
+
   La guía de integración para los futuros clientes está en
   `docs/development/integracion-api.md`.
 

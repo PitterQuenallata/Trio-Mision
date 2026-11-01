@@ -399,6 +399,55 @@ extiende el período vigente del usuario cuando existe.
 
 La composición/producción por encargo sigue `service_requests` → `service_quotes`
 → `service_projects` → `service_deliverables`; no es checkout de descarga inmediata.
+Implementado en migraciones `00023_servicios.sql` y `00024_soporte.sql`
+(Sprint 3C.3). Los servicios jamás crean suscripciones Premium ni licencias:
+el único efecto de acceso permitido es el entitlement de la pista entregada,
+con `grant_source='service'` (catálogo ampliado en 00023 con drop/add del
+constraint, sin tocar migraciones aplicadas; la idempotencia del acceso la
+sigue dando `entitlements_active_track_uidx`).
+
+```text
+service_requests
+  id, user_id FK profiles, tipo (composicion|produccion|arreglo),
+  titulo, descripcion, referencias jsonb,
+  estado (nueva|en_revision|cotizada|aceptada|rechazada|cancelada),
+  idempotency_key, created_at, updated_at,
+  UNIQUE (user_id, idempotency_key)
+
+service_quotes
+  id, request_id FK, staff_id FK profiles, amount_minor > 0,
+  currency char(3), terms_text, estado (enviada|aceptada|rechazada),
+  created_at   -- re-cotizaciones permitidas; solo una aceptada
+
+service_projects
+  id, request_id FK, quote_id FK UNIQUE, user_id FK,
+  amount_minor, currency, quote_snapshot jsonb,
+  estado (en_curso|entregado|cerrado), created_at, updated_at
+
+service_deliverables
+  id, project_id FK, staff_id FK, titulo, nota,
+  track_id FK NULL, file_key NULL, mime, size_bytes, created_at
+  CHECK exactamente uno de track_id | file_key   -- append-only
+  -- track_id = pista vendida: concede el entitlement (grant_source='service')
+  -- file_key = archivo privado en MinIO (services/), URL firmada breve
+
+service_payments
+  id, project_id FK, user_id FK, receipt_key, mime, size_bytes,
+  estado (in_review|confirmed|rejected), reviewed_by, reviewed_at, created_at
+  -- comprobante multipart ≤ 5 MiB (MIME por contenido); sin efectos de acceso
+
+support_tickets
+  id, user_id FK, categoria (pagos|descargas|permisos|reclamo_youtube|otro),
+  asunto, estado (abierto|en_atencion|resuelto|cerrado),
+  order_id FK NULL, license_grant_id FK NULL,
+  youtube_url, youtube_claim_id, idempotency_key, created_at, updated_at,
+  UNIQUE (user_id, idempotency_key)
+  -- reclamo YouTube exige URL y claim ID (validación de API)
+
+support_messages
+  id, ticket_id FK, author_id FK profiles, author_kind (usuario|staff),
+  cuerpo, attachment_key/mime/size NULL, created_at   -- append-only
+```
 
 La biblioteca remota usa `user_song_folders`, `user_songs`, `setlists` y
 `setlist_items`. Cada posición de setlist tendrá FKs nullable independientes a

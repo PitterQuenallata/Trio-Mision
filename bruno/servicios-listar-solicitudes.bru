@@ -1,0 +1,34 @@
+meta {
+  name: Servicios - listar mis solicitudes
+  type: http
+  seq: 154
+}
+
+get {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.solicitudes: isArray
+}
+
+tests {
+  test("la solicitud creada está en la lista con proyecto null", function() {
+    const lista = res.getBody().solicitudes;
+    const s = lista.find(x => x.id === bru.getEnvVar("solicitudServicioId"));
+    expect(s, "solicitud presente").to.exist;
+    expect(s.proyecto).to.equal(null);
+  });
+}
+
+docs {
+  Lista las solicitudes del titular con cotizaciones y proyecto. Solo
+  el titular; un acceso ajeno devuelve 404 (ver negativo dedicado).
+}

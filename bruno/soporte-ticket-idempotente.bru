@@ -1,0 +1,39 @@
+meta {
+  name: Soporte - ticket idempotente
+  type: http
+  seq: 192
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "categoria": "pagos",
+    "asunto": "Duda sobre la fecha de mi último pago",
+    "order_id": "{{ordenId}}",
+    "idempotency_key": "{{ticketKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq abierto
+}
+
+tests {
+  test("reintento con la misma clave devuelve el mismo ticket", function() {
+    expect(res.getBody().id).to.equal(bru.getEnvVar("ticketId"));
+  });
+}
+
+docs {
+  Reintento idempotente: misma clave y mismo payload → mismo ticket.
+}

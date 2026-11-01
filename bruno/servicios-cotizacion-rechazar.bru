@@ -1,0 +1,25 @@
+meta {
+  name: Servicios - rechazar cotización
+  type: http
+  seq: 162
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/cotizaciones/{{cotizacionServicio2Id}}/rechazar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq rechazada
+}
+
+docs {
+  El cliente rechaza la segunda cotización; la solicitud queda cotizada
+  para una re-cotización. Solo cotizaciones enviada de solicitudes propias.
+}

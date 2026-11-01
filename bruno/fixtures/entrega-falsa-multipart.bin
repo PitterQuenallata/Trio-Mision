@@ -1,0 +1,6 @@
+--------------------------------triomision
+Content-Disposition: form-data; name="archivo"; filename="entrega-falsa.pdf"
+Content-Type: application/pdf
+
+esto no es un archivo permitido, solo texto plano
+--------------------------------triomision--

@@ -1,0 +1,36 @@
+meta {
+  name: Servicios - aceptar cotización (crea proyecto)
+  type: http
+  seq: 165
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/cotizaciones/{{cotizacionServicioId}}/aceptar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.ya_estaba_aceptada: eq false
+  res.body.proyecto.estado: eq en_curso
+  res.body.proyecto.monto_minor: eq 3500
+  res.body.proyecto.moneda: eq BOB
+}
+
+tests {
+  test("guarda el proyecto con snapshot congelado", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("proyectoServicioId", res.getBody().proyecto.id);
+  });
+}
+
+docs {
+  Aceptar crea el proyecto en la misma transacción: cotización aceptada,
+  solicitud aceptada y proyecto con monto/moneda/términos congelados
+  (quote_snapshot). Auditoría servicio.aceptado.
+}

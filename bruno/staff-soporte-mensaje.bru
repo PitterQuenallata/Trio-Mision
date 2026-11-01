@@ -1,0 +1,33 @@
+meta {
+  name: Staff soporte - responder ticket
+  type: http
+  seq: 206
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets/{{ticketId}}/mensajes
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/mensaje-staff-multipart.txt) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.autor: eq staff
+}
+
+docs {
+  Respuesta staff: el mensaje queda con author_kind staff y auditoría
+  ticket.mensaje.
+}

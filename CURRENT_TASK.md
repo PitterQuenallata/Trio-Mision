@@ -1,13 +1,18 @@
 # CURRENT_TASK — Estado del trabajo
 
 > Archivo de estado vivo. Se actualiza al inicio y al final de cada sesión de trabajo.
-> Última actualización: 2026-10-28
+> Última actualización: 2026-11-01
 
 > [!IMPORTANT]
-> **ESTADO ACTUAL / PAUSA DE REVISIÓN:**
-> El Sprint 3C.2 está completado y verificado al 100%. **Se debe revisar con Kimi 3.1**
-> todo lo implementado antes de iniciar el siguiente sprint. El avance queda en
-> pausa por el momento hasta que se realice dicha revisión.
+> **SPRINT 3C.3 COMPLETADO Y REVISADO (2026-11-01, Kimi):** servicios de
+> composición/producción por encargo y soporte implementados en API pura 0.9.0
+> (migraciones 00023-00024, módulos `servicios` y `soporte`, subida de master
+> por manager del artista). La revisión posterior corrigió 4 hallazgos
+> (migración 00025 y contratos; ver la sección de revisión más abajo).
+> **Bruno 213/213 requests, 98/98 tests y 484/484 aserciones en verde** tras
+> `make db-reset` desde cero, verificado de forma independiente con las
+> correcciones aplicadas. El siguiente paso es la **Fase 4** (worker, sync
+> offline, FCM); **no se construyó ni modificó UI**.
 
 ## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
 
@@ -99,17 +104,418 @@ modificó UI**: los clientes se integran contra
   filtra `where oi.offer_id is not null limit 1` para no confundir las líneas de
   licencia (`offer_id = NULL`) con el ítem de la oferta al reconstruir la orden.
 
-## Siguiente tarea — Revisión con Kimi 3.1 y posterior Sprint 3C.3 (servicios y soporte)
+## Fase 3 / Sprint 3C.3 — Servicios y soporte: COMPLETADA ✅
 
-**Estado:** en pausa para revisión. Base verificada: API 0.8.0, 22 migraciones, Bruno
-150/150 y 359/359.
-1. **Revisión obligatoria con Kimi 3.1**: revisar la implementación completa del
-   Sprint 3C.2 (migraciones 00021-00022, contratos de API, snapshots congelados,
-   efectos disjuntos y suite Bruno). No iniciar 3C.3 hasta cerrar esta revisión.
-2. **Sprint 3C.3 (servicios y soporte)**: **Solo API; no construir UI.** Ver alcance en
-   `docs/planificacion/README.md`: solicitudes/cotizaciones/proyectos/entregas de
-   composición-producción; tickets y mensajes de pagos, descargas, permisos y
-   reclamos YouTube, con adjuntos privados y autorización titular/staff.
+**Cerrado el 2026-11-01.** API pura 0.9.0: servicios de composición/producción
+por encargo (solicitud → cotización → aceptación con proyecto congelado →
+comprobante → aprobación sin efectos de acceso → entregas con URL firmada →
+entrega de pista con entitlement `grant_source=service`) y soporte (tickets
+por categoría, mensajes con adjuntos privados, respuestas y estados staff,
+reclamos YouTube con URL/claim), más la subida de master por el manager del
+artista. **No se construyó ni modificó UI**: los clientes se integran contra
+`docs/development/integracion-api.md`.
+
+| Entregable | Ubicación | Estado |
+|---|---|---|
+| Migración 00023 (`service_requests`, `service_quotes`, `service_projects` unique por cotización, `service_deliverables` append-only con CHECK de exclusión pista/archivo, `service_payments`; CHECK de `entitlements.grant_source` ampliado a `'service'` con drop/add; grants sin DELETE ni UPDATE en append-only) | `database/migrations/` | Hecho |
+| Migración 00024 (`support_tickets` con categorías y UNIQUE (usuario, clave), `support_messages` append-only; grants mínimos) | `database/migrations/` | Hecho |
+| Módulo `servicios` (usuario: solicitudes idempotentes, aceptar/rechazar cotización con proyecto congelado en la misma tx, comprobante multipart ≤ 5 MiB por contenido, detalle de proyecto con URLs firmadas) | `services/api/internal/modules/servicios/` | Hecho |
+| Endpoints staff de servicios (listar/cotizar/estado de solicitudes, entregas multipart pista-o-archivo con entitlement `service` idempotente y auditoría doble, estados de proyecto, aprobar/rechazar pago sin efectos de acceso) | `services/api/internal/modules/servicios/staff.go` | Hecho |
+| Módulo `soporte` (tickets idempotentes con validación de titularidad de orden/licencia y reclamos YouTube, mensajes multipart con adjunto opcional, staff: listar/responder/estados con auditoría) | `services/api/internal/modules/soporte/` | Hecho |
+| Subida de master por manager (`POST /mis-artistas/{artistId}/pistas/{trackId}/master`, audio ≤ 100 MiB por contenido, despublica el anterior, auditoría en la misma tx) | `services/api/internal/modules/artists/master.go` | Hecho |
+| Seed: corrección de idempotencia sobre tabla append-only (`license_terms_versions` pasó a `ON CONFLICT DO NOTHING`) | `services/api/cmd/seed/seed_licencias.go` | Hecho |
+| Colección Bruno: 63 requests nuevos (213 total: 98 tests, 484 aserciones) con fixtures multipart propios | `bruno/` | Hecho |
+
+### Verificación contra sistema real (2026-11-01, tras `make db-reset` desde cero)
+
+- 24 migraciones goose down+up limpias (reset completo con datos de corridas
+  anteriores, incluidos entitlements `service`); `make db-security`, GoTrue
+  healthy y seed aplicados. Tras el reset el orden operativo es: migraciones +
+  seed → `docker compose restart gotrue` → signups de la colección (crean los
+  usuarios en GoTrue) → `make db-staff` / `make db-artist-role` (resuelven el
+  usuario por email en `auth.users`).
+- Colección Bruno completa tras reset desde cero: **213/213 requests, 98/98
+  tests, 484/484 aserciones** en verde; segunda corrida consecutiva sobre los
+  mismos datos vuelve a quedar en verde (repetible sin reset).
+- Flujo de servicios real: solicitud idempotente (reintento devuelve el mismo
+  recurso; clave con otro payload → 409) → staff toma y cotiza dos veces → el
+  cliente rechaza una y acepta otra: proyecto `en_curso` con `quote_snapshot`
+  congelado; re-aceptar devuelve `ya_estaba_aceptada` sin duplicar →
+  comprobante multipart real → aprobación staff `confirmed` y re-aprobación
+  `ya_estaba_revisado` (sin crear acceso alguno) → entrega de archivo PDF con
+  URL firmada → entrega de pista: `acceso_creado` true la primera vez,
+  `false` al re-entregar (índice único parcial) → proyecto `entregado` y
+  `cerrado` → el cliente ve el acceso en `/mis-compras` con `origen:
+  service`, `licencias []` vacío y `premium_activo: false` → descarga del
+  master con URL firmada; otro usuario recibe 404 en la descarga.
+- Master por API: audio real WAV → `master_publicado: true` (MIME `audio/wave`
+  detectado por contenido; reemplaza al master del seed); MIME falso → 422;
+  100 MiB + 1 byte → 422 (curl); member → 403; artista ajeno → 404.
+- Soporte real: ticket de pagos vinculado a orden propia → mensaje de texto y
+  mensaje con adjunto PNG → respuesta staff (`autor: staff`) → tomar →
+  resolver → reabrir → cerrar; mensaje en ticket cerrado → 409; ticket ajeno
+  → 404; adjunto con MIME falso → 422; 5 MiB + 1 byte → 422 (servicios
+  comprobante, soporte adjunto y entrega de archivo, verificados con curl);
+  reclamo YouTube sin URL/claim → 422; orden/licencia ajena → 404; detalle
+  del ticket con la conversación completa y el adjunto servido por URL firmada.
+- Autorización cruzada: editor staff → 403 en endpoints staff nuevos
+  (servicios y soporte); sin token → 401; titular o staff siempre (acceso
+  ajeno → 404).
+- Auditoría en la misma transacción de cada mutación: `servicio.creado`,
+  `servicio.cotizado`, `servicio.aceptado`, `servicio.estado`,
+  `servicio.comprobante_subido`, `servicio.pago_confirmado`,
+  `servicio.entregado`, `acceso.concedido`, `servicio.proyecto_estado`,
+  `ticket.creado`, `ticket.mensaje`, `ticket.estado`, `pista.master_subido`.
+- Privilegios SQL verificados con `triomision_api`: DELETE denegado en las 7
+  tablas nuevas; UPDATE denegado en `service_deliverables` y
+  `support_messages` (append-only); sin acceso a `auth`; sin borrar
+  `audit_events` ni insertar `staff_roles`.
+- MinIO: la cuenta de servicio conserva solo `s3:GetObject`/`s3:PutObject` —
+  `mc admin user list` con sus credenciales → Access Denied; los objetos
+  nuevos viven en `services/` y `support/` del bucket privado.
+- `go build`, `go vet`, `gofmt`, `go test ./...` 100% limpios; Swagger UI 200,
+  spec 0.9.0 con 71 paths (51 previos + 20 nuevos).
+
+### Decisiones y hallazgos del Sprint 3C.3
+
+- **Servicios no son tienda**: una solicitud no es una orden. No hay ofertas
+  ni cupones; el monto se acuerda en la cotización y se congela en el
+  proyecto (`quote_snapshot`). La aprobación del comprobante confirma el pago
+  pero jamás crea entitlements, suscripciones ni licencias: el único acceso
+  posible es el entitlement de la pista entregada (`grant_source=service`),
+  concedido por la entrega con `ON CONFLICT DO NOTHING`.
+- **Hallazgo 1 (preexistente, corregido):** el seed hacía `ON CONFLICT (id)
+  DO UPDATE` sobre `license_terms_versions`, tabla append-only sin privilegio
+  UPDATE para `api_app`: `INSERT ... ON CONFLICT DO UPDATE` exige UPDATE aunque
+  no ocurra el conflicto, así que `make db-seed` fallaba tras cualquier reset
+  desde 00021. Corregido a `DO NOTHING` (los términos son inmutables).
+- **Hallazgo 2:** el down de 00023 no re-strecha el CHECK de
+  `grant_source` (con datos `service` reinstalar el dominio viejo viola 23514;
+  00009 elimina la tabla inmediat después en cualquier reset completo). Se
+  documentó en la propia migración.
+- **Idempotencia de doble aceptación:** el lock `FOR UPDATE` sobre cotización
+  y solicitud serializa aceptaciones concurrentes de distintas cotizaciones;
+  la segunda recibe 409 (`la solicitud ya tiene una cotización aceptada`).
+- **Multipart en Bruno:** su runner no construye el formulario; los requests
+  usan fixtures raw con el delimitador real (`--` + boundary, 32 guiones para
+  el boundary de 30) y los formularios de texto/campos combinados viajan en
+  el mismo fixture.
+- **Re-ejecución consecutiva:** el usuario de servicios es una cuenta limpia
+  (`servicios@triomision.local`, signups tolerantes 200/422); la entrega de
+  pista reporta `acceso_creado` booleano porque el entitlement vigente puede
+  venir de la corrida anterior, y la no-duplicación dura se verifica con la
+  re-entrega y `/mis-compras`.
+
+### Revisión del Sprint 3C.3 (2026-11-01, Kimi) — CERRADA ✅
+
+Alcance revisado: migraciones 00023-00025, módulos `servicios` y `soporte`
+(titular y staff), `artists/master.go`, registro en el servidor, seed,
+colección Bruno nueva y documentación. Verificación independiente completa:
+`make db-reset` desde cero (24→0→24, luego 00025) + db-security + seed +
+GoTrue + roles, `go build/vet/gofmt/test` limpios, OpenAPI 0.9.0 con 71 paths,
+Swagger 200 y **Bruno 213/213 requests, 98/98 tests y 484/484 aserciones**
+tanto antes como después de las correcciones.
+
+**Hallazgos corregidos:**
+
+1. **`integracion-api.md` desactualizado**: la cabecera seguía en 0.8.1 con la
+   API ya en 0.9.0 y 20 endpoints nuevos. Actualizada a 0.9.0.
+2. **Carrera en comprobantes de servicio**: dos subidas concurrentes podían
+   dejar dos pagos `in_review` del mismo proyecto (el `insert … where not
+   exists` no se serializa). Migración **00025**
+   (`service_payments_in_review_uidx`, índice único parcial, mismo patrón que
+   `license_grants_order_item_uidx`) + manejo de 23505 → 409 en `subirPago`.
+3. **`crearTicket` devolvía 409 ante una carrera de reintentos idénticos**:
+   el 23505 no re-leía el ticket para comparar payloads (inconsistente con
+   `crearSolicitud`). Ahora re-lee: mismo payload → devuelve el ticket; payload
+   distinto → 409.
+4. **`track_id` de la entrega sin validación de formato**: un UUID mal formado
+   en el formulario multipart producía 500 (los campos de formulario no pasan
+   por la validación `format` de Huma). Ahora → 422.
+
+**Observaciones menores registradas (sin corrección, no bloquean Fase 4):**
+
+- Los uploads a MinIO ocurren antes de la transacción: un 409 posterior deja
+  el objeto huérfano (patrón ya existente en comprobantes de tienda).
+- `subirMaster` lee el archivo completo en memoria (máx. 100 MiB): aceptable
+  al volumen actual; si crece, streaming con checksum incremental.
+- `listarSolicitudes` hace N+1 consultas (≤ 50 filas): sin impacto real hoy.
+- Sin commit todavía: todo el trabajo (3C.2 revisado, 3C.3 y esta revisión)
+  sigue en el árbol de trabajo esperando la decisión del usuario.
+
+## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
+
+**Estado:** planificada, lista para implementar (2026-11-01). Base verificada:
+API 0.9.0, 25 migraciones, Bruno 213/213 y 484/484. Alcance de fase en
+`docs/planificacion/README.md` §Fase 4 y `docs/alcance/README.md` (offline-first,
+sync delta, descargas Premium cifradas y límite de dispositivos). El registro de
+dispositivos ya existe (Sprint 3B, migración 00015). Se entrega en tres sprints:
+
+- **4A — Sync incremental + licencias de descarga offline (API pura)** — plan
+  detallado abajo.
+- **4B — Worker + conversión PDF→ChordPro** (`services/worker`, cola de tareas,
+  seguimiento del trabajo desde la API).
+- **4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens muertos).
+
+### Sprint 4A — Sync incremental y descargas offline (plan detallado)
+
+**Solo API; no construir ni modificar UI.**
+
+**Objetivo vertical:** un dispositivo registrado del usuario (APK/PC) sincroniza
+el catálogo de forma incremental (delta por cursor, con tombstones de los
+borrados) y obtiene licencias de descarga offline con vencimiento para las
+pistas a las que tiene acceso (entitlement vigente o Premium activo), revocables
+con el dispositivo o con el acceso.
+
+**1. Modelo y migraciones (00026; sin alterar las aplicadas)**
+
+- `offline_downloads` (id, user_id FK profiles, device_id FK devices,
+  track_id FK tracks, origen `entitlement|premium`, granted_at, expires_at
+  (licencia temporal, p. ej. 30 días renovables), last_seen_at, revoked_at).
+  Índice único parcial `(device_id, track_id) where revoked_at is null`
+  (idempotencia, mismo patrón del proyecto).
+- Grants mínimos para `api_app` (sin DELETE) y verificación con
+  `scripts/db-security.sh`. Migración reversible (down+up desde cero).
+- Sin seed nuevo: se ejercita con el catálogo y usuarios de la colección.
+
+**2. Contratos y lógica de negocio (módulo `sync`)**
+
+- `GET /api/v1/sync/catalogo?desde={cursor}&limite=` (autenticado): delta de
+  catálogo público e himnario ordenado por `updated_at` (artists, albums,
+  songs, hymns, hymn_versions, tracks publicados). Cursor opaco compuesto
+  (`updated_at` + `id`, base64) en la respuesta; las filas con `deleted_at`
+  viajan como tombstones `{tipo, id, eliminado: true}`. `limite` con máximo
+  (p. ej. 500) y `has_more`.
+- `POST /api/v1/dispositivos/{installId}/descargas-offline` (titular del
+  dispositivo): body `{track_ids: [...]}`. Por cada pista exige acceso vigente
+  del usuario (entitlement activo → `origen=entitlement`; si no, Premium
+  activo → `origen=premium`; si ninguno, la pista se reporta rechazada con el
+  motivo). Crea/renueva la licencia offline (idempotente por el índice
+  parcial), con `expires_at = now() + 30 días`. Respuesta: concedidas,
+  renovadas y rechazadas.
+- `GET /api/v1/dispositivos/{installId}/descargas-offline`: licencias del
+  dispositivo con su vencimiento. Dispositivo ajeno → 404.
+- Revocaciones en cascada (misma tx que la operación origen): revocar un
+  dispositivo revoca sus licencias offline; revocar un entitlement revoca las
+  licencias offline con `origen=entitlement` de esa pista para ese usuario.
+- Offline ≠ master: la licencia offline habilita la reproducción cifrada en el
+  cliente; jamás la descarga del archivo por la vía de la tienda.
+- Staff: `GET /api/v1/staff/descargas-offline` (filtros usuario/dispositivo) y
+  `POST /api/v1/staff/descargas-offline/{id}/revocar` (motivo + auditoría,
+  idempotente; editor → 403).
+
+**3. Pruebas obligatorias**
+
+- Sync: cursor inicial vacío devuelve todo paginado; crear/editar/eliminar una
+  canción como manager aparece en el delta siguiente (el borrado como
+  tombstone); el cursor es estable entre corridas.
+- Offline: pista con entitlement → concedida; solo Premium → `origen=premium`;
+  sin acceso → rechazada con motivo; re-solicitar renueva sin duplicar;
+  revocar el dispositivo revoca sus licencias; revocar el entitlement revoca
+  las de esa pista; la licencia offline NO habilita `/mis-compras/accesos/…/descarga`.
+- Autorización cruzada (ajeno → 404, editor → 403, sin token → 401), auditoría,
+  privilegios SQL/MinIO, build/vet/gofmt/tests, Bruno completo tras
+  `make db-reset` y en re-ejecución, OpenAPI/Swagger 200.
+
+**4. Documentación y salida**
+
+- Bump a **0.10.0**. Actualizar `docs/development/integracion-api.md`,
+  `docs/architecture/modelo-datos-v2.md` §5, `services/api/README.md`,
+  `AGENTS.md` y este archivo con resultados reales.
+- **No** implementar en 4A: worker, PDF→ChordPro, FCM/push_tokens, cifrado real
+  de los archivos offline (la licencia y su vencimiento son el contrato; el
+  cifrado lo aplica el cliente en Fase 5), ni sync de Mi Música (biblioteca
+  personal, pendiente de su modelo).
+- **Criterio de salida:** sync delta verificado de extremo a extremo con
+  tombstones y licencias offline con vencimiento, cascadas de revocación y
+  efectos disjuntos (offline nunca habilita la descarga del master).
+
+## Siguiente tarea — Sprint 3C.3 (servicios y soporte)
+
+**Estado:** ✅ COMPLETADO el 2026-11-01 (ver sección superior). El plan que
+siguió la sesión se conserva abajo como referencia.
+
+### Objetivo vertical
+
+Un cliente solicita una composición/producción por encargo (música compuesta o
+instrumentación/pista), staff la cotiza, el cliente acepta, sube el comprobante
+del pago acordado (QR/transferencia) y staff lo confirma; el proyecto avanza y
+staff publica entregas. Cuando la entrega es una **pista vendida**, el cliente
+recibe además el **acceso vinculado**: un entitlement del audio que aparece en
+`/mis-compras` y habilita la descarga del master por la vía ya existente. Las
+demás entregas (stems, partituras, PDFs) son archivos privados con URL firmada.
+En paralelo, cualquier usuario abre un ticket de soporte (pagos, descargas,
+permisos o reclamo YouTube) con mensajes y adjuntos privados, visible solo para
+el titular y staff. Servicios **no** son checkout de la tienda: no hay planes
+mensuales, firmas digitales ni documentos contractuales; jamás crean
+suscripciones Premium ni licencias — el único efecto de acceso permitido es el
+entitlement de la pista entregada.
+
+### 1. Modelo y migraciones nuevas (00023-00024; sin alterar las aplicadas)
+
+- **00023_servicios.sql**
+  - `service_requests` (id, user_id FK profiles, tipo
+    `composicion|produccion|arreglo`, titulo, descripcion, referencias jsonb,
+    estado `nueva|en_revision|cotizada|aceptada|rechazada|cancelada`,
+    idempotency_key UNIQUE por usuario, created_at/updated_at).
+  - `service_quotes` (id, request_id FK, staff_id, amount_minor bigint > 0,
+    currency char(3), terms_text, estado `enviada|aceptada|rechazada`,
+    created_at). Una solicitud admite re-cotizaciones; solo una aceptada.
+  - `service_projects` (id, request_id, quote_id, user_id, monto y moneda
+    congelados de la cotización + `quote_snapshot` jsonb con términos, estado
+    `en_curso|entregado|cerrado`, created_at/updated_at). UNIQUE (quote_id).
+  - `service_deliverables` (id, project_id FK, staff_id, titulo, nota,
+    track_id FK tracks **nullable**, file_key MinIO privado, mime, size_bytes,
+    created_at). Append-only. CHECK: exactamente uno de `track_id` (entrega de
+    pista vendida, vincula acceso) o `file_key` (archivo adjunto privado).
+  - `service_payments` (id, project_id FK, user_id, receipt_key, mime,
+    size_bytes, estado `in_review|confirmed|rejected`, reviewed_by,
+    reviewed_at, created_at). Mismo patrón que comprobantes de tienda
+    (multipart ≤ 5 MiB, MIME por contenido) pero sin efectos de acceso.
+  - Ampliar el CHECK de `entitlements.grant_source` para incluir `'service'`
+    (drop/add del constraint en la misma migración, sin tocar migraciones
+    aplicadas). La idempotencia del acceso la da el índice parcial existente
+    `entitlements_active_track_uidx`.
+- **00024_soporte.sql**
+  - `support_tickets` (id, user_id FK, categoria
+    `pagos|descargas|permisos|reclamo_youtube|otro`, asunto, estado
+    `abierto|en_atencion|resuelto|cerrado`, order_id FK nullable,
+    license_grant_id FK nullable, youtube_url, youtube_claim_id,
+    idempotency_key UNIQUE por usuario, created_at/updated_at). CHECK de
+    dominio en estados/categorías; la obligatoriedad de URL/claim en reclamos
+    YouTube se valida en API.
+  - `support_messages` (id, ticket_id FK, author_id FK profiles, author_kind
+    `usuario|staff`, cuerpo, attachment_key/mime/size nullable, created_at).
+    Append-only para la API.
+- Grants mínimos para `api_app` (sin DELETE; sin UPDATE en
+  `service_deliverables` ni `support_messages`) y verificación con
+  `scripts/db-security.sh`. Migraciones reversibles (down+up desde cero).
+- Sin seed nuevo: no hay datos sin usuarios reales (vienen de GoTrue).
+
+### 2. Contratos y lógica de negocio
+
+- **Módulo `servicios`** (`internal/modules/servicios/`):
+  - Usuario: `POST /api/v1/servicios/solicitudes` (idempotente por clave),
+    `GET /api/v1/servicios/solicitudes` y `/{id}` (con cotizaciones y proyecto),
+    `POST /api/v1/servicios/cotizaciones/{id}/aceptar` y `/rechazar`
+    (idempotente; aceptar crea el proyecto con snapshot congelado en la misma
+    tx; solo cotizaciones `enviada` de solicitudes propias),
+    `POST /api/v1/servicios/proyectos/{id}/pagos` (multipart comprobante,
+    máx 5 MiB, MIME por contenido, reutilizando el patrón de
+    `store/pagos.go`), `GET /api/v1/servicios/proyectos/{id}` (con entregas y
+    URLs firmadas breves tras verificar titularidad).
+  - Staff (admin/vendedor; editor → 403): `GET /api/v1/staff/servicios/solicitudes`
+    (filtro estado), `POST .../solicitudes/{id}/cotizar`,
+    `POST .../solicitudes/{id}/estado` (transiciones válidas),
+    `POST .../proyectos/{id}/entregas` (archivo privado a MinIO **o**
+    `track_id` de pista vendida),
+    `POST .../proyectos/{id}/estado`, `POST .../pagos/{id}/aprobar|rechazar`
+    (transaccional, idempotente, auditado; no concede acceso alguno).
+  - **Entrega de pista con acceso vinculado**: al crear la entrega con
+    `track_id`, la API exige en la misma tx que la pista tenga master publicado
+    (`track_media role='master' and is_published`; si no → 422) e inserta el
+    entitlement del cliente con `grant_source='service'`
+    (`ON CONFLICT DO NOTHING`: repetir la entrega no duplica el acceso).
+    El cliente lo ve en `/mis-compras` → `accesos []` y descarga por
+    `/mis-compras/accesos/{id}/descarga` (vía existente). Auditoría:
+    `servicio.entregado` + `acceso.concedido` en la misma transacción.
+  - **Subida de master (manager del artista)**: hoy solo el seed registra
+    masters; el encargo de pistas necesita vía API:
+    `POST /api/v1/mis-artistas/{artistId}/pistas/{trackId}/master`
+    (middleware `RequireArtistRole manager`, multipart audio ≤ 100 MiB, MIME de
+    audio por contenido) → objeto privado en MinIO + `media_assets` +
+    `track_media` (`role='master'`, `is_published=true`; despublica el master
+    anterior si existía) con auditoría en la misma tx. La pista puede
+    permanecer `is_published=false` en el catálogo público: el acceso del
+    cliente depende del entitlement, no de la publicación en tienda.
+- **Módulo `soporte`** (`internal/modules/soporte/`):
+  - Usuario: `POST /api/v1/soporte/tickets` (idempotente; valida que
+    order_id/license_grant_id referenciados sean del propio usuario, si no 404;
+    reclamo YouTube exige `youtube_url` y `youtube_claim_id`),
+    `GET /api/v1/soporte/tickets` y `/{id}` (con mensajes y URLs firmadas de
+    adjuntos), `POST /api/v1/soporte/tickets/{id}/mensajes` (texto + adjunto
+    multipart opcional ≤ 5 MiB; solo si el ticket no está cerrado).
+  - Staff: `GET /api/v1/staff/soporte/tickets` (filtros estado/categoría),
+    `POST .../tickets/{id}/mensajes`, `POST .../tickets/{id}/estado`
+    (resolver/cerrar/reabrir con motivo y auditoría).
+- Autorización: titular o staff; cualquier acceso ajeno → 404 (no revelar
+  existencia). Toda mutación con auditoría en la misma transacción
+  (`servicio.cotizado`, `servicio.aceptado`, `servicio.pago_confirmado`,
+  `servicio.entregado`, `ticket.creado`, `ticket.mensaje`, `ticket.estado`).
+- Adjuntos y entregas: claves privadas en MinIO (`support/`, `services/`),
+  entrega solo con URL firmada breve tras verificar acceso; nunca en logs.
+- Convenciones del proyecto (ya conocidas): parámetros de ruta Huma de primer
+  nivel, nombres de tipos de respuesta únicos entre módulos, montos en unidades
+  menores, moneda ISO, idempotencia por clave de cliente con validación de
+  payload (409 si la clave se reusa con otro cuerpo).
+
+### 3. Pruebas obligatorias
+
+- Flujo servicios E2E: solicitud → cotización staff → aceptación (proyecto con
+  snapshot; re-aceptar no duplica) → comprobante → aprobación staff → entrega
+  → descarga con URL firmada por el titular; 404 para otro usuario.
+- **Acceso vinculado de pista vendida**: manager sube el master por API →
+  staff entrega con `track_id` → el cliente ve la pista en `/mis-compras`
+  `accesos []` con `grant_source='service'` y descarga el master; re-entregar
+  no duplica el entitlement; otro usuario → 404 en la descarga; la entrega no
+  crea licencias ni Premium (`licencias []` vacío, `premium_activo=false`).
+  Entrega con `track_id` sin master publicado → 422.
+- Master por API: audio real OK; MIME falso → 422; 100 MiB + 1 byte → 422;
+  member (no manager) intentando subir → 403; pista ajena → 404.
+- Flujo soporte E2E: ticket por categoría, mensaje con adjunto real, respuesta
+  staff, resolución; mensajes en ticket cerrado → 409; ticket ajeno → 404.
+- Reclamo YouTube: sin URL/claim → 422; referencia a orden/licencia ajena → 404.
+- Adjuntos: MIME falso → 422; 5 MiB + 1 byte → 422 (ambos módulos).
+- Idempotencia: claves repetidas devuelven el mismo recurso; reusada con otro
+  payload → 409. Doble aprobación de pago de servicio no duplica ni crea acceso.
+- Autorización cruzada: editor staff → 403 en todos los endpoints staff nuevos;
+  usuario sin token → 401.
+- Privilegios SQL verificados con `triomision_api` (sin DELETE en tablas nuevas,
+  sin UPDATE en append-only) y MinIO (cuenta de servicio sin admin).
+- Build/vet/gofmt/tests, colección Bruno completa en verde tras
+  `make db-reset` desde cero y en re-ejecución; OpenAPI/Swagger 200.
+
+### 4. Documentación y salida
+
+- Bump a **0.9.0** (dominio nuevo). Actualizar
+  `docs/development/integracion-api.md` (endpoints y ejemplos de cada flujo),
+  `docs/architecture/modelo-datos-v2.md` §5 (esquema real), `docs/payments/README.md`
+  (pagos de servicios), `services/api/README.md`, `AGENTS.md` y este archivo con
+  resultados reales.
+- Requests Bruno nuevos con entorno, autenticación explícita y aserciones
+  útiles (ids con `bru.setEnvVar`; tokens/URLs firmadas con `bru.setVar`).
+- **No** implementar: renovación automática, Binance/IAP, sync offline, FCM,
+  worker, biblioteca personal (`user_songs`, setlists) ni UI.
+- **Criterio de salida:** flujos de servicios y soporte verificados de extremo
+  a extremo contra la API y PostgreSQL reales; efectos estrictamente separados
+  de la tienda; todo documentado para que los clientes consuman solo la API.
+
+### Revisión del Sprint 3C.2 (2026-11-01, Kimi) — CERRADA ✅
+
+- Alcance revisado: migraciones 00021-00022, módulo `licencias` (admin por
+  artista), `store/licencias.go` (oferta pública, `resolverLicencias`,
+  `insertarItemsLicencia`, `registrarAceptaciones`), `crearOrden` e
+  idempotencia con licencias, `grants.go` (`ConcederLicencia`), `/mis-compras`,
+  aprobación staff y endpoints staff de licencias, y los 27 requests Bruno del
+  flujo de licencias.
+- **Hallazgo corregido (contrato duplicado):** la aprobación staff exponía
+  `licencias_creadas` y `licencias_creados` con el mismo valor, y la revocación
+  exponía `revocada_en` y `revocado_en`; los tests Bruno toleraban la
+  ambigüedad en lugar de fijar el contrato. Quedaron `licencias_creados`
+  (consistente con `accesos_creados`/`suscripciones_creados`) y `revocado_en`
+  (consistente con el listado staff); Bruno ahora aserta el campo único.
+  `/mis-compras` conserva `revocada_en` (contrato de usuario ya documentado).
+- Observaciones menores registradas (sin corrección, no bloquean 3C.3):
+  - `license_terms_versions` no tiene UNIQUE (artist_id, version_label): el
+    manager podría publicar dos versiones con la misma etiqueta.
+  - `guardarOpcion`: una carrera de dos PUT concurrentes sobre la misma
+    (pista, uso) puede devolver 500 por violación de UNIQUE en vez de 409.
+  - Auditoría `licencia.concedida` usa `entity_id` = orden (no el grant);
+    queda trazable por metadata (`orden_id`, `licencias_creadas`).
+- Verificación tras la corrección: `go build`, `go vet`, `gofmt`,
+  `go test ./...` en verde; API 0.8.1 con OpenAPI 51 paths (sin
+  `licencias_creadas` en el spec); colección Bruno completa contra el sistema
+  real: **150/150 requests, 75/75 tests, 359/359 aserciones** en verde.
 
 ## Fase 3 / Sprint 3C.1 — Premium, paquetes de audio, cupones y canjes: COMPLETADA ✅
 

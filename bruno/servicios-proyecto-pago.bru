@@ -1,0 +1,41 @@
+meta {
+  name: Servicios - subir comprobante del proyecto
+  type: http
+  seq: 173
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/proyectos/{{proyectoServicioId}}/pagos
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/servicio-pago-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq in_review
+}
+
+tests {
+  test("guarda el pago del servicio", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("pagoServicioId", res.getBody().id);
+  });
+}
+
+docs {
+  Comprobante multipart (imagen ≤ 5 MiB, MIME por contenido) del pago
+  acordado del proyecto. Guarda en services/ privado y deja el pago en
+  revisión. Subirlo nunca concede acceso.
+}

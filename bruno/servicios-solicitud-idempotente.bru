@@ -1,0 +1,44 @@
+meta {
+  name: Servicios - solicitud idempotente
+  type: http
+  seq: 152
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+body:json {
+  {
+    "tipo": "composicion",
+    "titulo": "Composición de tema para campaña 2027",
+    "descripcion": "Tema original de apertura para campaña juvenil, estilo acústico, con entrega de master y pista.",
+    "referencias": {
+      "ejemplo": "https://ejemplo.local/ref",
+      "nota": "Tempo medio, mayores"
+    },
+    "idempotency_key": "{{servicioSolicitudKey}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq nueva
+}
+
+tests {
+  test("reintento con la misma clave devuelve la misma solicitud", function() {
+    expect(res.getBody().id).to.equal(bru.getEnvVar("solicitudServicioId"));
+  });
+}
+
+docs {
+  Reintento idempotente: misma clave y mismo payload → misma solicitud,
+  sin duplicar. Servicios no son tienda: no crean órdenes ni accesos.
+}

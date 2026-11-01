@@ -1,0 +1,37 @@
+meta {
+  name: Negativo - reclamo YouTube sin URL ni claim
+  type: http
+  seq: 194
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-yt-${Date.now()}`;
+  bru.setVar("ticketYoutubeKey", key);
+}
+
+body:json {
+  {
+    "categoria": "reclamo_youtube",
+    "asunto": "Me reclamaron un cover en YouTube",
+    "idempotency_key": "{{ticketYoutubeKey}}"
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  La categoría reclamo_youtube exige obligatoriamente youtube_url y
+  youtube_claim_id (validación de API): faltan → 422.
+}

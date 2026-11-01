@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - solicitud de servicio ajena
+  type: http
+  seq: 156
+}
+
+get {
+  url: {{baseUrl}}/api/v1/servicios/solicitudes/{{solicitudServicioId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un usuario ajeno consulta la solicitud de otro → 404: no se revela la
+  existencia del recurso. Autorización: titular o staff.
+}

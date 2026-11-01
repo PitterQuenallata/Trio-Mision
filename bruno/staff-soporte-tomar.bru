@@ -1,0 +1,31 @@
+meta {
+  name: Staff soporte - tomar ticket
+  type: http
+  seq: 205
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/soporte/tickets/{{ticketId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "tomar",
+    "motivo": "Se atiende la consulta de pago."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq en_atencion
+}
+
+docs {
+  abierto → en_atencion con auditoría ticket.estado.
+}

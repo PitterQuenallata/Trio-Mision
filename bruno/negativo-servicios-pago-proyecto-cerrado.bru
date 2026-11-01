@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - pago en proyecto cerrado
+  type: http
+  seq: 189
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/proyectos/{{proyectoServicioId}}/pagos
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/servicio-pago-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  El proyecto cerrado no admite comprobantes (409): el ciclo del servicio
+  terminó.
+}

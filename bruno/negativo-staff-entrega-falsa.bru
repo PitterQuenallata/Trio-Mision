@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - entrega con MIME falso
+  type: http
+  seq: 179
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/entregas
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/entrega-falsa-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  El archivo de entrega se valida por contenido (imagen, PDF, audio o
+  zip permitidos): texto disfrazado → 422.
+}

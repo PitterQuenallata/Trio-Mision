@@ -1,0 +1,38 @@
+meta {
+  name: Negativo - ticket con orden ajena
+  type: http
+  seq: 195
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const key = `bruno-tord-${Date.now()}`;
+  bru.setVar("ticketOrdenAjenaKey", key);
+}
+
+body:json {
+  {
+    "categoria": "pagos",
+    "asunto": "Consulta sobre una orden que no es mía",
+    "order_id": "{{ordenId}}",
+    "idempotency_key": "{{ticketOrdenAjenaKey}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  order_id referenciado debe pertenecer al titular del ticket; uno ajeno
+  → 404 (no se revela su existencia).
+}

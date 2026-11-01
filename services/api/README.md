@@ -6,21 +6,23 @@ negocio. Ver el alcance en `docs/alcance/` y el plan en `docs/planificacion/`.
 
 ## Estado
 
-**Sprint 3C.2 completado** (2026-10-28): licencias y permisos adicionales por
-pista adquiridos como complementos de audio en la misma orden, snapshot congelado
-`license_snapshot` en cada ítem de licencia, aceptación inmutable de términos del
-artista (`license_acceptances`), concesión transaccional e idempotente de
-`license_grants` en la aprobación staff del pago (`license_grants_order_item_uidx`),
-consulta en `/mis-compras` con `licencias []`, efectos disjuntos (audio, Premium
-y licencias son independientes; descargar audio no concede licencia y una licencia
-no permite descarga de master), administración de licencias por artista (member
-lee, manager configura perfil, opciones por pista y términos append-only), y
-administración staff (listar licencias y revocar con motivo y auditoría).
-Migraciones hasta 00022 (`00021_licencias_config.sql` y `00022_license_grants.sql`),
-OpenAPI con **51 paths**, Bruno **150/150 requests, 75/75 tests, 359/359
-aserciones** en verde tras reset desde cero y en re-ejecución repetible. API
-versión **0.8.0**. Guía de integración en `docs/development/integracion-api.md`.
-Siguiente: Sprint 3C.3 (servicios y soporte).
+**Sprint 3C.3 completado** (2026-11-01): servicios de composición/producción
+por encargo y soporte. Migraciones 00023 y 00024: `service_requests`,
+`service_quotes`, `service_projects` (unique por cotización, snapshot
+congelado), `service_deliverables` (append-only; exactamente una pista
+vendida o un archivo privado) y `service_payments`; `support_tickets`
+(categorías con reclamo YouTube) y `support_messages` (append-only). El
+catálogo de `entitlements.grant_source` se amplió con `'service'` (drop/add
+del constraint, sin tocar migraciones aplicadas). Módulos `servicios` y
+`soporte`, y subida de master por el manager del artista
+(`POST /mis-artistas/{artistId}/pistas/{trackId}/master`, multipart audio
+≤ 100 MiB, MIME por contenido). Los servicios **jamás** crean suscripciones
+Premium ni licencias: el único efecto de acceso es el entitlement de la pista
+entregada (`grant_source=service`), concedido por la entrega — el pago del
+servicio no concede acceso. OpenAPI con **71 paths**, Bruno **213/213
+requests, 98/98 tests, 484/484 aserciones** en verde tras reset desde cero y
+en re-ejecución repetible. API versión **0.9.0**. Guía de integración en
+`docs/development/integracion-api.md`.
 
 ## Autenticación y autorización
 
@@ -118,6 +120,7 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `PUT /api/v1/mis-artistas/{artistId}/licencias/perfil` — manager: actualiza permisos predeterminados del perfil de licencias (auditoría)
 - `PUT /api/v1/mis-artistas/{artistId}/pistas/{trackId}/licencias/{useCode}` — manager: configura opción por pista y uso (precio, moneda, habilitada; valida pertenencia de la pista al artista; auditoría)
 - `POST /api/v1/mis-artistas/{artistId}/terminos-licencia` — manager: publica nueva versión de términos (append-only; inmutable; auditoría)
+- `POST /api/v1/mis-artistas/{artistId}/pistas/{trackId}/master` — manager: sube el master de una pista (multipart audio WAV/MP3/AIFF/OGG ≤ 100 MiB, MIME por contenido); objeto privado + `media_assets` + `track_media` publicado (despublica el anterior) con auditoría en la misma transacción; la pista puede seguir sin publicarse en catálogo
 - `PATCH /api/v1/mis-artistas/{artistId}` — manager: bio/país/redes/portada de su artista
 - `POST /api/v1/mis-artistas/{artistId}/albumes` · `PATCH …/albumes/{albumId}` — manager: álbumes
 - `POST /api/v1/mis-artistas/{artistId}/canciones` · `PATCH …/canciones/{songId}` — manager: canciones (crear sin publicar; PATCH publica)
@@ -140,6 +143,21 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `GET|POST /api/v1/staff/planes`, `PATCH /api/v1/staff/planes/{id}` — administración de planes Premium (admin+vendedor, auditoría)
 - `GET|POST /api/v1/staff/cupones`, `PATCH /api/v1/staff/cupones/{id}` — administración de cupones (el tipo y valor del descuento no se editan; auditoría)
 - `GET|POST /api/v1/staff/canjes`, `GET|PATCH /api/v1/staff/canjes/{id}` — administración de códigos de canje con sus redenciones (auditoría)
+- `POST /api/v1/servicios/solicitudes` — solicitud de encargo idempotente por (usuario, clave); `GET` lista y `GET /servicios/solicitudes/{id}` detalle con cotizaciones y proyecto (solo propios; 404 ajeno)
+- `POST /api/v1/servicios/cotizaciones/{id}/aceptar|rechazar` — el titular acepta (crea el proyecto con `quote_snapshot` congelado, idempotente) o rechaza la cotización
+- `POST /api/v1/servicios/proyectos/{id}/pagos` — comprobante multipart del proyecto (imagen ≤ 5 MiB, MIME por contenido; un solo comprobante en revisión)
+- `GET /api/v1/servicios/proyectos/{id}` — proyecto con entregas (archivo con URL firmada breve) y pagos (solo titular)
+- `GET /api/v1/staff/servicios/solicitudes?estado=` — bandeja staff de solicitudes (admin+vendedor)
+- `POST /api/v1/staff/servicios/solicitudes/{id}/cotizar` — cotiza con monto/moneda/términos (auditoría `servicio.cotizado`)
+- `POST /api/v1/staff/servicios/solicitudes/{id}/estado` — `tomar|descartar|cancelar` con motivo y auditoría
+- `POST /api/v1/staff/servicios/proyectos/{id}/entregas` — entrega multipart: `track_id` (pista con master publicado → concede el entitlement `grant_source=service`, idempotente) o archivo privado ≤ 5 MiB; auditoría `servicio.entregado` (+ `acceso.concedido`)
+- `POST /api/v1/staff/servicios/proyectos/{id}/estado` — `marcar_entregado|cerrar` (auditoría)
+- `POST /api/v1/staff/servicios/pagos/{id}/aprobar|rechazar` — revisión del comprobante (idempotente; **no concede acceso**; auditoría)
+- `POST /api/v1/soporte/tickets` — ticket idempotente por (usuario, clave); categorías `pagos|descargas|permisos|reclamo_youtube|otro`; reclamo YouTube exige `youtube_url` + `youtube_claim_id` (422); `order_id`/`license_grant_id` deben ser propios (404 ajeno); `GET` lista y `GET /soporte/tickets/{id}` detalle con mensajes y adjuntos firmados
+- `POST /api/v1/soporte/tickets/{id}/mensajes` — mensaje multipart (cuerpo + adjunto imagen/PDF opcional ≤ 5 MiB); 409 en ticket cerrado
+- `GET /api/v1/staff/soporte/tickets?estado=&categoria=` — bandeja staff de tickets
+- `POST /api/v1/staff/soporte/tickets/{id}/mensajes` — respuesta staff (multipart, adjunto opcional)
+- `POST /api/v1/staff/soporte/tickets/{id}/estado` — `tomar|resolver|cerrar|reabrir` con motivo y auditoría `ticket.estado`
 
 ## Conventions
 

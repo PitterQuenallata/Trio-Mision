@@ -1,6 +1,8 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.8.0 (Sprint 3C.2). Esta guía es el contrato de
+> **Versión de contrato:** 0.9.0 (Sprint 3C.3: servicios por encargo y soporte,
+> §4.6-4.7; la aprobación staff expone solo `licencias_creados` y la revocación
+> de licencia solo `revocado_en`). Esta guía es el contrato de
 > integración para los clientes del ecosistema (APK, PC, `apps/web`, panel
 > admin y panel usuario). Cualquier cambio que rompa compatibilidad exige bump
 > de versión y nota de migración. La especificación viva y ejecutable es
@@ -200,6 +202,96 @@ ni compra de licencias sin el audio de la pista correspondiente.
     auditado (`licencia.revocada`). La revocación es idempotente y no altera el
     acceso de descarga de audio del usuario.
 
+### 4.6 Servicios de composición/producción por encargo (Sprint 3C.3)
+
+Los servicios **no son checkout de tienda**: no hay ofertas, planes, cupones
+ni códigos de canje. Jamás crean suscripciones Premium ni licencias; el único
+efecto de acceso posible es el **entitlement de la pista entregada**
+(`grant_source=service`), concedido por la entrega — nunca por el pago.
+
+Estados (los strings exactos viajan en los JSON):
+
+- **Solicitud:** `nueva` → `en_revision` → `cotizada` → `aceptada` |
+  `rechazada` | `cancelada`.
+- **Cotización:** `enviada` → `aceptada` | `rechazada`. Una solicitud admite
+  re-cotizaciones; solo una aceptada (el proyecto es único por cotización).
+- **Proyecto:** `en_curso` → `entregado` → `cerrado`.
+- **Pago del servicio:** `in_review` → `confirmed` | `rejected`. Confirmarlo
+  **no concede acceso alguno** (diferencia clave con la tienda).
+
+```bash
+# Titular
+POST /api/v1/servicios/solicitudes                     # {tipo, titulo, descripcion, referencias?, idempotency_key}
+GET  /api/v1/servicios/solicitudes                     # mis solicitudes con cotizaciones y proyecto
+GET  /api/v1/servicios/solicitudes/{id}                # detalle (cotizaciones + proyecto)
+POST /api/v1/servicios/cotizaciones/{id}/aceptar       # crea el proyecto con snapshot congelado (idempotente)
+POST /api/v1/servicios/cotizaciones/{id}/rechazar      # idempotente
+POST /api/v1/servicios/proyectos/{id}/pagos            # multipart comprobante (imagen ≤ 5 MiB, MIME por contenido)
+GET  /api/v1/servicios/proyectos/{id}                  # entregas (archivo con URL firmada breve) + pagos
+
+# Staff (admin|vendedor; editor → 403)
+GET  /api/v1/staff/servicios/solicitudes?estado=
+POST /api/v1/staff/servicios/solicitudes/{id}/cotizar  # {monto_minor, moneda, terms_text} → servicio.cotizado
+POST /api/v1/staff/servicios/solicitudes/{id}/estado   # {accion: tomar|descartar|cancelar, motivo?}
+POST /api/v1/staff/servicios/proyectos/{id}/entregas   # multipart: track_id (pista) O archivo (privado ≤ 5 MiB)
+POST /api/v1/staff/servicios/proyectos/{id}/estado     # {accion: marcar_entregado|cerrar, motivo?}
+POST /api/v1/staff/servicios/pagos/{id}/aprobar        # idempotente; NO concede acceso
+POST /api/v1/staff/servicios/pagos/{id}/rechazar
+```
+
+- **Idempotencia por clave de cliente:** repetir la creación de solicitud con
+  la misma clave y payload devuelve el recurso; con otro payload → 409. La
+  aceptación, la aprobación del pago y la re-entrega tampoco duplican: el
+  proyecto es único por cotización y el entitlement es único por (usuario,
+  pista) vigente (`ON CONFLICT DO NOTHING`).
+- **Entrega de pista vendida:** al entregar con `track_id`, la API exige en la
+  misma transacción que la pista tenga master publicado (si no → 422), inserta
+  el entitlement del cliente con `grant_source=service` y audita
+  `servicio.entregado` + `acceso.concedido`. El cliente la ve en
+  `GET /mis-compras` (`accesos []`) y descarga el master por
+  `/mis-compras/accesos/{id}/descarga`, la vía existente. Re-entregar no
+  duplica el acceso.
+- **Entrega de archivo:** stems, partituras y PDFs quedan privados en MinIO
+  (`services/`) y se entregan con URL firmada breve solo al titular (nunca en
+  logs).
+- **Comprobante:** mismo patrón que la tienda (multipart ≤ 5 MiB, MIME por
+  contenido), pero su aprobación solo cambia el estado del pago.
+- Montos en unidades menores enteras y moneda ISO char(3), calculados y
+  congelados por el backend en la cotización/proyecto (`quote_snapshot`).
+- Cualquier acceso ajeno (solicitud, cotización, proyecto, ticket) devuelve
+  **404** (no se revela la existencia).
+
+### 4.7 Soporte, tickets y reclamos YouTube (Sprint 3C.3)
+
+Cualquier usuario autenticado abre un ticket con mensajes y adjuntos privados.
+Visible solo para el titular y staff; los adjuntos viven en MinIO
+(`support/`) y se sirven con URL firmada breve tras verificar acceso.
+
+```bash
+# Titular
+POST /api/v1/soporte/tickets                    # {categoria, asunto, order_id?, license_grant_id?, youtube_url?, youtube_claim_id?, idempotency_key}
+GET  /api/v1/soporte/tickets                    # mis tickets
+GET  /api/v1/soporte/tickets/{id}               # detalle con mensajes y URLs firmadas de adjuntos
+POST /api/v1/soporte/tickets/{id}/mensajes      # multipart: cuerpo + adjunto opcional (imagen/PDF ≤ 5 MiB)
+
+# Staff (admin|vendedor; editor → 403)
+GET  /api/v1/staff/soporte/tickets?estado=&categoria=
+POST /api/v1/staff/soporte/tickets/{id}/mensajes
+POST /api/v1/staff/soporte/tickets/{id}/estado  # {accion: tomar|resolver|cerrar|reabrir, motivo?}
+```
+
+- **Categorías:** `pagos | descargas | permisos | reclamo_youtube | otro`.
+- **Estados:** `abierto` → `en_atencion` → `resuelto` → `cerrado`; `reabrir`
+  devuelve `resuelto → abierto`. Los mensajes se rechazan en tickets cerrados
+  (409). Toda transición lleva motivo opcional y auditoría `ticket.estado`.
+- **Reclamo YouTube:** exige `youtube_url` y `youtube_claim_id` (422 si faltan).
+  El artista ayudará cuando tenga autoridad; **no se promete liberación ni
+  monetización** cuando intervienen otros titulares.
+- `order_id` y `license_grant_id` vinculan contexto y deben pertenecer al
+  titular (si no → 404). La creación es idempotente por (usuario, clave):
+  reutilizar la clave con otro payload → 409.
+- Los mensajes son **append-only** para la API (sin UPDATE ni DELETE).
+
 ## 5. Autorización por artista (member / manager)
 
 Los roles por artista viven en `artist_members` y **son independientes** de
@@ -232,6 +324,7 @@ GET    /api/v1/mis-artistas/{artistId}/licencias             # member/manager: p
 PUT    /api/v1/mis-artistas/{artistId}/licencias/perfil      # manager: actualizar perfil predeterminado
 PUT    /api/v1/mis-artistas/{artistId}/pistas/{trackId}/licencias/{useCode} # manager: configurar opción por pista y uso
 POST   /api/v1/mis-artistas/{artistId}/terminos-licencia     # manager: publicar nueva versión de términos (append-only)
+POST   /api/v1/mis-artistas/{artistId}/pistas/{trackId}/master # manager: subir master (multipart audio ≤ 100 MiB, MIME por contenido)
 ```
 
 Decisiones documentadas: las lecturas devuelven solo contenido **publicado**
@@ -240,7 +333,12 @@ llegará con el panel); el detalle de canción entrega el ChordPro porque la
 membresía es la autorización, no el tipo de acceso público. La pista en la
 configuración de licencias debe pertenecer al artista de la ruta (o 404). Los
 términos son inmutables (publicar crea una nueva versión sin sobreescribir la
-anterior).
+anterior). La subida de master publica el archivo para la pista
+(`media_assets` + `track_media`, despublicando el master anterior) con
+auditoría en la misma transacción: **la pista puede seguir sin publicarse en
+el catálogo**, porque el acceso del comprador depende de su entitlement, no de
+la tienda. El audio se valida por contenido (WAV/MP3/AIFF/OGG; net/http
+reporta `audio/wave` para RIFF/WAVE); el límite es de 100 MiB.
 
 ## 6. Dispositivos
 
@@ -274,12 +372,16 @@ POST /api/v1/staff/dispositivos/{id}/revocar     # staff: {motivo} + auditoría
 | me, órdenes/pagos/mis-compras/canjes propios | — | ✓ (solo propios) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | descarga firmada de audio | — | ✓ (con entitlement vigente) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | mis-artistas lectura (catálogo y licencias) | — | — (solo sus artistas) | ✓ | ✓ | — | — | — |
-| mis-artistas mutación (catálogo y licencias) | — | — | — (403) | ✓ (sus artistas) | — | — | — |
+| mis-artistas mutación (catálogo, licencias y master) | — | — | — (403) | ✓ (sus artistas) | — | — | — |
+| servicios propios (solicitudes, cotizaciones, proyectos, pagos) | — | ✓ (solo propios; 404 ajeno) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| soporte propio (tickets y mensajes) | — | ✓ (solo propios; 404 ajeno) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | staff pagos/accesos | — | — | — | — | — (403) | ✓ | ✓ |
 | staff licencias (listar y revocar) | — | — | — | — | — (403) | ✓ | ✓ |
 | staff dispositivos | — | — | — | — | — (403) | ✓ | ✓ |
 | staff auditoría | — | — | — | — | — (403) | ✓ | ✓ |
 | staff planes/cupones/canjes | — | — | — | — | — (403) | ✓ | ✓ |
+| staff servicios (solicitudes, cotizaciones, entregas, pagos) | — | — | — | — | — (403) | ✓ | ✓ |
+| staff soporte (tickets, mensajes, estados) | — | — | — | — | — (403) | ✓ | ✓ |
 
 Los roles staff se asignan solo por SQL (`make db-staff`) y los por-artista
 desde la API por un manager (o `make db-artist-role` de arranque). Los claims
@@ -293,21 +395,30 @@ del token **nunca** autorizan por sí solos.
 | Contenido | `GET /himnario/*`, `GET /catalogo/*`, `GET /tienda/ofertas`, `GET /tienda/planes`, `GET /tienda/pistas/{id}`, `GET /tienda/pistas/{id}/licencias` | público |
 | Cuenta | `GET /me` | autenticado |
 | Tienda | `POST /tienda/ordenes`, `GET /tienda/ordenes/{id}`, `POST /tienda/ordenes/{id}/pagos`, `POST /tienda/pagos/{id}/comprobante`, `POST /tienda/canjes`, `GET /mis-compras`, `GET /mis-compras/accesos/{id}/descarga` | autenticado (solo propios; 404 ajeno) |
-| Por artista | `GET|PATCH /mis-artistas…`, `GET|PUT /mis-artistas/{id}/licencias…`, `POST /mis-artistas/{id}/terminos-licencia` | member/manager del artista (mutación: manager) |
+| Por artista | `GET|PATCH /mis-artistas…`, `GET|PUT /mis-artistas/{id}/licencias…`, `POST /mis-artistas/{id}/terminos-licencia`, `POST /mis-artistas/{id}/pistas/{trackId}/master` | member/manager del artista (mutación: manager) |
 | Dispositivos | `PUT|GET /dispositivos`, `POST …/{installId}/heartbeat|revocar` | autenticado (solo propios) |
-| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}` | staff (admin+vendedor) |
+| Servicios | `POST|GET /servicios/solicitudes`, `GET /servicios/solicitudes/{id}`, `POST /servicios/cotizaciones/{id}/aceptar|rechazar`, `POST /servicios/proyectos/{id}/pagos`, `GET /servicios/proyectos/{id}` | autenticado (solo propios; 404 ajeno) |
+| Soporte | `POST|GET /soporte/tickets`, `GET /soporte/tickets/{id}`, `POST /soporte/tickets/{id}/mensajes` | autenticado (solo propios; 404 ajeno) |
+| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado` | staff (admin+vendedor) |
 
 ## 9. Verificación y pruebas
 
 La colección Bruno (`bruno/`) ejecuta el contrato completo contra el sistema
-real: 150 requests, 75 tests y 359 aserciones en verde tras reset desde cero
-(y en re-ejecución repetible), cubriendo los flujos 3A, 3B, 3C.1 y 3C.2:
-compra de audio con licencias adicionales y cupón, aprobación transaccional
-e idempotente que concede entitlements y license grants sin duplicar,
-inmutabilidad de términos con snapshot congelado, consulta en `/mis-compras`,
-aislamiento de descarga (404 al intentar descargar licencias), revocación
-independiente staff con auditoría, y administración por artista con roles
-member y manager. Las mutaciones manager/staff y su auditoría comparten
-transacción; el último manager no puede eliminarse y el heartbeat revocado
-no modifica actividad. Ver `docs/development/` para el entorno y
-`services/api/README.md` para el código.
+real: 213 requests, 98 tests y 484 aserciones en verde tras reset desde cero
+(y en re-ejecución repetible), cubriendo los flujos 3A, 3B, 3C.1, 3C.2 y
+3C.3: compra de audio con licencias adicionales y cupón, aprobación
+transaccional e idempotente que concede entitlements y license grants sin
+duplicar, inmutabilidad de términos con snapshot congelado, servicios por
+encargo (solicitud → cotización → aceptación con proyecto congelado →
+comprobante → aprobación sin efectos de acceso → entregas con URL firmada →
+entrega de pista con entitlement `grant_source=service` y descarga del
+master), subida de master por el manager del artista, y soporte (ticket,
+mensaje con adjunto, respuesta staff, resolución y cierre; reclamo YouTube).
+Las mutaciones manager/staff y su auditoría comparten transacción; el último
+manager no puede eliminarse y el heartbeat revocado no modifica actividad.
+Tras `make db-reset` el orden de puesta en marcha es: migraciones + seed,
+`docker compose restart gotrue`, **signups** de la colección (crean los
+usuarios en GoTrue) y recién entonces `make db-staff` / `make db-artist-role`
+(los scripts resuelven el usuario por email en `auth.users`). Ver
+`docs/development/` para el entorno y `services/api/README.md` para el
+código.

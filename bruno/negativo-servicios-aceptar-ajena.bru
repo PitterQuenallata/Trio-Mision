@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - aceptar cotización ajena
+  type: http
+  seq: 164
+}
+
+post {
+  url: {{baseUrl}}/api/v1/servicios/cotizaciones/{{cotizacionServicioId}}/aceptar
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Aceptar la cotización de la solicitud de otro usuario → 404 (no se
+  revela la existencia). Solo el titular puede aceptar.
+}

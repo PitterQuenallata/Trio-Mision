@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - ticket ajeno
+  type: http
+  seq: 202
+}
+
+get {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un usuario ajeno consulta el ticket de otro → 404: los tickets son
+  visibles solo para su titular y staff.
+}

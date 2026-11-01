@@ -1,0 +1,32 @@
+meta {
+  name: Staff servicios - marcar proyecto entregado
+  type: http
+  seq: 183
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/servicios/proyectos/{{proyectoServicioId}}/estado
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "accion": "marcar_entregado",
+    "motivo": "Entregas publicadas y verificadas con el cliente."
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq entregado
+}
+
+docs {
+  en_curso → entregado (exige al menos una entrega publicada, si no → 422).
+  Auditoría servicio.proyecto_estado.
+}

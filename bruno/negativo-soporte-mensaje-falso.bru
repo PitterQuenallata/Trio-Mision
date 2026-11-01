@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - adjunto con MIME falso
+  type: http
+  seq: 201
+}
+
+post {
+  url: {{baseUrl}}/api/v1/soporte/tickets/{{ticketId}}/mensajes
+  body: file
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=------------------------------triomision
+}
+
+body:file {
+  file: @file(fixtures/mensaje-falso-multipart.bin) @contentType(multipart/form-data;boundary=------------------------------triomision)
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  El adjunto se valida por contenido (JPEG, PNG, WebP o PDF): texto
+  disfrazado → 422. El límite de 5 MiB + 1 byte se verifica con curl.
+}
