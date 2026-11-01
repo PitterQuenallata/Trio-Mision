@@ -28,8 +28,8 @@ assert {
 
 tests {
   test("re-aprobacion es idempotente: no duplica licencias ni accesos", function() {
-    const licCreadas = res.getBody().licencias_creadas !== undefined ? res.getBody().licencias_creadas : res.getBody().licencias_creados;
-    expect(licCreadas).to.equal(0);
+    expect(res.getBody().licencias_creados).to.equal(0);
+    expect(res.getBody().licencias_creadas).to.be.undefined;
   });
 }
 

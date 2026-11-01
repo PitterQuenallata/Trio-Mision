@@ -343,7 +343,6 @@ type revisarPagoOutput struct {
 		AccesosTotales       int       `json:"accesos_totales" doc:"Accesos vigentes de la orden tras la operación"`
 		SuscripcionesCreados int       `json:"suscripciones_creados" doc:"Períodos Premium creados (0 si no era una orden premium o fue idempotente)"`
 		SuscripcionesTotales int       `json:"suscripciones_totales" doc:"Suscripciones ligadas a la orden tras la operación"`
-		LicenciasCreadas     int       `json:"licencias_creadas" doc:"Permisos adicionales concedidos (0 si no era una orden con licencias o fue idempotente)"`
 		LicenciasCreados     int       `json:"licencias_creados" doc:"Permisos adicionales concedidos (0 si no era una orden con licencias o fue idempotente)"`
 		LicenciasTotales     int       `json:"licencias_totales" doc:"Licencias ligadas a la orden tras la operación"`
 		YaEstabaConfirmado   bool      `json:"ya_estaba_confirmado" doc:"true cuando la aprobación fue idempotente (no duplicó nada)"`
@@ -540,7 +539,6 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 				}
 				if creada {
 					out.Body.LicenciasCreados++
-					out.Body.LicenciasCreadas++
 				}
 			case it.includeFuture:
 				n, err := store.ConcederPistasProducto(ctx, tx, userID, it.productID, &it.itemID, nil, "purchase")
@@ -928,8 +926,7 @@ type revocarLicenciaOutput struct {
 	Body struct {
 		ID         string    `json:"id"`
 		Estado     string    `json:"estado" doc:"revocado"`
-		RevocadaEn time.Time `json:"revocada_en"`
-		RevocadoEn time.Time `json:"revocado_en,omitempty"`
+		RevocadoEn time.Time `json:"revocado_en"`
 	}
 }
 
@@ -975,7 +972,6 @@ func revocarLicencia(db database.DB) func(context.Context, *revocarLicenciaInput
 		out := &revocarLicenciaOutput{}
 		out.Body.ID = in.ID
 		out.Body.Estado = "revocado"
-		out.Body.RevocadaEn = revocadoEn
 		out.Body.RevocadoEn = revocadoEn
 		return out, nil
 	}

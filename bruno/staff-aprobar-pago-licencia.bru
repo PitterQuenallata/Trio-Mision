@@ -32,8 +32,8 @@ assert {
 tests {
   test("la aprobacion crea o conserva entitlement de audio, 1 grant de licencia y 0 suscripciones", function() {
     expect(res.getBody().accesos_creados).to.be.within(0, 1);
-    const licCreadas = res.getBody().licencias_creadas !== undefined ? res.getBody().licencias_creadas : res.getBody().licencias_creados;
-    expect(licCreadas).to.equal(1);
+    expect(res.getBody().licencias_creados).to.equal(1);
+    expect(res.getBody().licencias_creadas).to.be.undefined;
     expect(res.getBody().licencias_totales).to.equal(1);
   });
 }
