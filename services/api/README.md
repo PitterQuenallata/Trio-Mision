@@ -6,23 +6,21 @@ negocio. Ver el alcance en `docs/alcance/` y el plan en `docs/planificacion/`.
 
 ## Estado
 
-**Sprint 3C.3 completado** (2026-11-01): servicios de composición/producción
-por encargo y soporte. Migraciones 00023 y 00024: `service_requests`,
-`service_quotes`, `service_projects` (unique por cotización, snapshot
-congelado), `service_deliverables` (append-only; exactamente una pista
-vendida o un archivo privado) y `service_payments`; `support_tickets`
-(categorías con reclamo YouTube) y `support_messages` (append-only). El
-catálogo de `entitlements.grant_source` se amplió con `'service'` (drop/add
-del constraint, sin tocar migraciones aplicadas). Módulos `servicios` y
-`soporte`, y subida de master por el manager del artista
-(`POST /mis-artistas/{artistId}/pistas/{trackId}/master`, multipart audio
-≤ 100 MiB, MIME por contenido). Los servicios **jamás** crean suscripciones
-Premium ni licencias: el único efecto de acceso es el entitlement de la pista
-entregada (`grant_source=service`), concedido por la entrega — el pago del
-servicio no concede acceso. OpenAPI con **71 paths**, Bruno **213/213
-requests, 98/98 tests, 484/484 aserciones** en verde tras reset desde cero y
-en re-ejecución repetible. API versión **0.9.0**. Guía de integración en
-`docs/development/integracion-api.md`.
+**Sprint 4A de Fase 4 completado** (2026-11-01): sync incremental del
+catálogo y licencias de descarga offline. Migración 00026
+(`offline_downloads`, índice único parcial por dispositivo+pista vigente).
+Módulo `sync`: `GET /api/v1/sync/catalogo` (delta por cursor opaco
+`updated_at|id`, tombstones para `deleted_at`, despublicadas con
+`publicado=false`, ChordPro de canciones e himnos, cursor estable también en
+la página final), licencias offline por dispositivo (origen
+`entitlement|premium` según acceso vigente, 30 días renovables, idempotencia
+por el índice parcial) y operación staff con auditoría. Cascadas en la misma
+transacción: revocar dispositivo o entitlement revoca sus licencias offline.
+La licencia offline jamás habilita la descarga del master. OpenAPI con
+**75 paths**, Bruno **239/239 requests, 113/113 tests, 534/534 aserciones**
+en verde tras reset desde cero y en re-ejecución repetible. API versión
+**0.10.0**. Guía de integración en `docs/development/integracion-api.md`.
+Siguiente: Sprint 4B (worker PDF→ChordPro).
 
 ## Autenticación y autorización
 
@@ -158,6 +156,11 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `GET /api/v1/staff/soporte/tickets?estado=&categoria=` — bandeja staff de tickets
 - `POST /api/v1/staff/soporte/tickets/{id}/mensajes` — respuesta staff (multipart, adjunto opcional)
 - `POST /api/v1/staff/soporte/tickets/{id}/estado` — `tomar|resolver|cerrar|reabrir` con motivo y auditoría `ticket.estado`
+- `GET /api/v1/sync/catalogo?desde=&limite=` — delta incremental de catálogo e himnario por cursor opaco (`updated_at|id` base64): published vivo siempre, no publicadas/eliminadas solo si cambiaron desde el cursor (tombstone `eliminado=true`); cursor estable en cada página incluida la final
+- `POST /api/v1/dispositivos/{installId}/descargas-offline` — concede/renueva licencias offline (30 días) por pista con acceso vigente: entitlement activo (`origen=entitlement`) o Premium activo (`origen=premium`); sin acceso se rechaza con motivo; idempotente por índice único parcial (device_id, track_id) vigente
+- `GET /api/v1/dispositivos/{installId}/descargas-offline` — licencias del dispositivo con vencimiento y estado (404 ajeno, 409 revocado); la licencia offline jamás habilita la descarga del master
+- `GET /api/v1/staff/descargas-offline?usuario=&dispositivo=` — licencias offline registradas (admin+vendedor)
+- `POST /api/v1/staff/descargas-offline/{id}/revocar` — revoca licencia offline con motivo y auditoría (idempotente)
 
 ## Conventions
 

@@ -1,0 +1,33 @@
+meta {
+  name: Sync - cascada en licencias de dev
+  type: http
+  seq: 229
+}
+
+get {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOfflineDev}}/descargas-offline
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("la licencia offline quedó revocada por la cascada del entitlement", function() {
+    const d = res.getBody().descargas.find(x => x.id === bru.getEnvVar("licenciaOfflineDevEntitlement"));
+    expect(d, "licencia presente").to.exist;
+    expect(d.estado).to.equal("revocada");
+    expect(d.origen).to.equal("entitlement");
+  });
+}
+
+docs {
+  La revocación del entitlement cascadeó sobre su licencia offline: estado
+  revocada. Las licencias de origen premium no se tocan con este acceso.
+}

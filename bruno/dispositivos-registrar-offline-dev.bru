@@ -1,0 +1,39 @@
+meta {
+  name: Dispositivos - registrar dispositivo dev
+  type: http
+  seq: 226
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  const id = `bruno-offline-dev-${Date.now()}`;
+  bru.setVar("installIdOfflineDev", id);
+}
+
+body:json {
+  {
+    "install_id": "{{installIdOfflineDev}}",
+    "platform": "web",
+    "app_version": "4.0.0"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.install_id: eq {{installIdOfflineDev}}
+}
+
+docs {
+  Dispositivo del usuario principal: tiene entitlement de la pista 1 (flujo
+  3A) y Premium activo (canje premium). Soporta las dos pruebas: cascada por
+  revocación del entitlement y origen premium.
+}

@@ -1,0 +1,36 @@
+meta {
+  name: Sync - catalogo pagina 1
+  type: http
+  seq: 212
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.has_more: eq true
+  res.body.hymns: isNotEmpty
+  res.body.hymn_versions: isNotEmpty
+}
+
+tests {
+  test("pagina 1 del sync inicial con cursor", function() {
+    expect(res.getBody().cursor, "la página siempre devuelve cursor").to.not.be.empty;
+    bru.setEnvVar("syncCursor1", res.getBody().cursor);
+  });
+}
+
+docs {
+  Sync inicial del catálogo (página 1 de 4 con el seed actual): delta sin
+  cursor devuelve el catálogo publicado completo paginado por
+  (updated_at, id) con cursor opaco base64. Canciones y versiones de himno
+  incluyen su ChordPro.
+}

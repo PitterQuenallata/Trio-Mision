@@ -292,19 +292,39 @@ func revocar(db database.DB) func(context.Context, *revocarInput) (*revocarOutpu
 		if !ok {
 			return nil, huma.Error401Unauthorized("no autenticado")
 		}
-		var revokedAt time.Time
-		err := db.QueryRow(ctx, `
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+		}
+		defer tx.Rollback(ctx)
+
+		var (
+			revokedAt time.Time
+			deviceID  string
+		)
+		err = tx.QueryRow(ctx, `
 			update devices
 			set revoked_at = coalesce(revoked_at, now()), revoked_reason = coalesce($3, revoked_reason)
 			where user_id = $1 and install_id = $2
-			returning revoked_at`,
+			returning revoked_at, id`,
 			claims.Subject, in.InstallID, in.Body.Motivo,
-		).Scan(&revokedAt)
+		).Scan(&revokedAt, &deviceID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error404NotFound("dispositivo no encontrado")
 		}
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error revocando el dispositivo", err)
+		}
+		// Cascada: revocar el dispositivo revoca sus licencias offline
+		// (reproducción cifrada) en la misma transacción.
+		if _, err := tx.Exec(ctx, `
+			update offline_downloads
+			set revoked_at = now(), revoked_reason = 'dispositivo revocado'
+			where device_id = $1 and revoked_at is null`, deviceID); err != nil {
+			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
 		}
 		out := &revocarOutput{}
 		out.Body.InstallID = in.InstallID
@@ -379,9 +399,17 @@ type revocarStaffOutput struct {
 func revocarStaff(db database.DB) func(context.Context, *revocarStaffInput) (*revocarStaffOutput, error) {
 	return func(ctx context.Context, in *revocarStaffInput) (*revocarStaffOutput, error) {
 		claims, _ := auth.ClaimsFromContext(ctx)
-		var revokedAt time.Time
-		var userID string
-		err := db.QueryRow(ctx, `
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+		}
+		defer tx.Rollback(ctx)
+
+		var (
+			revokedAt time.Time
+			userID    string
+		)
+		err = tx.QueryRow(ctx, `
 			update devices
 			set revoked_at = coalesce(revoked_at, now()), revoked_reason = $2
 			where id = $1
@@ -393,9 +421,19 @@ func revocarStaff(db database.DB) func(context.Context, *revocarStaffInput) (*re
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error revocando el dispositivo", err)
 		}
-		if err := registrarAuditoria(ctx, db, claims.Subject, "dispositivo.revocado", "device", in.ID,
+		// Cascada: las licencias offline del dispositivo se revocan con él.
+		if _, err := tx.Exec(ctx, `
+			update offline_downloads
+			set revoked_at = now(), revoked_reason = 'dispositivo revocado por staff'
+			where device_id = $1 and revoked_at is null`, in.ID); err != nil {
+			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+		}
+		if err := registrarAuditoria(ctx, tx, claims.Subject, "dispositivo.revocado", "device", in.ID,
 			map[string]any{"usuario_id": userID, "motivo": in.Body.Motivo}); err != nil {
 			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
 		}
 		out := &revocarStaffOutput{}
 		out.Body.ID = in.ID

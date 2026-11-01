@@ -1,0 +1,36 @@
+meta {
+  name: Sync - delta con la cancion creada
+  type: http
+  seq: 219
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500&desde={{syncCursorFinal}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.has_more: eq false
+}
+
+tests {
+  test("la canción creada y editada aparece en el delta", function() {
+    const c = res.getBody().songs.find(x => x.id === bru.getEnvVar("cancion4aId"));
+    expect(c, "canción en el delta").to.exist;
+    expect(c.titulo).to.include("(editada)");
+    expect(c.publicado).to.equal(true);
+    expect(c.chordpro).to.contain("{title:");
+  });
+}
+
+docs {
+  El alta, la edición y la publicación entre sincronizaciones llegan como
+  una sola fila con el estado final (título editado, publicado=true y su
+  ChordPro). El cursor queda estable entre corridas.
+}

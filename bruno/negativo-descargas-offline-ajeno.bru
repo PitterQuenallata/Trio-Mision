@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - descargas offline de dispositivo ajeno
+  type: http
+  seq: 225
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pistaId}}"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  El dispositivo pertenece a otro usuario: ni siquiera se revela su
+  existencia (404) al intentar solicitar licencias sobre él.
+}

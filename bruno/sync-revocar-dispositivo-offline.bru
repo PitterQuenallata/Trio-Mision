@@ -1,0 +1,32 @@
+meta {
+  name: Sync - revocar dispositivo offline
+  type: http
+  seq: 236
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "motivo": "Fin del flujo offline de la corrida"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocado
+}
+
+docs {
+  Revocación propia del dispositivo offline del comprador 2: en la misma
+  transacción se revocan sus licencias offline restantes (cascada),
+  dejando el escenario listo para el request negativo siguiente (409).
+}

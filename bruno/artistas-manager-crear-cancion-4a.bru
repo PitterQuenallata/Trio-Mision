@@ -1,0 +1,44 @@
+meta {
+  name: Artistas manager - crear cancion 4A
+  type: http
+  seq: 217
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/canciones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+script:pre-request {
+  const k = `bruno-sync-${Date.now()}`;
+  bru.setVar("cancion4aTitulo", `Canción sync 4A ${k}`);
+}
+
+body:json {
+  {
+    "album_id": "00000000-0000-4000-8000-000000000201",
+    "titulo": "{{cancion4aTitulo}}",
+    "chordpro": "{title: {{cancion4aTitulo}}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("guarda la canción del flujo sync", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.equal(200);
+    bru.setEnvVar("cancion4aId", res.getBody().id);
+  });
+}
+
+docs {
+  Canción nueva para probar el delta del sync (se crea sin publicar; la
+  publicación y edición ocurren en el request siguiente).
+}

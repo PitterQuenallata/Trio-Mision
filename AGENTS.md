@@ -108,9 +108,18 @@ Docker o PostgreSQL estén ausentes. Verificar con
 - **Revisión del Sprint 3C.3 completada** (2026-11-01): correcciones de
   contrato y migración 00025 (`service_payments_in_review_uidx`); verificado
   de forma independiente con Bruno 213/213, 98/98 y 484/484 tras reset.
-- Siguiente tarea: Fase 4 en tres sprints (4A sync + descargas offline, 4B
-  worker PDF→ChordPro, 4C FCM). Plan detallado de 4A listo en
-  `CURRENT_TASK.md` (sección "Siguiente tarea — Fase 4").
+- **Sprint 4A de Fase 4 completado** (2026-11-01): API pura 0.10.0,
+  migración 00026 (`offline_downloads`), módulo `sync`: delta de catálogo por
+  cursor opaco con tombstones (cursor estable también en la página final) y
+  licencias offline por dispositivo (origen `entitlement|premium`, 30 días
+  renovables, índice único parcial) con cascadas de revocación (dispositivo y
+  entitlement) en la misma transacción. La licencia offline jamás habilita la
+  descarga del master. OpenAPI 75 paths; Bruno 239/239 requests, 113/113
+  tests y 534/534 aserciones en verde tras reset desde cero y en
+  re-ejecución.
+- API actual: versión 0.10.0.
+- Siguiente tarea: Sprint 4B de Fase 4 (worker + conversión PDF→ChordPro con
+  cola de tareas y seguimiento desde la API); después 4C (FCM).
 
 ## Convenciones
 

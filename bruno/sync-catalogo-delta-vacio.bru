@@ -1,0 +1,40 @@
+meta {
+  name: Sync - delta vacio desde el fin
+  type: http
+  seq: 216
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500&desde={{syncCursorFinal}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.has_more: eq false
+  res.body.artists: isArray
+  res.body.albums: isArray
+  res.body.songs: isArray
+  res.body.hymns: isArray
+  res.body.hymn_versions: isArray
+  res.body.tracks: isArray
+}
+
+tests {
+  test("sin cambios el delta desde el fin está vacío", function() {
+    const b = res.getBody();
+    const total = ["artists","albums","songs","hymns","hymn_versions","tracks"]
+      .reduce((n, k) => n + b[k].length, 0);
+    expect(total).to.equal(0);
+  });
+}
+
+docs {
+  El cursor del fin del sync inicial es estable: sin cambios de catálogo el
+  delta siguiente está vacío y has_more=false.
+}

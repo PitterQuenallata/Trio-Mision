@@ -1,0 +1,43 @@
+meta {
+  name: Sync - licencia offline con origen premium
+  type: http
+  seq: 230
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOfflineDev}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pista2Id}}"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("concedida con origen premium (sin entitlement, con premium activo)", function() {
+    const b = res.getBody();
+    expect(b.concedidas).to.have.lengthOf(1);
+    expect(b.concedidas[0].origen).to.equal("premium");
+    expect(b.rechazadas).to.have.lengthOf(0);
+    bru.setEnvVar("licenciaOfflinePremium", b.concedidas[0].id);
+  });
+}
+
+docs {
+  El usuario principal no tiene entitlement de la pista 2 pero sí período
+  Premium activo: la licencia se concede con origen premium. Es la que el
+  staff revocará más adelante.
+}

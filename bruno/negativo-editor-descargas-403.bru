@@ -1,0 +1,24 @@
+meta {
+  name: Negativo - editor no gestiona descargas offline
+  type: http
+  seq: 235
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/descargas-offline
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{editorToken}}
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Los endpoints staff de descargas offline exigen admin o vendedor; el
+  editor staff recibe 403.
+}

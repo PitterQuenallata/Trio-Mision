@@ -1,0 +1,30 @@
+meta {
+  name: Sync - catalogo pagina 2
+  type: http
+  seq: 213
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500&desde={{syncCursor1}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.cursor: isNotEmpty
+}
+
+tests {
+  test("pagina 2 avanza sin repetir filas", function() {
+    bru.setEnvVar("syncCursor2", res.getBody().cursor);
+  });
+}
+
+docs {
+  Continuación del sync inicial con el cursor de la página anterior.
+}

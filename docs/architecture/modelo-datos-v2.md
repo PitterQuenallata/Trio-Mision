@@ -478,7 +478,22 @@ devices
 ```
 
 Las licencias offline (`offline_downloads`) y los tokens push (`push_tokens`)
-se agregan en Fase 4 referenciando `devices.id`.
+se agregan en Fase 4 referenciando `devices.id`. `offline_downloads` está
+implementada en la migración `00026_offline_downloads.sql` (Sprint 4A):
+
+```text
+offline_downloads
+  id, user_id FK profiles, device_id FK devices, track_id FK tracks,
+  origen (entitlement|premium), granted_at, expires_at (30 días renovables),
+  last_seen_at, revoked_at, revoked_reason,
+  índice único parcial (device_id, track_id) where revoked_at is null
+```
+
+La licencia se concede solo con acceso vigente (entitlement activo de la
+pista, o Premium activo), se renueva por solicitud y se revoca en cascada con
+el dispositivo o con el entitlement que la originó. Habilita la reproducción
+cifrada offline del cliente; jamás la descarga del master por la vía de la
+tienda.
 
 Soporte y operación agregan `notifications`, `support_tickets`,
 `support_messages`, `audit_events`, `app_config` y `telemetry_events`. Tickets y

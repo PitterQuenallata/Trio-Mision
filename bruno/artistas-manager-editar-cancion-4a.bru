@@ -1,0 +1,32 @@
+meta {
+  name: Artistas manager - editar y publicar cancion 4A
+  type: http
+  seq: 218
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{artistaDemoId}}/canciones/{{cancion4aId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "titulo": "{{cancion4aTitulo}} (editada)",
+    "publicada": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.publicada: eq true
+}
+
+docs {
+  Edición + publicación: el delta siguiente debe traer la fila con el
+  título editado y publicado=true.
+}

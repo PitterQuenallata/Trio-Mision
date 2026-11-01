@@ -1,0 +1,35 @@
+meta {
+  name: Sync - catalogo pagina final
+  type: http
+  seq: 215
+}
+
+get {
+  url: {{baseUrl}}/api/v1/sync/catalogo?limite=500&desde={{syncCursor3}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.has_more: eq false
+  res.body.cursor: isNotEmpty
+}
+
+tests {
+  test("fin del sync inicial: cursor estable para deltas futuros", function() {
+    // El cursor final refleja la última fila aunque has_more=false: es la
+    // posición desde la que el cliente hará sync incrementales.
+    expect(res.getBody().cursor).to.not.be.empty;
+    bru.setEnvVar("syncCursorFinal", res.getBody().cursor);
+  });
+}
+
+docs {
+  Última página del sync inicial: has_more=false y cursor de posición final
+  (antes de este comportamiento el cliente perdía la posición al terminar).
+}

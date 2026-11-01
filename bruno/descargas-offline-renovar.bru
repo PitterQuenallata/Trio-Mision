@@ -1,0 +1,42 @@
+meta {
+  name: Sync - renovar licencia offline
+  type: http
+  seq: 222
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pistaId}}"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("re-solicitar renueva sin duplicar", function() {
+    const b = res.getBody();
+    expect(b.concedidas).to.have.lengthOf(0);
+    expect(b.renovadas).to.have.lengthOf(1);
+    expect(b.renovadas[0].id).to.equal(bru.getEnvVar("licenciaOfflinePista1"));
+    expect(b.renovadas[0].estado).to.equal("vigente");
+  });
+}
+
+docs {
+  Índice único parcial (device_id, track_id) where revoked_at is null: la
+  re-solicitud renueva la vigencia 30 días y no duplica la licencia.
+}

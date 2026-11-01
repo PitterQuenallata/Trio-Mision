@@ -1,0 +1,33 @@
+meta {
+  name: Staff - revocar acceso dev (cascada offline)
+  type: http
+  seq: 228
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/accesos/{{accesoId}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Cascada 4A: revocar el acceso revoca sus licencias offline"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocado
+}
+
+docs {
+  Revoca el entitlement de la pista 1 del usuario principal (flujo 3A de
+  esta corrida). En la misma transacción se revocan sus licencias offline
+  de origen entitlement de esa pista. Es seguro para re-ejecuciones: el
+  flujo 3A crea un entitlement nuevo en cada corrida.
+}

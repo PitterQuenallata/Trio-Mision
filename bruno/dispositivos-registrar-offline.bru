@@ -1,0 +1,39 @@
+meta {
+  name: Dispositivos - registrar dispositivo offline
+  type: http
+  seq: 220
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+script:pre-request {
+  const id = `bruno-offline-${Date.now()}`;
+  bru.setVar("installIdOffline", id);
+}
+
+body:json {
+  {
+    "install_id": "{{installIdOffline}}",
+    "platform": "android",
+    "app_version": "4.0.0",
+    "device_name": "Bruno Offline"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.install_id: eq {{installIdOffline}}
+}
+
+docs {
+  Dispositivo del comprador 2 dedicado a las licencias offline (install_id
+  único por corrida: repetible sin reset).
+}

@@ -1,0 +1,33 @@
+meta {
+  name: Negativo - dispositivo revocado sin licencias offline
+  type: http
+  seq: 237
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pistaId}}"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  El request anterior revocó el dispositivo (con cascada sobre sus
+  licencias). Un dispositivo revocado no acepta nuevas licencias offline
+  (409), igual que con el heartbeat.
+}

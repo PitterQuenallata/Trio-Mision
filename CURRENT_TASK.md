@@ -4,15 +4,13 @@
 > Última actualización: 2026-11-01
 
 > [!IMPORTANT]
-> **SPRINT 3C.3 COMPLETADO Y REVISADO (2026-11-01, Kimi):** servicios de
-> composición/producción por encargo y soporte implementados en API pura 0.9.0
-> (migraciones 00023-00024, módulos `servicios` y `soporte`, subida de master
-> por manager del artista). La revisión posterior corrigió 4 hallazgos
-> (migración 00025 y contratos; ver la sección de revisión más abajo).
-> **Bruno 213/213 requests, 98/98 tests y 484/484 aserciones en verde** tras
-> `make db-reset` desde cero, verificado de forma independiente con las
-> correcciones aplicadas. El siguiente paso es la **Fase 4** (worker, sync
-> offline, FCM); **no se construyó ni modificó UI**.
+> **SPRINT 4A DE FASE 4 COMPLETADO (2026-11-01, Kimi):** sync incremental del
+> catálogo y licencias de descarga offline en API pura 0.10.0 (migración
+> 00026, módulo `sync`, cascadas de revocación en la misma transacción). **Bruno
+> 239/239 requests, 113/113 tests y 534/534 aserciones en verde** tras
+> `make db-reset` desde cero y en re-ejecución consecutiva. Detalle en la
+> sección "Fase 4 / Sprint 4A" más abajo. El siguiente paso es el **Sprint 4B**
+> (worker PDF→ChordPro) y después el 4C (FCM); **no se construyó ni modificó UI**.
 
 ## Fase 3 / Sprint 3C.2 — Licencias y permisos adicionales por pista: COMPLETADA ✅
 
@@ -243,19 +241,77 @@ tanto antes como después de las correcciones.
 - Sin commit todavía: todo el trabajo (3C.2 revisado, 3C.3 y esta revisión)
   sigue en el árbol de trabajo esperando la decisión del usuario.
 
+## Fase 4 / Sprint 4A — Sync incremental y descargas offline: COMPLETADA ✅
+
+**Cerrado el 2026-11-01.** API pura 0.10.0: delta de catálogo por cursor
+opuesto con tombstones y licencias de descarga offline por dispositivo, con
+cascadas de revocación. **No se construyó ni modificó UI.**
+
+| Entregable | Ubicación | Estado |
+|---|---|---|
+| Migración 00026 (`offline_downloads`: origen `entitlement\|premium`, 30 días renovables, índice único parcial (device_id, track_id) vigente; grants sin DELETE) | `database/migrations/` | Hecho |
+| Delta de catálogo: 6 entidades (artistas, álbumes, canciones con ChordPro, himnos, versiones con ChordPro, pistas) paginadas por (updated_at, id) con cursor base64; published vivo siempre, no publicadas/eliminadas solo si cambiaron desde el cursor; cursor estable en cada página incluida la final | `services/api/internal/modules/sync/sync.go` | Hecho |
+| Licencias offline del titular: crear/renovar por lote con rechazos motivados (pista inexistente / sin acceso), listado con estado; dispositivo ajeno → 404, revocado → 409 | `services/api/internal/modules/sync/sync.go` | Hecho |
+| Cascadas en la misma tx: revocar dispositivo (propio/staff) revoca sus licencias; revocar entitlement revoca las `origen=entitlement` de esa pista y usuario | `devices/devices.go`, `staff/staff.go` | Hecho |
+| Endpoints staff: listar (filtros usuario/dispositivo) y revocar con auditoría `descarga_offline.revocada` (editor → 403) | `services/api/internal/modules/sync/staff.go` | Hecho |
+| Colección Bruno: 26 requests nuevos (239 total: 113 tests, 534 aserciones) | `bruno/` | Hecho |
+
+### Verificación contra sistema real (2026-11-01, tras `make db-reset` desde cero)
+
+- 26 migraciones goose down+up limpias con datos; `make db-security`, GoTrue
+  healthy y seed aplicados (orden: reset → restart gotrue → signups → roles).
+- Colección Bruno completa tras reset desde cero: **239/239 requests, 113/113
+  tests, 534/534 aserciones** en verde; segunda corrida consecutiva sobre los
+  mismos datos vuelve a quedar en verde (repetible sin reset).
+- Sync: paseo inicial de 4 páginas (cursor presente en todas, has_more en las
+  primeras), delta desde el cursor final vacío sin cambios, alta + edición +
+  publicación de una canción como manager aparecen como una sola fila con el
+  estado final, y el borrado de un himno (SQL con `updated_at` actualizado)
+  aparece como tombstone `eliminado=true` (verificado con curl; las bajas por
+  API deben actualizar `updated_at`). Cursor inválido → 422.
+- Offline: entitlement → `origen=entitlement` (comprador 2, dos pistas);
+  re-solicitar renueva sin duplicar (mismo id); UUID inexistente → rechazada
+  "pista no encontrada"; usuario sin acceso ni Premium → rechazada "sin acceso
+  vigente a la pista"; Premium activo sin entitlement → `origen=premium`;
+  licencia offline usada como entitlement en `/mis-compras/accesos/{id}/descarga`
+  → 404 (jamás habilita el master); dispositivo ajeno → 404.
+- Cascadas: revocar el entitlement de la pista 1 del usuario principal revoca
+  su licencia offline `origen=entitlement` en la misma tx (la licencia de
+  origen premium no se toca); revocar el dispositivo revoca sus licencias
+  restantes y nuevas solicitudes sobre él → 409.
+- Staff: listado con usuario/install_id/estado; revocación con auditoría;
+  editor → 403; sin token → 401 (cuberto por el middleware global).
+- SQL con `triomision_api`: DELETE denegado en `offline_downloads`; SELECT e
+  UPDATE permitidos; sin acceso a `auth`.
+- `go build`, `go vet`, `gofmt`, `go test ./...` limpios; Swagger 200, spec
+  0.10.0 con 75 paths (71 + 4 nuevos).
+
+### Decisiones y hallazgos del Sprint 4A
+
+- **Cursor estable en la página final**: la primera implementación devolvía
+  cursor vacío cuando `has_more=false`, con lo que el cliente perdía la
+  posición al terminar el sync inicial y el siguiente delta reenviaba todo.
+  Corregido: toda página devuelve el cursor de su última fila.
+- **Diseño de la cascada sobre el usuario correcto**: la primera versión de
+  la colección revocaba el entitlement de pista 2 del comprador 2, que los
+  flujos 3C.1 necesitan en re-ejecuciones sin reset. Se movió al entitlement
+  de pista 1 del usuario principal (el flujo 3A crea uno nuevo en cada
+  corrida).
+- **La licencia offline no es un entitlement**: habilita reproducción cifrada
+  offline del cliente (Fase 5); la vía de descarga del master sigue exigiendo
+  entitlement de tienda.
+- **Visibilidad del delta**: las filas publicadas vivas siempre viajan; las
+  no publicadas o eliminadas solo si cambiaron desde el cursor. Esto exige
+  que toda baja/despublicación actualice `updated_at` (contrato de escritura
+  del catálogo).
+
 ## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
 
-**Estado:** planificada, lista para implementar (2026-11-01). Base verificada:
-API 0.9.0, 25 migraciones, Bruno 213/213 y 484/484. Alcance de fase en
-`docs/planificacion/README.md` §Fase 4 y `docs/alcance/README.md` (offline-first,
-sync delta, descargas Premium cifradas y límite de dispositivos). El registro de
-dispositivos ya existe (Sprint 3B, migración 00015). Se entrega en tres sprints:
-
-- **4A — Sync incremental + licencias de descarga offline (API pura)** — plan
-  detallado abajo.
-- **4B — Worker + conversión PDF→ChordPro** (`services/worker`, cola de tareas,
-  seguimiento del trabajo desde la API).
-- **4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens muertos).
+**Estado:** Sprint 4A ✅ completado el 2026-11-01 (ver sección superior).
+Pendientes de la fase: **4B — Worker + conversión PDF→ChordPro**
+(`services/worker`, cola de tareas, seguimiento del trabajo desde la API) y
+**4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens). El plan
+4A que siguió la sesión se conserva abajo como referencia.
 
 ### Sprint 4A — Sync incremental y descargas offline (plan detallado)
 

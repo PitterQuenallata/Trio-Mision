@@ -1,0 +1,36 @@
+meta {
+  name: Staff - listar descargas offline
+  type: http
+  seq: 233
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/descargas-offline
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.descargas: isArray
+}
+
+tests {
+  test("se listan las licencias con usuario, dispositivo y estado", function() {
+    const ds = res.getBody().descargas;
+    expect(ds.length).to.be.greaterThan(0);
+    const premium = ds.find(x => x.id === bru.getEnvVar("licenciaOfflinePremium"));
+    expect(premium, "licencia premium presente").to.exist;
+    expect(premium.usuario_email).to.exist;
+    expect(premium.install_id).to.exist;
+  });
+}
+
+docs {
+  Bandeja staff de licencias offline con filtros opcionales por usuario y
+  dispositivo.
+}

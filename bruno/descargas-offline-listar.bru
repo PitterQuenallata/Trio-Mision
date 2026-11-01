@@ -1,0 +1,32 @@
+meta {
+  name: Sync - listar mis licencias offline
+  type: http
+  seq: 223
+}
+
+get {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/descargas-offline
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.descargas: isArray
+}
+
+tests {
+  test("dos licencias vigentes con origen entitlement", function() {
+    const ds = res.getBody().descargas;
+    expect(ds).to.have.lengthOf(2);
+    expect(ds.every(x => x.estado === "vigente" && x.origen === "entitlement")).to.equal(true);
+  });
+}
+
+docs {
+  Las licencias del dispositivo con su vencimiento y estado.
+}

@@ -1,0 +1,43 @@
+meta {
+  name: Negativo - sin acceso ni premium
+  type: http
+  seq: 232
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOfflineServicios}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pista2Id}}"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("usuario sin entitlement ni premium: rechazada con motivo", function() {
+    const b = res.getBody();
+    expect(b.concedidas).to.have.lengthOf(0);
+    expect(b.renovadas).to.have.lengthOf(0);
+    expect(b.rechazadas).to.have.lengthOf(1);
+    expect(b.rechazadas[0].motivo).to.equal("sin acceso vigente a la pista");
+  });
+}
+
+docs {
+  El usuario de servicios tiene entitlement de la pista 1 (entrega del
+  Sprint 3C.3) pero no de la pista 2 ni Premium: la solicitud de la pista 2
+  se rechaza con motivo. Estado 200 con rechazos: el lote se procesa parcial.
+}

@@ -1,0 +1,38 @@
+meta {
+  name: Dispositivos - registrar dispositivo servicios
+  type: http
+  seq: 231
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{serviciosToken}}
+}
+
+script:pre-request {
+  const id = `bruno-offline-serv-${Date.now()}`;
+  bru.setVar("installIdOfflineServicios", id);
+}
+
+body:json {
+  {
+    "install_id": "{{installIdOfflineServicios}}",
+    "platform": "android",
+    "app_version": "4.0.0"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.install_id: eq {{installIdOfflineServicios}}
+}
+
+docs {
+  Dispositivo del usuario de servicios: sin entitlements ni Premium, para
+  la prueba de rechazo por falta de acceso vigente.
+}

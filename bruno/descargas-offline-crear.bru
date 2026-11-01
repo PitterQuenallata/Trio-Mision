@@ -1,0 +1,48 @@
+meta {
+  name: Sync - crear licencias offline
+  type: http
+  seq: 221
+}
+
+post {
+  url: {{baseUrl}}/api/v1/dispositivos/{{installIdOffline}}/descargas-offline
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+body:json {
+  {
+    "track_ids": [
+      "{{pistaId}}",
+      "{{pista2Id}}",
+      "00000000-0000-4000-8000-000000000998"
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("dos concedidas por entitlement y una rechazada", function() {
+    const b = res.getBody();
+    expect(b.concedidas).to.have.lengthOf(2);
+    expect(b.concedidas.every(x => x.origen === "entitlement")).to.equal(true);
+    expect(b.renovadas).to.have.lengthOf(0);
+    expect(b.rechazadas).to.have.lengthOf(1);
+    expect(b.rechazadas[0].motivo).to.equal("pista no encontrada");
+    const p1 = b.concedidas.find(x => x.pista_id === bru.getEnvVar("pistaId"));
+    bru.setEnvVar("licenciaOfflinePista1", p1.id);
+  });
+}
+
+docs {
+  El comprador 2 tiene entitlement vigente de las dos pistas del paquete:
+  ambas se conceden con origen entitlement (30 días); el UUID aleatorio se
+  rechaza con motivo.
+}

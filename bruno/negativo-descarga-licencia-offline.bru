@@ -1,0 +1,25 @@
+meta {
+  name: Negativo - licencia offline no habilita descarga
+  type: http
+  seq: 224
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-compras/accesos/{{licenciaOfflinePista1}}/descarga
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{comprador2Token}}
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  La licencia offline NO es un entitlement: usar su id en la vía de
+  descarga del master responde 404. La reproducción offline cifrada la
+  valida el cliente con su propio contrato (Fase 5), no esta vía.
+}

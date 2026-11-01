@@ -82,6 +82,20 @@ docs {
   fixtures multipart crudos viven en `fixtures/` (delimitador `--` +
   boundary). Los servicios jamás crean Premium ni licencias.
 
+  ## Sprint 4A — Sync incremental y descargas offline
+
+  Flujos nuevos (seq 212-237): sync del catálogo en 4 páginas con cursor
+  estable (incluida la final), delta vacío desde el fin, alta+edición de
+  una canción como manager visible en el delta, y licencias offline:
+  entitlement (comprador 2, dos pistas), renovación idempotente, rechazos
+  (pista inexistente, sin acceso ni premium), origen premium (usuario
+  principal + pista 2), licencia offline no habilita la descarga del
+  master (404), cascadas (revocar entitlement revoca su licencia offline;
+  revocar el dispositivo revoca las restantes y nuevas solicitudes → 409),
+  staff (listar y revocar con auditoría, editor → 403). El tombstone del
+  delta se verifica con SQL actualizando `deleted_at` y `updated_at` (ver
+  guía de integración §6.1).
+
   ## Puesta en marcha tras un reset
 
   `make db-reset` deja también vacío el esquema `auth` de GoTrue, y los

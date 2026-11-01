@@ -363,6 +363,39 @@ POST /api/v1/staff/dispositivos/{id}/revocar     # staff: {motivo} + auditoría
   ni re-registro (409): la revocación no se deshace desde el cliente.
 - El endpoint propio opera por `install_id`; el staff opera por UUID interno.
 
+## 6.1 Sync incremental y descargas offline (Sprint 4A)
+
+**Sync del catálogo** (`GET /api/v1/sync/catalogo?desde=&limite=`): delta de
+catálogo público e himnario ordenado por `(updated_at, id)` con cursor opaco
+(base64 de `updated_at|id`). Sin cursor devuelve el catálogo publicado
+completo paginado (`limite` default 100, máx 500, `has_more`). Canciones y
+versiones de himno incluyen su ChordPro. Filas con `deleted_at` viajan como
+tombstones (`eliminado: true`) y las despublicadas con `publicado: false`
+para que el cliente las retire; **dar de baja debe actualizar `updated_at`**.
+Cada página devuelve cursor, también la última (`has_more=false`), para que el
+siguiente sync incremental parta de la posición final. Cursor inválido → 422.
+
+**Licencias offline** (por dispositivo, titular):
+`POST /api/v1/dispositivos/{installId}/descargas-offline` con
+`{track_ids: [...]}` concede o renueva (30 días, índice único parcial por
+dispositivo+pista vigente) una licencia por pista con acceso vigente:
+entitlement activo (`origen=entitlement`) o Premium activo (`origen=premium`);
+sin acceso, la pista se reporta en `rechazadas` con motivo (la pista
+inexistente se distingue). `GET` lista las licencias del dispositivo con
+vencimiento y estado (`vigente | revocada | vencida`); dispositivo ajeno →
+404, revocado → 409. **La licencia offline habilita la reproducción cifrada
+en el cliente y jamás la descarga del master por la vía de la tienda** (usar
+su id en `/mis-compras/accesos/{id}/descarga` responde 404).
+
+**Cascadas en la misma transacción:** revocar el dispositivo (propio o staff)
+revoca sus licencias offline; revocar el entitlement staff revoca las
+licencias `origen=entitlement` de esa pista y usuario (las de Premium siguen
+mientras el período esté activo).
+
+**Staff** (admin|vendedor; editor → 403): `GET /api/v1/staff/descargas-offline`
+(filtros `usuario`/`dispositivo`) y `POST /api/v1/staff/descargas-offline/{id}/revocar`
+(motivo + auditoría `descarga_offline.revocada`, idempotente).
+
 ## 7. Matriz de permisos por rol
 
 | Recurso | anónimo | usuario autenticado | member | manager | editor | vendedor | admin |
@@ -382,6 +415,9 @@ POST /api/v1/staff/dispositivos/{id}/revocar     # staff: {motivo} + auditoría
 | staff planes/cupones/canjes | — | — | — | — | — (403) | ✓ | ✓ |
 | staff servicios (solicitudes, cotizaciones, entregas, pagos) | — | — | — | — | — (403) | ✓ | ✓ |
 | staff soporte (tickets, mensajes, estados) | — | — | — | — | — (403) | ✓ | ✓ |
+| sync catálogo (`GET /sync/catalogo`) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| descargas offline propias | — | ✓ (solo sus dispositivos; 404 ajeno) | ✓ | ✓ | ✓ | ✓ | ✓ |
+| staff descargas offline | — | — | — | — | — (403) | ✓ | ✓ |
 
 Los roles staff se asignan solo por SQL (`make db-staff`) y los por-artista
 desde la API por un manager (o `make db-artist-role` de arranque). Los claims
@@ -397,6 +433,7 @@ del token **nunca** autorizan por sí solos.
 | Tienda | `POST /tienda/ordenes`, `GET /tienda/ordenes/{id}`, `POST /tienda/ordenes/{id}/pagos`, `POST /tienda/pagos/{id}/comprobante`, `POST /tienda/canjes`, `GET /mis-compras`, `GET /mis-compras/accesos/{id}/descarga` | autenticado (solo propios; 404 ajeno) |
 | Por artista | `GET|PATCH /mis-artistas…`, `GET|PUT /mis-artistas/{id}/licencias…`, `POST /mis-artistas/{id}/terminos-licencia`, `POST /mis-artistas/{id}/pistas/{trackId}/master` | member/manager del artista (mutación: manager) |
 | Dispositivos | `PUT|GET /dispositivos`, `POST …/{installId}/heartbeat|revocar` | autenticado (solo propios) |
+| Sync | `GET /sync/catalogo`, `POST|GET /dispositivos/{installId}/descargas-offline` | autenticado (solo sus dispositivos; 404 ajeno) |
 | Servicios | `POST|GET /servicios/solicitudes`, `GET /servicios/solicitudes/{id}`, `POST /servicios/cotizaciones/{id}/aceptar|rechazar`, `POST /servicios/proyectos/{id}/pagos`, `GET /servicios/proyectos/{id}` | autenticado (solo propios; 404 ajeno) |
 | Soporte | `POST|GET /soporte/tickets`, `GET /soporte/tickets/{id}`, `POST /soporte/tickets/{id}/mensajes` | autenticado (solo propios; 404 ajeno) |
 | Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado` | staff (admin+vendedor) |
@@ -404,17 +441,16 @@ del token **nunca** autorizan por sí solos.
 ## 9. Verificación y pruebas
 
 La colección Bruno (`bruno/`) ejecuta el contrato completo contra el sistema
-real: 213 requests, 98 tests y 484 aserciones en verde tras reset desde cero
-(y en re-ejecución repetible), cubriendo los flujos 3A, 3B, 3C.1, 3C.2 y
-3C.3: compra de audio con licencias adicionales y cupón, aprobación
+real: 239 requests, 113 tests y 534 aserciones en verde tras reset desde cero
+(y en re-ejecución repetible), cubriendo los flujos 3A, 3B, 3C.1, 3C.2, 3C.3
+y 4A: compra de audio con licencias adicionales y cupón, aprobación
 transaccional e idempotente que concede entitlements y license grants sin
 duplicar, inmutabilidad de términos con snapshot congelado, servicios por
-encargo (solicitud → cotización → aceptación con proyecto congelado →
-comprobante → aprobación sin efectos de acceso → entregas con URL firmada →
-entrega de pista con entitlement `grant_source=service` y descarga del
-master), subida de master por el manager del artista, y soporte (ticket,
-mensaje con adjunto, respuesta staff, resolución y cierre; reclamo YouTube).
-Las mutaciones manager/staff y su auditoría comparten transacción; el último
+encargo, soporte, subida de master por manager, sync incremental del catálogo
+(paginación por cursor estable, delta con alta/edición y tombstone) y
+licencias de descarga offline (entitlement y premium, renovación idempotente,
+cascadas por revocación de dispositivo o entitlement, revocación staff). Las
+mutaciones manager/staff y su auditoría comparten transacción; el último
 manager no puede eliminarse y el heartbeat revocado no modifica actividad.
 Tras `make db-reset` el orden de puesta en marcha es: migraciones + seed,
 `docker compose restart gotrue`, **signups** de la colección (crean los

@@ -1,0 +1,31 @@
+meta {
+  name: Staff - revocar licencia offline
+  type: http
+  seq: 234
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/descargas-offline/{{licenciaOfflinePremium}}/revocar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "motivo": "Revocación de prueba 4A"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq revocada
+}
+
+docs {
+  Revocación staff de la licencia premium con motivo y auditoría
+  descarga_offline.revocada. Idempotente si ya estaba revocada.
+}

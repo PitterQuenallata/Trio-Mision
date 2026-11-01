@@ -736,20 +736,37 @@ func revocarAcceso(db database.DB) func(context.Context, *revocarAccesoInput) (*
 		}
 		defer tx.Rollback(ctx)
 
-		var revocadoEn time.Time
+		var (
+			revocadoEn            time.Time
+			userID, trackID       string
+			licenciasOfflineRevoc int64
+		)
 		err = tx.QueryRow(ctx, `
 			update entitlements
 			set revoked_at = coalesce(revoked_at, now()), revoked_reason = $2
 			where id = $1
-			returning revoked_at`, in.ID, in.Body.Motivo).Scan(&revocadoEn)
+			returning revoked_at, user_id, track_id`, in.ID, in.Body.Motivo).Scan(&revocadoEn, &userID, &trackID)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error404NotFound("acceso no encontrado")
 		}
 		if err != nil {
 			return nil, huma.Error500InternalServerError("error revocando el acceso", err)
 		}
+		// Cascada: las licencias offline de esta pista concedidas por el
+		// entitlement se revocan con él; las de origen premium siguen
+		// mientras el período Premium esté activo.
+		cascadaTag, err := tx.Exec(ctx, `
+			update offline_downloads
+			set revoked_at = now(), revoked_reason = 'acceso de audio revocado'
+			where user_id = $1 and track_id = $2 and origen = 'entitlement' and revoked_at is null`,
+			userID, trackID)
+		if err != nil {
+			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+		}
+		licenciasOfflineRevoc = cascadaTag.RowsAffected()
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "acceso.revocado", "entitlement", in.ID,
-			map[string]any{"motivo": in.Body.Motivo}); err != nil {
+			map[string]any{"motivo": in.Body.Motivo, "usuario_id": userID, "track_id": trackID,
+				"descargas_offline_revocadas": licenciasOfflineRevoc}); err != nil {
 			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
