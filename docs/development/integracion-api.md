@@ -1,8 +1,8 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.9.0 (Sprint 3C.3: servicios por encargo y soporte,
-> §4.6-4.7; la aprobación staff expone solo `licencias_creados` y la revocación
-> de licencia solo `revocado_en`). Esta guía es el contrato de
+> **Versión de contrato:** 0.10.0 (Sprint 4A: sync incremental del catálogo y
+> licencias de descarga offline; Premium solo concede licencias offline de
+> pistas publicadas). Esta guía es el contrato de
 > integración para los clientes del ecosistema (APK, PC, `apps/web`, panel
 > admin y panel usuario). Cualquier cambio que rompa compatibilidad exige bump
 > de versión y nota de migración. La especificación viva y ejecutable es

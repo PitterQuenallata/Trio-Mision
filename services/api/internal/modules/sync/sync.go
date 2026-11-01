@@ -99,7 +99,7 @@ type catalogoInput struct {
 
 type catalogoOutput struct {
 	Body struct {
-		Cursor       string            `json:"cursor" doc:"Cursor para la siguiente página (vacío cuando has_more=false)"`
+		Cursor       string            `json:"cursor" doc:"Cursor de la última fila de la página: sírvelo en la siguiente llamada para continuar o para el próximo delta (vacío solo si la página no trajo filas)"`
 		HasMore      bool              `json:"has_more"`
 		Limite       int               `json:"limite"`
 		Artists      []json.RawMessage `json:"artists"`
@@ -409,15 +409,19 @@ func dispositivoPropio(ctx context.Context, q database.Querier, userID, installI
 
 // accesoVigente decide el origen de la licencia: entitlement activo de la
 // pista, o Premium activo; si ninguno, devuelve el motivo del rechazo.
+// El entitlement vale para cualquier pista (incluidas las entregadas por un
+// encargo, que no se publican en la tienda); Premium solo cubre el catálogo
+// publicado: sin esa restricción cualquier suscriptor podría licenciar offline
+// pistas en borrador o encargos ajenos adivinando el UUID.
 func accesoVigente(ctx context.Context, q database.Querier, userID, trackID string) (string, string, error) {
-	var existePista bool
+	var publicada bool
 	if err := q.QueryRow(ctx, `
-		select exists(select 1 from tracks where id = $1 and deleted_at is null)`, trackID,
-	).Scan(&existePista); err != nil {
+		select is_published from tracks where id = $1 and deleted_at is null`, trackID,
+	).Scan(&publicada); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", "pista no encontrada", nil
+		}
 		return "", "", huma.Error500InternalServerError("error consultando la pista", err)
-	}
-	if !existePista {
-		return "", "pista no encontrada", nil
 	}
 
 	var entitlement bool
@@ -433,6 +437,9 @@ func accesoVigente(ctx context.Context, q database.Querier, userID, trackID stri
 		return "entitlement", "", nil
 	}
 
+	if !publicada {
+		return "", "sin acceso vigente a la pista", nil
+	}
 	var premium bool
 	if err := q.QueryRow(ctx, `
 		select exists(
