@@ -3,7 +3,7 @@
 # Migraciones: requiere goose (go install github.com/pressly/goose/v3/cmd/goose@v3.24.3)
 GOOSE ?= goose
 
-.PHONY: help up down check api-run api-build api-test worker-run worker-build worker-test db-migrate db-security db-status db-reset db-seed
+.PHONY: help up down check api-run api-build api-test worker-run worker-build worker-test himnario-normalize db-migrate db-security db-status db-reset db-seed
 
 help: ## Muestra esta ayuda
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-10s\033[0m %s\n", $$1, $$2}'
@@ -39,6 +39,9 @@ worker-build: ## Compila el worker
 
 worker-test: ## Ejecuta los tests del worker
 	cd services/worker && go test ./...
+
+himnario-normalize: ## Normaliza los .cho del himnario al formato guitarra (dry-run; WRITE=1 aplica)
+	cd services/worker && go run ./cmd/chonorm $(if $(WRITE),-write,) ../../content/himnario/acordes-completos ../../content/himnario/fiel-pdf
 
 api-token: ## Genera un JWT de desarrollo para probar endpoints protegidos (Bruno/curl)
 	@./scripts/mint-dev-token.sh

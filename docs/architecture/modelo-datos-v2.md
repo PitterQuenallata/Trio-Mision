@@ -192,6 +192,13 @@ hymn_versions
   hymn_id             uuid NOT NULL FK hymns
   version_code        text NOT NULL  -- chords_full | verse_chorus
   chord_scope         text NOT NULL  -- full_song | verse_chorus | lyrics_only
+                                     -- Formato guitarra (Sprint 4B.5): en ambas
+                                     -- versiones los acordes viven solo en la
+                                     -- primera estrofa y en los coros; las
+                                     -- estrofas 2+ van solo con letra.
+                                     -- full_song = acordes completos (todos los
+                                     -- cambios); verse_chorus = fiel al impreso
+                                     -- (con guiones de sílabas del PDF).
   arrangement_label   text NULL
   content_format      text NOT NULL  -- chordpro
   chordpro            text NOT NULL

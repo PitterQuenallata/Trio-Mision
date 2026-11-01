@@ -149,11 +149,17 @@ Docker o PostgreSQL estén ausentes. Verificar con
   tras reset quedó en verde (275/275, 136/136, 582/582). El reporte del
   agente afirmaba verde tras reset y no era cierto: verificar siempre la
   primera corrida tras `make db-reset`.
-- Siguiente tarea: Sprint 4B.5 — normalización del himnario .cho (acordes
-  solo en primera estrofa + coro, enfoque guitarra, ambas versiones) —
-  **plan detallado listo en `CURRENT_TASK.md`** ("Siguiente tarea — Fase 4");
-  después 4C (FCM). La versión "simplificada/modo fácil" espera el análisis
-  REA de Chord AI (`reverse-lab/projects/chord-ai/` aún vacío).
+- **Sprint 4B.5 completado** (2026-11-01): himnario normalizado al formato
+  guitarra — acordes solo en primera estrofa + coros en ambas versiones
+  (`acordes-completos` y `fiel-pdf`); herramienta determinista `chonorm`
+  (`services/worker/cmd/chonorm`, `make himnario-normalize`, idempotente,
+  8 tests) con 455 archivos corregidos y 14 538 acordes eliminados de
+  estrofas 2+; stray `01 - copia.cho` eliminado (614+614 archivos). Sin
+  cambio de contrato (API 0.11.0); Bruno 275/275 tras reset.
+- Siguiente tarea: Sprint 4C de Fase 4 (FCM: `push_tokens`, envío desde
+  backend, limpieza de tokens). La versión "simplificada/modo fácil" de los
+  himnos espera el análisis REA de Chord AI
+  (`reverse-lab/projects/chord-ai/` aún vacío).
 - API actual: versión 0.11.0.
 
 ## Convenciones

@@ -11,8 +11,9 @@
 > revisión más abajo; **correcciones aún sin commit**). **Bruno 275/275
 > requests, 136/136 tests y 582/582 aserciones en verde en la primera
 > corrida tras `make db-reset` desde cero** y en re-ejecución, con el worker
-> corriendo. **No se construyó ni modificó UI.** El siguiente paso es la
-> normalización de los himnos .cho (ver la discusión más abajo) o el
+> corriendo. **No se construyó ni modificó UI.** El Sprint 4B.5
+> (normalización del himnario .cho, enfoque guitarra) también quedó
+> **completado** el 2026-11-01 (ver su sección). El siguiente paso es el
 > **Sprint 4C** (FCM); ver "Siguiente tarea — Fase 4".
 
 ## Fase 4 / Sprint 4B — Worker + conversión PDF→ChordPro: COMPLETADA ✅
@@ -169,13 +170,52 @@ aplicadas.
 
 ## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
 
-**Estado:** Sprint 4A ✅ y Sprint 4B ✅ completados y revisados el 2026-11-01
-(ver secciones superiores). Siguiente: **4B.5 — Normalización del himnario
-.cho** (plan detallado listo abajo, decisión del usuario 2026-11-01) y después
-**4C — FCM** (`push_tokens`, envío desde backend, limpieza de tokens). Los
-planes detallados ya ejecutados se conservan abajo como referencia.
+**Estado:** Sprint 4A ✅, 4B ✅ y 4B.5 ✅ completados (4A/4B revisados) el
+2026-11-01 (ver secciones superiores). Siguiente: **4C — FCM** (`push_tokens`,
+envío desde backend, limpieza de tokens). Los planes detallados ya ejecutados
+se conservan abajo como referencia.
 
-### Sprint 4B.5 — Normalización del himnario .cho, enfoque guitarra (plan detallado)
+## Fase 4 / Sprint 4B.5 — Normalización del himnario .cho (enfoque guitarra): COMPLETADA ✅
+
+**Cerrado el 2026-11-01 (ejecutado por Kimi).** Las dos versiones del
+himnario quedaron en formato guitarra: acordes solo en la **primera estrofa +
+coros**; las estrofas 2+ van solo con letra. Sprint de contenido + tooling,
+sin cambio de contrato (API sigue en 0.11.0).
+
+| Entregable | Ubicación | Estado |
+|---|---|---|
+| Herramienta `chonorm` (parser de bloques `{sov}`/`{verse N}` y `{soc}`/`{chorus}`, dry-run con reporte, `-write` idempotente, anomalías) | `services/worker/cmd/chonorm/`, `services/worker/internal/chonorm/` | Hecho |
+| Tests unitarios (8 casos: estrofas, coros, ambas sintaxis, acordes pegados, idempotencia, corchetes literales, anomalías) | `services/worker/internal/chonorm/chonorm_test.go` | Hecho |
+| Normalización aplicada: 455 archivos corregidos, 14 538 acordes eliminados de estrofas 2+, 0 anomalías | `content/himnario/` | Hecho |
+| Limpieza: duplicado stray `acordes-completos/01 - copia.cho` eliminado (614 + 614 archivos) | `content/himnario/` | Hecho |
+| `make himnario-normalize` (WRITE=1 aplica) | `Makefile` | Hecho |
+| Documentación (convención de formato, `chord_scope`, estado) | `content/himnario/README.md`, `docs/architecture/modelo-datos-v2.md`, `AGENTS.md`, este archivo | Hecho |
+
+### Verificación contra sistema real (2026-11-01)
+
+- `chonorm` dry-run → `-write` → segundo `-write` reporta **0 cambios**
+  (idempotente). Chequeo global post-normalización: **0 estrofas 2+ con
+  acordes** en las dos versiones y **0 coros sin acordes**.
+- `make db-reset` desde cero (27 migraciones) + db-security + seed + GoTrue +
+  signups + roles; la API sirve el contenido normalizado: himnos 1, 8, 102,
+  343 (uno de los 5 corregidos de fiel-pdf) y 600 (sintaxis `{verse}`) con
+  estrofa 2 sin acordes y coros intactos en ambas versiones.
+- Colección Bruno completa: **275/275 requests, 136/136 tests y 582/582
+  aserciones en verde en la primera corrida tras el reset** (con el worker
+  corriendo).
+- `go build`, `go vet`, `gofmt -l`, `go test ./...` limpios en el worker.
+- Hallazgos del camino: los 5 archivos malos reportados en fiel-pdf (343,
+  368, 372, 474, 523) eran solo los de sintaxis `{sov}`; los de sintaxis
+  `{verse N}` (611-613) también traían acordes en estrofas 2+ y quedaron
+  cubiertos por el parser. Los avisos de anomalía se afinaron: estrofas 2+
+  sin acordes son el formato (no anomalía) y "bloque sin cerrar" solo se
+  reporta en archivos con cierres explícitos.
+- Pendiente documentado: la versión "simplificada/modo fácil" por himno
+  (`chords_easy`) depende del análisis REA de Chord AI
+  (`reverse-lab/projects/chord-ai/` aún vacío); el patrón Original vs
+  Simplificada está en `reverse-lab/projects/guitartuna/experiments/afinador-copia/`.
+
+### Sprint 4B.5 — Plan ejecutado (referencia)
 
 **Sprint de contenido + tooling; la API no cambia de contrato (sin bump).**
 
