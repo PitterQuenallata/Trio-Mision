@@ -1,0 +1,8 @@
+{
+  "typescript.tsdk": "node_modules/@typescript/native-preview/lib",
+  "js/ts.experimental.useTsgo": true,
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.css": "tailwindcss"
+  }
+}

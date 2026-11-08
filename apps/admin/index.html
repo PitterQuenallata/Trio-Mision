@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        try {
+          var stored = localStorage.getItem('blakor_theme');
+          var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var resolved = stored === 'system' ? (prefersDark ? 'dark' : 'light') : (stored || (prefersDark ? 'dark' : 'light'));
+          if (resolved === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.add('light');
+            document.documentElement.classList.remove('dark');
+          }
+          var storedGlass = localStorage.getItem('blakor_glass_mode');
+          if (storedGlass !== 'false') {
+            document.documentElement.classList.add('liquid-glass-active');
+          }
+          var storedFont = localStorage.getItem('blakor_typography');
+          var fontFamilies = {
+            'sf-pro': '-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", system-ui, sans-serif',
+            'inter': '"Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+            'geist': '"Geist", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+            'plus-jakarta': '"Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, system-ui, sans-serif',
+            'jetbrains-mono': '"JetBrains Mono", "SF Mono", Menlo, Consolas, monospace'
+          };
+          if (storedFont && fontFamilies[storedFont]) {
+            document.documentElement.style.setProperty('--font-family-sans', fontFamilies[storedFont]);
+            document.documentElement.style.setProperty('--font-family-heading', fontFamilies[storedFont]);
+            document.documentElement.setAttribute('data-typography', storedFont);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f97316' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="description" content="Blakor Admin Pro - Starter Kit y Plantilla Comercial de Alto Rendimiento" />
+    <title>Blakor Admin Pro</title>
+    <!-- Typography Stacks: Inter, Geist, Plus Jakarta Sans, JetBrains Mono & Overpass -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Overpass:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="min-h-screen bg-background text-foreground antialiased selection:bg-orange-500/20 selection:text-orange-500">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
