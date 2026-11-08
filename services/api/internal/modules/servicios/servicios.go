@@ -21,6 +21,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -215,7 +216,7 @@ func crearSolicitud(db database.DB) func(ctx context.Context, in *crearSolicitud
 			return nil, huma.Error401Unauthorized("no autenticado")
 		}
 		if _, err := ensureProfile(ctx, db, claims.Subject, claims.Email); err != nil {
-			return nil, huma.Error500InternalServerError("error asegurando el perfil", err)
+			return nil, apierr.Internal("error asegurando el perfil", err)
 		}
 
 		referencias := map[string]any{}
@@ -248,12 +249,12 @@ func crearSolicitud(db database.DB) func(ctx context.Context, in *crearSolicitud
 			return out, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando la solicitud", err)
+			return nil, apierr.Internal("error consultando la solicitud", err)
 		}
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -285,14 +286,14 @@ func crearSolicitud(db database.DB) func(ctx context.Context, in *crearSolicitud
 					return out, nil
 				}
 			}
-			return nil, huma.Error500InternalServerError("error creando la solicitud", err)
+			return nil, apierr.Internal("error creando la solicitud", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.creado", "service_request", s.ID,
 			map[string]any{"tipo": in.Body.Tipo, "titulo": in.Body.Titulo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		if err := rellenarSolicitud(ctx, db, &s); err != nil {
 			return nil, err
@@ -323,18 +324,18 @@ func rellenarSolicitud(ctx context.Context, q database.Querier, s *solicitudResu
 		select id, request_id, amount_minor, currency, terms_text, estado, created_at
 		from service_quotes where request_id = $1 order by created_at asc`, s.ID)
 	if err != nil {
-		return huma.Error500InternalServerError("error consultando las cotizaciones", err)
+		return apierr.Internal("error consultando las cotizaciones", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var c cotizacionResumen
 		if err := rows.Scan(&c.ID, &c.SolicitudID, &c.MontoMinor, &c.Moneda, &c.TermsText, &c.Estado, &c.CreadaEn); err != nil {
-			return huma.Error500InternalServerError("error leyendo las cotizaciones", err)
+			return apierr.Internal("error leyendo las cotizaciones", err)
 		}
 		s.Cotizaciones = append(s.Cotizaciones, c)
 	}
 	if err := rows.Err(); err != nil {
-		return huma.Error500InternalServerError("error leyendo las cotizaciones", err)
+		return apierr.Internal("error leyendo las cotizaciones", err)
 	}
 	rows.Close()
 
@@ -347,7 +348,7 @@ func rellenarSolicitud(ctx context.Context, q database.Querier, s *solicitudResu
 		s.Proyecto = &p
 	case errors.Is(err, pgx.ErrNoRows):
 	default:
-		return huma.Error500InternalServerError("error consultando el proyecto", err)
+		return apierr.Internal("error consultando el proyecto", err)
 	}
 	return nil
 }
@@ -371,19 +372,19 @@ func listarSolicitudes(db database.DB) func(ctx context.Context, _ *struct{}) (*
 			select id, tipo, titulo, descripcion, estado, created_at, updated_at, referencias
 			from service_requests where user_id = $1 order by created_at desc limit 50`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las solicitudes", err)
+			return nil, apierr.Internal("error consultando las solicitudes", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var s solicitudResumen
 			if err := rows.Scan(&s.ID, &s.Tipo, &s.Titulo, &s.Descripcion, &s.Estado,
 				&s.CreadaEn, &s.ActualizadaEn, &s.Referencias); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las solicitudes", err)
+				return nil, apierr.Internal("error leyendo las solicitudes", err)
 			}
 			out.Body.Solicitudes = append(out.Body.Solicitudes, s)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las solicitudes", err)
+			return nil, apierr.Internal("error leyendo las solicitudes", err)
 		}
 		rows.Close()
 		for i := range out.Body.Solicitudes {
@@ -418,7 +419,7 @@ func obtenerSolicitud(db database.DB) func(ctx context.Context, in *solicitudPat
 			return nil, huma.Error404NotFound("solicitud no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la solicitud", err)
+			return nil, apierr.Internal("error consultando la solicitud", err)
 		}
 		if err := rellenarSolicitud(ctx, db, &s); err != nil {
 			return nil, err
@@ -452,7 +453,7 @@ func aceptarCotizacion(db database.DB) func(ctx context.Context, in *solicitudPa
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -476,7 +477,7 @@ func aceptarCotizacion(db database.DB) func(ctx context.Context, in *solicitudPa
 			return nil, huma.Error404NotFound("cotización no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la cotización", err)
+			return nil, apierr.Internal("error consultando la cotización", err)
 		}
 		if userID != claims.Subject {
 			return nil, huma.Error404NotFound("cotización no encontrada")
@@ -491,7 +492,7 @@ func aceptarCotizacion(db database.DB) func(ctx context.Context, in *solicitudPa
 			out.Body.Proyecto = *p
 			out.Body.YaEstabaAceptada = true
 			if err := tx.Commit(ctx); err != nil {
-				return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+				return nil, apierr.Internal("error confirmando la transacción", err)
 			}
 			return out, nil
 		}
@@ -508,14 +509,14 @@ func aceptarCotizacion(db database.DB) func(ctx context.Context, in *solicitudPa
 		tag, err := tx.Exec(ctx, `
 			update service_quotes set estado = 'aceptada' where id = $1 and estado = 'enviada'`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error aceptando la cotización", err)
+			return nil, apierr.Internal("error aceptando la cotización", err)
 		}
 		if tag.RowsAffected() != 1 {
 			return nil, huma.Error409Conflict("la cotización ya no está enviada")
 		}
 		if _, err := tx.Exec(ctx, `
 			update service_requests set estado = 'aceptada' where id = $1`, requestID); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando la solicitud", err)
+			return nil, apierr.Internal("error actualizando la solicitud", err)
 		}
 
 		snapshot, _ := json.Marshal(map[string]any{
@@ -528,10 +529,10 @@ func aceptarCotizacion(db database.DB) func(ctx context.Context, in *solicitudPa
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.aceptado", "service_request", requestID,
 			map[string]any{"cotizacion_id": in.ID, "proyecto_id": p.ID, "monto_minor": monto, "moneda": moneda}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out.Body.Proyecto = *p
 		return out, nil
@@ -554,7 +555,7 @@ func rechazarCotizacion(db database.DB) func(ctx context.Context, in *solicitudP
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -569,7 +570,7 @@ func rechazarCotizacion(db database.DB) func(ctx context.Context, in *solicitudP
 			return nil, huma.Error404NotFound("cotización no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la cotización", err)
+			return nil, apierr.Internal("error consultando la cotización", err)
 		}
 		if userID != claims.Subject {
 			return nil, huma.Error404NotFound("cotización no encontrada")
@@ -581,7 +582,7 @@ func rechazarCotizacion(db database.DB) func(ctx context.Context, in *solicitudP
 		case "rechazada":
 			out.Body.Estado = "rechazada"
 			if err := tx.Commit(ctx); err != nil {
-				return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+				return nil, apierr.Internal("error confirmando la transacción", err)
 			}
 			return out, nil
 		case "aceptada":
@@ -590,13 +591,13 @@ func rechazarCotizacion(db database.DB) func(ctx context.Context, in *solicitudP
 
 		if _, err := tx.Exec(ctx, `
 			update service_quotes set estado = 'rechazada' where id = $1 and estado = 'enviada'`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error rechazando la cotización", err)
+			return nil, apierr.Internal("error rechazando la cotización", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.cotizacion_rechazada", "service_quote", in.ID, nil); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out.Body.Estado = "rechazada"
 		return out, nil
@@ -641,7 +642,7 @@ func subirPago(db database.DB, objects storage.Client) func(ctx context.Context,
 			return nil, huma.Error404NotFound("proyecto no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el proyecto", err)
+			return nil, apierr.Internal("error consultando el proyecto", err)
 		}
 		if userID != claims.Subject {
 			return nil, huma.Error404NotFound("proyecto no encontrado")
@@ -660,12 +661,12 @@ func subirPago(db database.DB, objects storage.Client) func(ctx context.Context,
 		}
 		key := fmt.Sprintf("services/pagos/%s/%d%s", in.ID, time.Now().UnixNano(), comprobantePagoExt[mimeType])
 		if err := objects.PutObject(ctx, key, mimeType, archivo); err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el comprobante", err)
+			return nil, apierr.Internal("error guardando el comprobante", err)
 		}
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -689,14 +690,14 @@ func subirPago(db database.DB, objects storage.Client) func(ctx context.Context,
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un comprobante en revisión para este proyecto")
 			}
-			return nil, huma.Error500InternalServerError("error registrando el pago", err)
+			return nil, apierr.Internal("error registrando el pago", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.comprobante_subido", "service_payment", p.ID,
 			map[string]any{"proyecto_id": in.ID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &subirPagoOutput{}
@@ -741,7 +742,7 @@ func proyectoDelUsuario(ctx context.Context, q database.Querier, id, userID stri
 		return nil, huma.Error404NotFound("proyecto no encontrado")
 	}
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el proyecto", err)
+		return nil, apierr.Internal("error consultando el proyecto", err)
 	}
 	return &p, nil
 }
@@ -756,7 +757,7 @@ func rellenarProyecto(ctx context.Context, q database.Querier, objects storage.C
 		left join tracks t on t.id = d.track_id
 		where d.project_id = $1 order by d.created_at asc`, p.ID)
 	if err != nil {
-		return huma.Error500InternalServerError("error consultando las entregas", err)
+		return apierr.Internal("error consultando las entregas", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -769,7 +770,7 @@ func rellenarProyecto(ctx context.Context, q database.Querier, objects storage.C
 			size     *int64
 		)
 		if err := rows.Scan(&e.ID, &e.Titulo, &e.Nota, &trackID, &trackTit, &fileKey, &mime, &size, &e.CreadaEn); err != nil {
-			return huma.Error500InternalServerError("error leyendo las entregas", err)
+			return apierr.Internal("error leyendo las entregas", err)
 		}
 		switch {
 		case trackID != nil:
@@ -779,14 +780,14 @@ func rellenarProyecto(ctx context.Context, q database.Querier, objects storage.C
 			e.Tipo = "archivo"
 			url, err := objects.PresignGet(ctx, *fileKey, presignTTL)
 			if err != nil {
-				return huma.Error500InternalServerError("error firmando la entrega", err)
+				return apierr.Internal("error firmando la entrega", err)
 			}
 			e.Archivo = &entregaArchivo{URL: url, Mime: *mime, ByteSize: *size}
 		}
 		p.Entregas = append(p.Entregas, e)
 	}
 	if err := rows.Err(); err != nil {
-		return huma.Error500InternalServerError("error leyendo las entregas", err)
+		return apierr.Internal("error leyendo las entregas", err)
 	}
 	rows.Close()
 
@@ -795,18 +796,18 @@ func rellenarProyecto(ctx context.Context, q database.Querier, objects storage.C
 		select id, estado, size_bytes, created_at, reviewed_at
 		from service_payments where project_id = $1 order by created_at asc`, p.ID)
 	if err != nil {
-		return huma.Error500InternalServerError("error consultando los pagos", err)
+		return apierr.Internal("error consultando los pagos", err)
 	}
 	defer prows.Close()
 	for prows.Next() {
 		var pg pagoServicioResumen
 		if err := prows.Scan(&pg.ID, &pg.Estado, &pg.ByteSize, &pg.CreadoEn, &pg.RevisadoEn); err != nil {
-			return huma.Error500InternalServerError("error leyendo los pagos", err)
+			return apierr.Internal("error leyendo los pagos", err)
 		}
 		p.Pagos = append(p.Pagos, pg)
 	}
 	if err := prows.Err(); err != nil {
-		return huma.Error500InternalServerError("error leyendo los pagos", err)
+		return apierr.Internal("error leyendo los pagos", err)
 	}
 	return nil
 }
@@ -822,7 +823,7 @@ func proyectoPorCotizacion(ctx context.Context, q database.Querier, quoteID stri
 		from service_projects where quote_id = $1`, quoteID,
 	).Scan(&p.ID, &p.SolicitudID, &p.CotizacionID, &p.MontoMinor, &p.Moneda, &p.Estado, &p.CreadaEn, &p.ActualizadaEn)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el proyecto", err)
+		return nil, apierr.Internal("error consultando el proyecto", err)
 	}
 	return &p, nil
 }
@@ -842,7 +843,7 @@ func insertarProyecto(ctx context.Context, q database.Querier, requestID, quoteI
 		return proyectoPorCotizacion(ctx, q, quoteID)
 	}
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error creando el proyecto", err)
+		return nil, apierr.Internal("error creando el proyecto", err)
 	}
 	return &p, nil
 }

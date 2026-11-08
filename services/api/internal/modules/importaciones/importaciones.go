@@ -24,6 +24,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -245,12 +246,12 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 			return out, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando la importación", err)
+			return nil, apierr.Internal("error consultando la importación", err)
 		}
 
 		key := fmt.Sprintf("imports/%s.pdf", nuevoUUID())
 		if err := objects.PutObject(ctx, key, mimeType, bytes.NewReader(data)); err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el PDF", err)
+			return nil, apierr.Internal("error guardando el PDF", err)
 		}
 
 		parameters, _ := json.Marshal(map[string]any{
@@ -260,7 +261,7 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -271,7 +272,7 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 			values ($1, 'pdf', $2, $3, $4, 'private', 'ready')
 			returning id`, key, mimeType, len(data), checksum).Scan(&assetID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error registrando el activo", err)
+			return nil, apierr.Internal("error registrando el activo", err)
 		}
 
 		var job importacionResumen
@@ -305,19 +306,19 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 					return out, nil
 				}
 			}
-			return nil, huma.Error500InternalServerError("error creando la importación", err)
+			return nil, apierr.Internal("error creando la importación", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			insert into media_job_assets (media_job_id, media_asset_id, input_output_role)
 			values ($1, $2, 'input')`, job.ID, assetID); err != nil {
-			return nil, huma.Error500InternalServerError("error vinculando el activo de entrada", err)
+			return nil, apierr.Internal("error vinculando el activo de entrada", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "importacion.creada", "media_job", job.ID,
 			map[string]any{"asset_id": assetID, "mime": mimeType, "bytes": len(data)}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out := &subirPDFOutput{}
 		out.Body = job
@@ -363,19 +364,19 @@ func listar(db database.DB) func(ctx context.Context, in *listarImportacionesInp
 
 		rows, err := db.Query(ctx, query, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las importaciones", err)
+			return nil, apierr.Internal("error consultando las importaciones", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var j importacionResumen
 			if err := rows.Scan(&j.ID, &j.Tipo, &j.Estado, &j.Progreso, &j.ErrorCode, &j.ToolVersion,
 				&j.TotalCanciones, &j.CreadoPor, &j.CreadoEn, &j.IniciadoEn, &j.CompletadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las importaciones", err)
+				return nil, apierr.Internal("error leyendo las importaciones", err)
 			}
 			out.Body.Importaciones = append(out.Body.Importaciones, j)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las importaciones", err)
+			return nil, apierr.Internal("error leyendo las importaciones", err)
 		}
 		return out, nil
 	}
@@ -426,7 +427,7 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 			return nil, huma.Error404NotFound("importación no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la importación", err)
+			return nil, apierr.Internal("error consultando la importación", err)
 		}
 
 		var assetID, storageKey, mime string
@@ -438,12 +439,12 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 			where jma.media_job_id = $1 and jma.input_output_role = 'input'`, in.ID,
 		).Scan(&assetID, &storageKey, &mime, &byteSize)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el PDF de entrada", err)
+			return nil, apierr.Internal("error consultando el PDF de entrada", err)
 		}
 		if err == nil {
 			url, err := objects.PresignGet(ctx, storageKey, presignTTL)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error firmando el PDF", err)
+				return nil, apierr.Internal("error firmando el PDF", err)
 			}
 			out.Body.PDF = &pdfAdjunto{AssetID: assetID, Mime: mime, ByteSize: byteSize, URL: url}
 		}
@@ -451,7 +452,7 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 		if len(resultJSON) > 0 {
 			var res resultadoImportacion
 			if err := json.Unmarshal(resultJSON, &res); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo el resultado", err)
+				return nil, apierr.Internal("error leyendo el resultado", err)
 			}
 			if res.Canciones != nil {
 				out.Body.Canciones = res.Canciones
@@ -522,7 +523,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -536,7 +537,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 			return nil, huma.Error404NotFound("importación no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la importación", err)
+			return nil, apierr.Internal("error consultando la importación", err)
 		}
 		if estado != "done" {
 			return nil, huma.Error409Conflict("la importación no está lista para publicar (estado " + estado + ")")
@@ -544,7 +545,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 
 		var res resultadoImportacion
 		if err := json.Unmarshal(resultJSON, &res); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo el resultado", err)
+			return nil, apierr.Internal("error leyendo el resultado", err)
 		}
 
 		// Índices deduplicados preservando el orden pedido.
@@ -575,7 +576,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 			if err := tx.QueryRow(ctx, `
 				select exists(select 1 from albums where id = $1 and deleted_at is null)`, destino.AlbumID,
 			).Scan(&existe); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el álbum", err)
+				return nil, apierr.Internal("error consultando el álbum", err)
 			}
 			if !existe {
 				return nil, huma.Error404NotFound("álbum destino no encontrado")
@@ -585,7 +586,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 			if err := tx.QueryRow(ctx, `
 				select exists(select 1 from hymn_collections where id = $1)`, destino.ColeccionID,
 			).Scan(&existe); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando la colección", err)
+				return nil, apierr.Internal("error consultando la colección", err)
 			}
 			if !existe {
 				return nil, huma.Error404NotFound("colección del himnario no encontrada")
@@ -609,7 +610,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 			if err := tx.QueryRow(ctx, `
 				select coalesce(max(sort_order), 0) from songs where album_id = $1`, destino.AlbumID,
 			).Scan(&sortOrder); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el álbum", err)
+				return nil, apierr.Internal("error consultando el álbum", err)
 			}
 		}
 
@@ -630,7 +631,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 					destino.AlbumID, cancion.Titulo, cancion.ChordPro, cancion.Tono, cancion.Capo,
 					cancion.Autor, sortOrder).Scan(&songID)
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error creando la canción", err)
+					return nil, apierr.Internal("error creando la canción", err)
 				}
 				item := publicadoItem{Indice: idx, Tipo: "cancion", ID: songID, Titulo: cancion.Titulo}
 				out.Body.Creados = append(out.Body.Creados, item)
@@ -650,7 +651,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 					continue
 				}
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error creando el himno", err)
+					return nil, apierr.Internal("error creando el himno", err)
 				}
 				var versionID string
 				err = tx.QueryRow(ctx, `
@@ -659,7 +660,7 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 					returning id`,
 					hymnID, cancion.ChordPro, cancion.Tono, cancion.Capo).Scan(&versionID)
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error creando la versión del himno", err)
+					return nil, apierr.Internal("error creando la versión del himno", err)
 				}
 				item := publicadoItem{Indice: idx, Tipo: "himno", ID: versionID, Titulo: cancion.Titulo}
 				out.Body.Creados = append(out.Body.Creados, item)
@@ -670,11 +671,11 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 
 		resultadoNuevo, err := json.Marshal(res)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el resultado", err)
+			return nil, apierr.Internal("error actualizando el resultado", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			update media_jobs set result_json = $2 where id = $1`, in.ID, resultadoNuevo); err != nil {
-			return nil, huma.Error500InternalServerError("error guardando los índices publicados", err)
+			return nil, apierr.Internal("error guardando los índices publicados", err)
 		}
 		destinoID := destino.AlbumID
 		if destino.Tipo == "himnario" {
@@ -689,10 +690,10 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 				"ya_publicados":   out.Body.YaPublicados,
 				"ya_existentes":   out.Body.YaExistentes,
 			}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return out, nil
 	}
@@ -719,7 +720,7 @@ func reintentar(db database.DB) func(ctx context.Context, in *importacionPath) (
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -730,7 +731,7 @@ func reintentar(db database.DB) func(ctx context.Context, in *importacionPath) (
 			return nil, huma.Error404NotFound("importación no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la importación", err)
+			return nil, apierr.Internal("error consultando la importación", err)
 		}
 		if estado != "failed" {
 			return nil, huma.Error409Conflict("solo los jobs fallidos admiten reintento")
@@ -740,13 +741,13 @@ func reintentar(db database.DB) func(ctx context.Context, in *importacionPath) (
 			set status = 'queued', progress = 0, error_code = null, result_json = null,
 			    tool_version = null, started_at = null, completed_at = null
 			where id = $1`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error reencolando la importación", err)
+			return nil, apierr.Internal("error reencolando la importación", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "importacion.reintentada", "media_job", in.ID, nil); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out := &reintentarImportacionOutput{}
 		out.Body.ID = in.ID

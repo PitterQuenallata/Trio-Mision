@@ -15,6 +15,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -217,7 +218,7 @@ func listarMias(db database.DB) func(context.Context, *struct{}) (*listarMiasOut
 			where am.user_id = $1 and ar.deleted_at is null
 			order by ar.name`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando tus artistas", err)
+			return nil, apierr.Internal("error consultando tus artistas", err)
 		}
 		defer rows.Close()
 
@@ -226,12 +227,12 @@ func listarMias(db database.DB) func(context.Context, *struct{}) (*listarMiasOut
 		for rows.Next() {
 			var a artistaMio
 			if err := rows.Scan(&a.ID, &a.Slug, &a.Nombre, &a.MiRol, &a.CoverKey, &a.Publicado); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo tus artistas", err)
+				return nil, apierr.Internal("error leyendo tus artistas", err)
 			}
 			out.Body.Artistas = append(out.Body.Artistas, a)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo tus artistas", err)
+			return nil, apierr.Internal("error leyendo tus artistas", err)
 		}
 		return out, nil
 	}
@@ -272,7 +273,7 @@ func obtenerMio(db database.DB) func(context.Context, *artistaPath) (*obtenerMio
 			return nil, huma.Error404NotFound("artista no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el artista", err)
+			return nil, apierr.Internal("error consultando el artista", err)
 		}
 		out.Body.ID = in.ArtistID
 
@@ -287,7 +288,7 @@ func obtenerMio(db database.DB) func(context.Context, *artistaPath) (*obtenerMio
 			where al.artist_id = $1 and al.deleted_at is null
 			order by al.sort_order, al.title, s.sort_order, s.title`, in.ArtistID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los álbumes", err)
+			return nil, apierr.Internal("error consultando los álbumes", err)
 		}
 		defer rows.Close()
 
@@ -311,7 +312,7 @@ func obtenerMio(db database.DB) func(context.Context, *artistaPath) (*obtenerMio
 			if err := rows.Scan(&albumID, &albumTitulo, &anio, &cover, &orden, &publicado,
 				&cancionID, &cTitulo, &cTono, &cCapo, &cBPM,
 				&cAutor, &cArreglo, &cAcceso, &songOrden, &songPublicada); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los álbumes", err)
+				return nil, apierr.Internal("error leyendo los álbumes", err)
 			}
 			idx, ok := indices[albumID]
 			if !ok {
@@ -351,7 +352,7 @@ func obtenerMio(db database.DB) func(context.Context, *artistaPath) (*obtenerMio
 			}
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los álbumes", err)
+			return nil, apierr.Internal("error leyendo los álbumes", err)
 		}
 		return out, nil
 	}
@@ -401,7 +402,7 @@ func obtenerCancion(db database.DB) func(context.Context, *cancionPath) (*obtene
 			return nil, huma.Error404NotFound("canción no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la canción", err)
+			return nil, apierr.Internal("error consultando la canción", err)
 		}
 		out.Body.ID = in.SongID
 		out.Body.Acceso = acceso
@@ -443,7 +444,7 @@ func actualizarArtista(db database.DB) func(context.Context, *actualizarArtistaI
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -464,15 +465,15 @@ func actualizarArtista(db database.DB) func(context.Context, *actualizarArtistaI
 			return nil, huma.Error404NotFound("artista no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el artista", err)
+			return nil, apierr.Internal("error actualizando el artista", err)
 		}
 		out.Body.ID = in.ArtistID
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "artista.actualizado", "artist", in.ArtistID,
 			map[string]any{"artista_id": in.ArtistID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la actualización", err)
+			return nil, apierr.Internal("error confirmando la actualización", err)
 		}
 		return out, nil
 	}
@@ -505,7 +506,7 @@ func crearAlbum(db database.DB) func(context.Context, *crearAlbumInput) (*albumO
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -522,14 +523,14 @@ func crearAlbum(db database.DB) func(context.Context, *crearAlbumInput) (*albumO
 		).Scan(&out.Body.ID, &out.Body.Titulo, &out.Body.Anio, &out.Body.CoverKey,
 			&out.Body.Orden, &out.Body.Publicado, &out.Body.CreadoEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error creando el álbum", err)
+			return nil, apierr.Internal("error creando el álbum", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "album.creado", "album", out.Body.ID,
 			map[string]any{"artista_id": in.ArtistID, "titulo": in.Body.Titulo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando el álbum", err)
+			return nil, apierr.Internal("error confirmando el álbum", err)
 		}
 		return out, nil
 	}
@@ -552,7 +553,7 @@ func actualizarAlbum(db database.DB) func(context.Context, *actualizarAlbumInput
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -574,14 +575,14 @@ func actualizarAlbum(db database.DB) func(context.Context, *actualizarAlbumInput
 			return nil, huma.Error404NotFound("álbum no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el álbum", err)
+			return nil, apierr.Internal("error actualizando el álbum", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "album.actualizado", "album", in.AlbumID,
 			map[string]any{"artista_id": in.ArtistID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando el álbum", err)
+			return nil, apierr.Internal("error confirmando el álbum", err)
 		}
 		return out, nil
 	}
@@ -625,7 +626,7 @@ func crearCancion(db database.DB) func(context.Context, *crearCancionInput) (*ca
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -656,14 +657,14 @@ func crearCancion(db database.DB) func(context.Context, *crearCancionInput) (*ca
 			return nil, huma.Error404NotFound("álbum no encontrado en este artista")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error creando la canción", err)
+			return nil, apierr.Internal("error creando la canción", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "cancion.creada", "song", out.Body.ID,
 			map[string]any{"artista_id": in.ArtistID, "album_id": in.Body.AlbumID, "titulo": in.Body.Titulo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la canción", err)
+			return nil, apierr.Internal("error confirmando la canción", err)
 		}
 		return out, nil
 	}
@@ -691,7 +692,7 @@ func actualizarCancion(db database.DB) func(context.Context, *actualizarCancionI
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -723,14 +724,14 @@ func actualizarCancion(db database.DB) func(context.Context, *actualizarCancionI
 			return nil, huma.Error404NotFound("canción no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando la canción", err)
+			return nil, apierr.Internal("error actualizando la canción", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "cancion.actualizada", "song", in.SongID,
 			map[string]any{"artista_id": in.ArtistID, "album_id": out.Body.AlbumID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la canción", err)
+			return nil, apierr.Internal("error confirmando la canción", err)
 		}
 		return out, nil
 	}
@@ -761,7 +762,7 @@ func agregarMiembro(db database.DB) func(context.Context, *agregarMiembroInput) 
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -780,7 +781,7 @@ func agregarMiembro(db database.DB) func(context.Context, *agregarMiembroInput) 
 			return nil, huma.Error404NotFound("no existe un perfil con ese correo; el usuario debe iniciar sesión al menos una vez")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el perfil", err)
+			return nil, apierr.Internal("error consultando el perfil", err)
 		}
 
 		out := &miembroOut{}
@@ -795,15 +796,15 @@ func agregarMiembro(db database.DB) func(context.Context, *agregarMiembroInput) 
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("el usuario ya es miembro de este artista")
 			}
-			return nil, huma.Error500InternalServerError("error agregando el miembro", err)
+			return nil, apierr.Internal("error agregando el miembro", err)
 		}
 		out.Body.Email = email
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "rol.asignado", "artist_members", in.ArtistID,
 			map[string]any{"artista_id": in.ArtistID, "usuario_id": userID, "member_role": in.Body.MemberRole, "source": "api"}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la membresía", err)
+			return nil, apierr.Internal("error confirmando la membresía", err)
 		}
 		return out, nil
 	}
@@ -828,7 +829,7 @@ func quitarMiembro(db database.DB) func(context.Context, *quitarMiembroInput) (*
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -845,14 +846,14 @@ func quitarMiembro(db database.DB) func(context.Context, *quitarMiembroInput) (*
 			return nil, huma.Error404NotFound("membresía no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la membresía", err)
+			return nil, apierr.Internal("error consultando la membresía", err)
 		}
 		if memberRole == "manager" {
 			var managers int
 			if err := tx.QueryRow(ctx, `
 				select count(*) from artist_members where artist_id = $1 and member_role = 'manager'`,
 				in.ArtistID).Scan(&managers); err != nil {
-				return nil, huma.Error500InternalServerError("error contando managers", err)
+				return nil, apierr.Internal("error contando managers", err)
 			}
 			if managers <= 1 {
 				return nil, huma.Error409Conflict("el artista debe conservar al menos un manager")
@@ -861,14 +862,14 @@ func quitarMiembro(db database.DB) func(context.Context, *quitarMiembroInput) (*
 
 		if _, err := tx.Exec(ctx,
 			`delete from artist_members where artist_id = $1 and user_id = $2`, in.ArtistID, in.UserID); err != nil {
-			return nil, huma.Error500InternalServerError("error quitando el miembro", err)
+			return nil, apierr.Internal("error quitando el miembro", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "rol.revocado", "artist_members", in.ArtistID,
 			map[string]any{"artista_id": in.ArtistID, "usuario_id": in.UserID, "source": "api"}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la revocación", err)
+			return nil, apierr.Internal("error confirmando la revocación", err)
 		}
 
 		out := &quitarMiembroOutput{}

@@ -20,6 +20,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -207,20 +208,20 @@ func catalogo(db database.DB) func(ctx context.Context, in *catalogoInput) (*cat
 		for _, q := range consultasDelta {
 			rows, err := db.Query(ctx, q.sql, cursorTS, cursorID, limite+1, inicial)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el delta del catálogo", err)
+				return nil, apierr.Internal("error consultando el delta del catálogo", err)
 			}
 			for rows.Next() {
 				var f filaCatalogo
 				if err := rows.Scan(&f.ts, &f.id, &f.data); err != nil {
 					rows.Close()
-					return nil, huma.Error500InternalServerError("error leyendo el delta del catálogo", err)
+					return nil, apierr.Internal("error leyendo el delta del catálogo", err)
 				}
 				f.kind = q.kind
 				filas = append(filas, f)
 			}
 			if err := rows.Err(); err != nil {
 				rows.Close()
-				return nil, huma.Error500InternalServerError("error leyendo el delta del catálogo", err)
+				return nil, apierr.Internal("error leyendo el delta del catálogo", err)
 			}
 			rows.Close()
 		}
@@ -372,7 +373,7 @@ func crearDescargasOffline(db database.DB) func(ctx context.Context, in *crearDe
 				claims.Subject, deviceID, trackID, origen,
 			).Scan(&item.ID, &item.PistaID, &item.Origen, &item.ConcedidaEn, &item.ExpiraEn, &creada)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error guardando la licencia offline", err)
+				return nil, apierr.Internal("error guardando la licencia offline", err)
 			}
 			item.Estado = "vigente"
 			if creada {
@@ -399,7 +400,7 @@ func dispositivoPropio(ctx context.Context, q database.Querier, userID, installI
 		return "", huma.Error404NotFound("dispositivo no encontrado")
 	}
 	if err != nil {
-		return "", huma.Error500InternalServerError("error consultando el dispositivo", err)
+		return "", apierr.Internal("error consultando el dispositivo", err)
 	}
 	if revokedAt != nil {
 		return "", huma.Error409Conflict("el dispositivo está revocado")
@@ -421,7 +422,7 @@ func accesoVigente(ctx context.Context, q database.Querier, userID, trackID stri
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", "pista no encontrada", nil
 		}
-		return "", "", huma.Error500InternalServerError("error consultando la pista", err)
+		return "", "", apierr.Internal("error consultando la pista", err)
 	}
 
 	var entitlement bool
@@ -431,7 +432,7 @@ func accesoVigente(ctx context.Context, q database.Querier, userID, trackID stri
 		  where user_id = $1 and track_id = $2 and revoked_at is null
 		    and (valid_until is null or valid_until > now()))`, userID, trackID,
 	).Scan(&entitlement); err != nil {
-		return "", "", huma.Error500InternalServerError("error consultando el acceso", err)
+		return "", "", apierr.Internal("error consultando el acceso", err)
 	}
 	if entitlement {
 		return "entitlement", "", nil
@@ -446,7 +447,7 @@ func accesoVigente(ctx context.Context, q database.Querier, userID, trackID stri
 		  select 1 from subscriptions
 		  where user_id = $1 and status = 'active' and period_end > now())`, userID,
 	).Scan(&premium); err != nil {
-		return "", "", huma.Error500InternalServerError("error consultando el período premium", err)
+		return "", "", apierr.Internal("error consultando el período premium", err)
 	}
 	if premium {
 		return "premium", "", nil
@@ -481,7 +482,7 @@ func listarDescargasOffline(db database.DB) func(ctx context.Context, in *dispos
 			where od.device_id = $1
 			order by od.granted_at desc`, deviceID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las licencias offline", err)
+			return nil, apierr.Internal("error consultando las licencias offline", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -491,14 +492,14 @@ func listarDescargasOffline(db database.DB) func(ctx context.Context, in *dispos
 			)
 			if err := rows.Scan(&d.ID, &d.PistaID, &d.PistaTitulo, &d.Origen, &d.ConcedidaEn,
 				&d.ExpiraEn, &actividad, &d.RevocadaEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las licencias offline", err)
+				return nil, apierr.Internal("error leyendo las licencias offline", err)
 			}
 			d.ActividadEn = actividad
 			d.Estado = estadoDescarga(d.RevocadaEn, d.ExpiraEn)
 			out.Body.Descargas = append(out.Body.Descargas, d)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las licencias offline", err)
+			return nil, apierr.Internal("error leyendo las licencias offline", err)
 		}
 		return out, nil
 	}

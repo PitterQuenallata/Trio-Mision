@@ -7,6 +7,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -97,18 +98,18 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			where o.user_id = $1 and o.status = 'paid'
 			order by o.paid_at desc`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las compras", err)
+			return nil, apierr.Internal("error consultando las compras", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var c compraResumen
 			if err := rows.Scan(&c.OrdenID, &c.Estado, &c.TotalMinor, &c.Moneda, &c.PagadaEn, &c.Titulo); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las compras", err)
+				return nil, apierr.Internal("error leyendo las compras", err)
 			}
 			out.Body.Compras = append(out.Body.Compras, c)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las compras", err)
+			return nil, apierr.Internal("error leyendo las compras", err)
 		}
 		rows.Close()
 
@@ -121,7 +122,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			where e.user_id = $1
 			order by e.granted_at desc`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los accesos", err)
+			return nil, apierr.Internal("error consultando los accesos", err)
 		}
 		defer rows2.Close()
 		for rows2.Next() {
@@ -132,13 +133,13 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			)
 			if err := rows2.Scan(&a.ID, &a.Pista.ID, &a.Pista.Titulo, &a.Pista.Artista,
 				&a.Origen, &a.ConcedidoEn, &revokedAt, &validUntil); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los accesos", err)
+				return nil, apierr.Internal("error leyendo los accesos", err)
 			}
 			a.Estado = estadoAcceso(revokedAt, validUntil)
 			out.Body.Accesos = append(out.Body.Accesos, a)
 		}
 		if err := rows2.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los accesos", err)
+			return nil, apierr.Internal("error leyendo los accesos", err)
 		}
 		rows2.Close()
 
@@ -150,7 +151,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			where s.user_id = $1
 			order by s.period_end desc`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las suscripciones", err)
+			return nil, apierr.Internal("error consultando las suscripciones", err)
 		}
 		defer rows3.Close()
 		for rows3.Next() {
@@ -160,13 +161,13 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			)
 			if err := rows3.Scan(&s.ID, &s.Plan.ID, &s.Plan.Codigo, &s.Plan.Nombre,
 				&s.Origen, &s.Inicio, &s.Fin, &s.Estado, &revokedAt); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las suscripciones", err)
+				return nil, apierr.Internal("error leyendo las suscripciones", err)
 			}
 			s.Estado = estadoSuscripcion(revokedAt, s.Fin)
 			out.Body.Suscripciones = append(out.Body.Suscripciones, s)
 		}
 		if err := rows3.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las suscripciones", err)
+			return nil, apierr.Internal("error leyendo las suscripciones", err)
 		}
 		rows3.Close()
 
@@ -183,7 +184,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			where lg.user_id = $1
 			order by lg.granted_at desc`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las licencias", err)
+			return nil, apierr.Internal("error consultando las licencias", err)
 		}
 		defer rows4.Close()
 		for rows4.Next() {
@@ -196,7 +197,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			if err := rows4.Scan(&l.ID, &l.Pista.ID, &l.Pista.Titulo, &l.Pista.Artista,
 				&l.Uso, &terminosVersionID, &terminosEtiqueta,
 				&l.ConcedidaEn, &revokedAt); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+				return nil, apierr.Internal("error leyendo las licencias", err)
 			}
 			l.RevocadaEn = revokedAt
 			l.Estado = estadoLicencia(revokedAt)
@@ -207,7 +208,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 			out.Body.Licencias = append(out.Body.Licencias, l)
 		}
 		if err := rows4.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+			return nil, apierr.Internal("error leyendo las licencias", err)
 		}
 		rows4.Close()
 
@@ -217,7 +218,7 @@ func misCompras(db database.DB) func(context.Context, *struct{}) (*misComprasOut
 				where user_id = $1 and status = 'active' and period_end > now())`, claims.Subject,
 		).Scan(&out.Body.PremiumActivo)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error calculando premium activo", err)
+			return nil, apierr.Internal("error calculando premium activo", err)
 		}
 		return out, nil
 	}
@@ -288,7 +289,7 @@ func descarga(db database.DB, store storage.Client, ttl time.Duration) func(cont
 			return nil, huma.Error404NotFound("acceso no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el acceso", err)
+			return nil, apierr.Internal("error consultando el acceso", err)
 		}
 		if userID != claims.Subject {
 			// 404 (no 403) para no revelar la existencia de un acceso ajeno.
@@ -319,12 +320,12 @@ func descarga(db database.DB, store storage.Client, ttl time.Duration) func(cont
 			return nil, huma.Error409Conflict("la pista no tiene master publicado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el master", err)
+			return nil, apierr.Internal("error consultando el master", err)
 		}
 
 		url, err := store.PresignGet(ctx, key, ttl)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error firmando la descarga", err)
+			return nil, apierr.Internal("error firmando la descarga", err)
 		}
 
 		out := &descargaOutput{}

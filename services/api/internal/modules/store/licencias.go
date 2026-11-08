@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/database"
 )
@@ -54,7 +55,7 @@ func pistaLicencias(db database.DB) func(context.Context, *obtenerPistaInput) (*
 			return nil, huma.Error404NotFound("pista no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la pista", err)
+			return nil, apierr.Internal("error consultando la pista", err)
 		}
 
 		out := &pistaLicenciasOutput{}
@@ -66,18 +67,18 @@ func pistaLicencias(db database.DB) func(context.Context, *obtenerPistaInput) (*
 			where track_id = $1 and enabled
 			order by use_code`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las licencias de la pista", err)
+			return nil, apierr.Internal("error consultando las licencias de la pista", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var o licenciaOpcionPublica
 			if err := rows.Scan(&o.ID, &o.Uso, &o.MontoMinor, &o.Moneda); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+				return nil, apierr.Internal("error leyendo las licencias", err)
 			}
 			out.Body.Opciones = append(out.Body.Opciones, o)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+			return nil, apierr.Internal("error leyendo las licencias", err)
 		}
 		rows.Close()
 
@@ -91,7 +92,7 @@ func pistaLicencias(db database.DB) func(context.Context, *obtenerPistaInput) (*
 			order by published_at desc limit 1`, artistID,
 		).Scan(&t.VersionID, &t.Etiqueta, &t.Texto, &t.PublicadoEn)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando los términos", err)
+			return nil, apierr.Internal("error consultando los términos", err)
 		}
 		if err == nil {
 			out.Body.Terminos = &t
@@ -164,7 +165,7 @@ func resolverLicencias(ctx context.Context, db database.DB, productType, currenc
 			return nil, huma.Error404NotFound("opción de licencia no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la opción de licencia", err)
+			return nil, apierr.Internal("error consultando la opción de licencia", err)
 		}
 		switch {
 		case !habilitada:
@@ -187,7 +188,7 @@ func resolverLicencias(ctx context.Context, db database.DB, productType, currenc
 				return nil, huma.Error409Conflict("el artista no tiene términos de licencia publicados")
 			}
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error consultando los términos de licencia", err)
+				return nil, apierr.Internal("error consultando los términos de licencia", err)
 			}
 			terminosPorArtista[l.ArtistaID] = terminos
 		}
@@ -222,7 +223,7 @@ func insertarItemsLicencia(ctx context.Context, q database.Querier, orderID stri
 				 license_snapshot, quantity, unit_amount_minor, line_total_minor)
 			values ($1, null, null, $2, $3, $4, $5, 1, $6, $6)`,
 			orderID, l.TrackID, productSnapshot, contentSnapshot, licenseSnapshot, l.MontoMinor); err != nil {
-			return huma.Error500InternalServerError("error guardando la licencia de la orden", err)
+			return apierr.Internal("error guardando la licencia de la orden", err)
 		}
 	}
 	return nil
@@ -242,7 +243,7 @@ func registrarAceptaciones(ctx context.Context, q database.Querier, orderID, use
 			insert into license_acceptances (order_id, terms_version_id, user_id)
 			values ($1, $2, $3)
 			on conflict do nothing`, orderID, l.TerminosID, userID); err != nil {
-			return huma.Error500InternalServerError("error registrando la aceptación de términos", err)
+			return apierr.Internal("error registrando la aceptación de términos", err)
 		}
 	}
 	return nil

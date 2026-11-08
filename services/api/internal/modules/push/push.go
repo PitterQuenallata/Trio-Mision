@@ -12,6 +12,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -94,7 +95,7 @@ func registrarToken(db database.DB) func(context.Context, *registrarTokenInput) 
 			return nil, huma.Error404NotFound("dispositivo no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el dispositivo", err)
+			return nil, apierr.Internal("error consultando el dispositivo", err)
 		}
 		if revokedAt != nil {
 			return nil, huma.Error409Conflict("el dispositivo fue revocado; no admite tokens push")
@@ -102,7 +103,7 @@ func registrarToken(db database.DB) func(context.Context, *registrarTokenInput) 
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -114,7 +115,7 @@ func registrarToken(db database.DB) func(context.Context, *registrarTokenInput) 
 			update push_tokens set revoked_at = now(), revoked_reason = 'token reemplazado'
 			where device_id = $1 and token <> $2 and revoked_at is null`, deviceID, in.Body.Token)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error sustituyendo el token anterior", err)
+			return nil, apierr.Internal("error sustituyendo el token anterior", err)
 		}
 
 		// Un token pertenece a un único usuario: el upsert solo reasigna si el
@@ -134,10 +135,10 @@ func registrarToken(db database.DB) func(context.Context, *registrarTokenInput) 
 			return nil, huma.Error409Conflict("el token ya está registrado por otro usuario")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error registrando el token push", err)
+			return nil, apierr.Internal("error registrando el token push", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &registrarTokenOutput{}
@@ -172,7 +173,7 @@ func revocarToken(db database.DB) func(context.Context, *revocarTokenInput) (*re
 			where d.id = pt.device_id and d.user_id = $1 and d.install_id = $2
 			  and pt.revoked_at is null`, claims.Subject, in.InstallID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando el token push", err)
+			return nil, apierr.Internal("error revocando el token push", err)
 		}
 		out := &revocarTokenOutput{}
 		out.Body.InstallID = in.InstallID
@@ -212,7 +213,7 @@ func pruebaStaff(db database.DB, sender Sender) func(context.Context, *pruebaInp
 			select id::text, token from push_tokens
 			where user_id = $1 and revoked_at is null`, in.Body.UsuarioID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando tokens push", err)
+			return nil, apierr.Internal("error consultando tokens push", err)
 		}
 		type tokenActivo struct{ id, token string }
 		var tokens []tokenActivo
@@ -220,13 +221,13 @@ func pruebaStaff(db database.DB, sender Sender) func(context.Context, *pruebaInp
 			var t tokenActivo
 			if err := rows.Scan(&t.id, &t.token); err != nil {
 				rows.Close()
-				return nil, huma.Error500InternalServerError("error leyendo tokens push", err)
+				return nil, apierr.Internal("error leyendo tokens push", err)
 			}
 			tokens = append(tokens, t)
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo tokens push", err)
+			return nil, apierr.Internal("error leyendo tokens push", err)
 		}
 		if len(tokens) == 0 {
 			return nil, huma.Error409Conflict("el usuario no tiene tokens push activos")
@@ -261,7 +262,7 @@ func pruebaStaff(db database.DB, sender Sender) func(context.Context, *pruebaInp
 				"fallidos":    out.Body.Fallidos,
 				"invalidados": out.Body.Invalidados,
 			}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		return out, nil
 	}

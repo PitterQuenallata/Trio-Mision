@@ -18,6 +18,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -143,7 +144,7 @@ func crearTicket(db database.DB) func(ctx context.Context, in *crearTicketInput)
 			return nil, huma.Error401Unauthorized("no autenticado")
 		}
 		if _, err := ensureProfile(ctx, db, claims.Subject, claims.Email); err != nil {
-			return nil, huma.Error500InternalServerError("error asegurando el perfil", err)
+			return nil, apierr.Internal("error asegurando el perfil", err)
 		}
 
 		if in.Body.Categoria == "reclamo_youtube" &&
@@ -157,7 +158,7 @@ func crearTicket(db database.DB) func(ctx context.Context, in *crearTicketInput)
 			if err := db.QueryRow(ctx, `
 				select exists(select 1 from orders where id = $1 and user_id = $2)`,
 				in.Body.OrderID, claims.Subject).Scan(&dueno); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando la orden", err)
+				return nil, apierr.Internal("error consultando la orden", err)
 			}
 			if !dueno {
 				return nil, huma.Error404NotFound("orden no encontrada")
@@ -168,7 +169,7 @@ func crearTicket(db database.DB) func(ctx context.Context, in *crearTicketInput)
 			if err := db.QueryRow(ctx, `
 				select exists(select 1 from license_grants where id = $1 and user_id = $2)`,
 				in.Body.LicenseGrantID, claims.Subject).Scan(&dueno); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando la licencia", err)
+				return nil, apierr.Internal("error consultando la licencia", err)
 			}
 			if !dueno {
 				return nil, huma.Error404NotFound("licencia no encontrada")
@@ -200,12 +201,12 @@ func crearTicket(db database.DB) func(ctx context.Context, in *crearTicketInput)
 			return out, nil
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el ticket", err)
+			return nil, apierr.Internal("error consultando el ticket", err)
 		}
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -250,14 +251,14 @@ func crearTicket(db database.DB) func(ctx context.Context, in *crearTicketInput)
 				}
 				return nil, huma.Error409Conflict("la clave idempotente ya fue usada con otro ticket")
 			}
-			return nil, huma.Error500InternalServerError("error creando el ticket", err)
+			return nil, apierr.Internal("error creando el ticket", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "ticket.creado", "support_ticket", t.ID,
 			map[string]any{"categoria": in.Body.Categoria, "asunto": in.Body.Asunto}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		if err := rellenarMensajes(ctx, db, &t, nil, 0); err != nil {
 			return nil, err
@@ -290,19 +291,19 @@ func listarTickets(db database.DB) func(ctx context.Context, _ *struct{}) (*list
 			       coalesce(youtube_url, ''), coalesce(youtube_claim_id, ''), created_at, updated_at
 			from support_tickets where user_id = $1 order by created_at desc limit 50`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los tickets", err)
+			return nil, apierr.Internal("error consultando los tickets", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var t ticketResumen
 			if err := rows.Scan(&t.ID, &t.Categoria, &t.Asunto, &t.Estado, &t.OrderID, &t.LicenseGrantID,
 				&t.YoutubeURL, &t.YoutubeClaimID, &t.CreadoEn, &t.ActualizadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los tickets", err)
+				return nil, apierr.Internal("error leyendo los tickets", err)
 			}
 			out.Body.Tickets = append(out.Body.Tickets, t)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los tickets", err)
+			return nil, apierr.Internal("error leyendo los tickets", err)
 		}
 		return out, nil
 	}
@@ -348,7 +349,7 @@ func ticketDelUsuario(ctx context.Context, q database.Querier, id, userID string
 		return nil, huma.Error404NotFound("ticket no encontrado")
 	}
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el ticket", err)
+		return nil, apierr.Internal("error consultando el ticket", err)
 	}
 	return &t, nil
 }
@@ -361,7 +362,7 @@ func rellenarMensajes(ctx context.Context, q database.Querier, t *ticketResumen,
 		select id, author_id, author_kind, cuerpo, attachment_key, attachment_mime, attachment_size, created_at
 		from support_messages where ticket_id = $1 order by created_at asc`, t.ID)
 	if err != nil {
-		return huma.Error500InternalServerError("error consultando los mensajes", err)
+		return apierr.Internal("error consultando los mensajes", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
@@ -372,19 +373,19 @@ func rellenarMensajes(ctx context.Context, q database.Querier, t *ticketResumen,
 			size *int64
 		)
 		if err := rows.Scan(&m.ID, &m.AutorID, &m.Autor, &m.Cuerpo, &key, &mime, &size, &m.CreadoEn); err != nil {
-			return huma.Error500InternalServerError("error leyendo los mensajes", err)
+			return apierr.Internal("error leyendo los mensajes", err)
 		}
 		if key != nil && objects != nil {
 			url, err := objects.PresignGet(ctx, *key, presignTTL)
 			if err != nil {
-				return huma.Error500InternalServerError("error firmando el adjunto", err)
+				return apierr.Internal("error firmando el adjunto", err)
 			}
 			m.Adjunto = &adjuntoMensaje{URL: url, Mime: *mime, ByteSize: *size}
 		}
 		t.Mensajes = append(t.Mensajes, m)
 	}
 	if err := rows.Err(); err != nil {
-		return huma.Error500InternalServerError("error leyendo los mensajes", err)
+		return apierr.Internal("error leyendo los mensajes", err)
 	}
 	return nil
 }
@@ -415,7 +416,7 @@ func agregarMensaje(db database.DB, objects storage.Client, authorKind string) f
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -427,7 +428,7 @@ func agregarMensaje(db database.DB, objects storage.Client, authorKind string) f
 			return nil, huma.Error404NotFound("ticket no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el ticket", err)
+			return nil, apierr.Internal("error consultando el ticket", err)
 		}
 		if authorKind == "usuario" && duenoID != claims.Subject {
 			// 404 (no 403) para no revelar la existencia del ticket ajeno.
@@ -465,14 +466,14 @@ func agregarMensaje(db database.DB, objects storage.Client, authorKind string) f
 			adjuntoKey, adjuntoMIME, adjuntoSize,
 		).Scan(&msgID, &creadoEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error registrando el mensaje", err)
+			return nil, apierr.Internal("error registrando el mensaje", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "ticket.mensaje", "support_ticket", in.ID,
 			map[string]any{"mensaje_id": msgID, "autor": authorKind, "con_adjunto": adjunto != nil}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &agregarMensajeOutput{}
@@ -511,7 +512,7 @@ func guardarAdjunto(ctx context.Context, objects storage.Client, ticketID string
 	}
 	key := fmt.Sprintf("support/tickets/%s/%d%s", ticketID, time.Now().UnixNano(), ext)
 	if err := objects.PutObject(ctx, key, mimeType, archivo); err != nil {
-		return nil, huma.Error500InternalServerError("error guardando el adjunto", err)
+		return nil, apierr.Internal("error guardando el adjunto", err)
 	}
 	return &mensajeAdjuntoGuardado{key: key, mime: mimeType, size: archivo.Size}, nil
 }

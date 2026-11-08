@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/danielgtaylor/huma/v2"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/database"
 )
@@ -20,7 +20,7 @@ func listarPlanes(db database.DB) func(context.Context, *struct{}) (*listarPlane
 			where active
 			order by duration_days, name`)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los planes", err)
+			return nil, apierr.Internal("error consultando los planes", err)
 		}
 		defer rows.Close()
 
@@ -29,12 +29,12 @@ func listarPlanes(db database.DB) func(context.Context, *struct{}) (*listarPlane
 		for rows.Next() {
 			var p planPublico
 			if err := rows.Scan(&p.ID, &p.Codigo, &p.Nombre, &p.Descripcion, &p.DuracionDias, &p.Beneficios); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los planes", err)
+				return nil, apierr.Internal("error leyendo los planes", err)
 			}
 			out.Body.Planes = append(out.Body.Planes, p)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los planes", err)
+			return nil, apierr.Internal("error leyendo los planes", err)
 		}
 		return out, nil
 	}

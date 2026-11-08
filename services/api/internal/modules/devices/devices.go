@@ -13,6 +13,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -143,7 +144,7 @@ func registrar(db database.DB) func(context.Context, *registrarInput) (*registra
 		if _, err := db.Exec(ctx,
 			`insert into profiles (id, email) values ($1, $2) on conflict (id) do nothing`,
 			claims.Subject, claims.Email); err != nil {
-			return nil, huma.Error500InternalServerError("error asegurando el perfil", err)
+			return nil, apierr.Internal("error asegurando el perfil", err)
 		}
 
 		var revokedAt *time.Time
@@ -151,7 +152,7 @@ func registrar(db database.DB) func(context.Context, *registrarInput) (*registra
 			`select revoked_at from devices where user_id = $1 and install_id = $2`,
 			claims.Subject, in.Body.InstallID).Scan(&revokedAt)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el dispositivo", err)
+			return nil, apierr.Internal("error consultando el dispositivo", err)
 		}
 		if err == nil && revokedAt != nil {
 			return nil, huma.Error409Conflict("este dispositivo fue revocado; genera un nuevo install_id")
@@ -172,7 +173,7 @@ func registrar(db database.DB) func(context.Context, *registrarInput) (*registra
 			&out.Body.DeviceName, &out.Body.FirstSeenAt, &out.Body.LastSeenAt,
 			&out.Body.RevokedAt, &out.Body.RevokedReason)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error registrando el dispositivo", err)
+			return nil, apierr.Internal("error registrando el dispositivo", err)
 		}
 		out.Body.Estado = estadoDispositivo(out.Body.RevokedAt)
 		return out, nil
@@ -197,7 +198,7 @@ func listar(db database.DB) func(context.Context, *struct{}) (*listarOutput, err
 			from devices where user_id = $1
 			order by last_seen_at desc`, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando tus dispositivos", err)
+			return nil, apierr.Internal("error consultando tus dispositivos", err)
 		}
 		defer rows.Close()
 
@@ -207,13 +208,13 @@ func listar(db database.DB) func(context.Context, *struct{}) (*listarOutput, err
 			var d dispositivoItem
 			if err := rows.Scan(&d.ID, &d.InstallID, &d.Platform, &d.AppVersion, &d.DeviceName,
 				&d.FirstSeenAt, &d.LastSeenAt, &d.RevokedAt, &d.RevokedReason); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo tus dispositivos", err)
+				return nil, apierr.Internal("error leyendo tus dispositivos", err)
 			}
 			d.Estado = estadoDispositivo(d.RevokedAt)
 			out.Body.Dispositivos = append(out.Body.Dispositivos, d)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo tus dispositivos", err)
+			return nil, apierr.Internal("error leyendo tus dispositivos", err)
 		}
 		return out, nil
 	}
@@ -257,12 +258,12 @@ func heartbeat(db database.DB) func(context.Context, *heartbeatInput) (*heartbea
 				return nil, huma.Error409Conflict("el dispositivo está revocado")
 			}
 			if checkErr != nil && !errors.Is(checkErr, pgx.ErrNoRows) {
-				return nil, huma.Error500InternalServerError("error consultando el dispositivo", checkErr)
+				return nil, apierr.Internal("error consultando el dispositivo", checkErr)
 			}
 			return nil, huma.Error404NotFound("dispositivo no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el dispositivo", err)
+			return nil, apierr.Internal("error actualizando el dispositivo", err)
 		}
 		out := &heartbeatOutput{}
 		out.Body.InstallID = in.InstallID
@@ -294,7 +295,7 @@ func revocar(db database.DB) func(context.Context, *revocarInput) (*revocarOutpu
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -313,7 +314,7 @@ func revocar(db database.DB) func(context.Context, *revocarInput) (*revocarOutpu
 			return nil, huma.Error404NotFound("dispositivo no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando el dispositivo", err)
+			return nil, apierr.Internal("error revocando el dispositivo", err)
 		}
 		// Cascada: revocar el dispositivo revoca sus licencias offline
 		// (reproducción cifrada) en la misma transacción.
@@ -321,10 +322,10 @@ func revocar(db database.DB) func(context.Context, *revocarInput) (*revocarOutpu
 			update offline_downloads
 			set revoked_at = now(), revoked_reason = 'dispositivo revocado'
 			where device_id = $1 and revoked_at is null`, deviceID); err != nil {
-			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+			return nil, apierr.Internal("error revocando las licencias offline", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out := &revocarOutput{}
 		out.Body.InstallID = in.InstallID
@@ -359,7 +360,7 @@ func listarStaff(db database.DB) func(context.Context, *listarStaffInput) (*list
 			from devices d `+where+`
 			order by d.last_seen_at desc limit 200`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los dispositivos", err)
+			return nil, apierr.Internal("error consultando los dispositivos", err)
 		}
 		defer rows.Close()
 
@@ -369,13 +370,13 @@ func listarStaff(db database.DB) func(context.Context, *listarStaffInput) (*list
 			var d dispositivoItem
 			if err := rows.Scan(&d.ID, &d.InstallID, &d.Platform, &d.AppVersion, &d.DeviceName,
 				&d.FirstSeenAt, &d.LastSeenAt, &d.RevokedAt, &d.RevokedReason); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los dispositivos", err)
+				return nil, apierr.Internal("error leyendo los dispositivos", err)
 			}
 			d.Estado = estadoDispositivo(d.RevokedAt)
 			out.Body.Dispositivos = append(out.Body.Dispositivos, d)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los dispositivos", err)
+			return nil, apierr.Internal("error leyendo los dispositivos", err)
 		}
 		return out, nil
 	}
@@ -401,7 +402,7 @@ func revocarStaff(db database.DB) func(context.Context, *revocarStaffInput) (*re
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -419,21 +420,21 @@ func revocarStaff(db database.DB) func(context.Context, *revocarStaffInput) (*re
 			return nil, huma.Error404NotFound("dispositivo no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando el dispositivo", err)
+			return nil, apierr.Internal("error revocando el dispositivo", err)
 		}
 		// Cascada: las licencias offline del dispositivo se revocan con él.
 		if _, err := tx.Exec(ctx, `
 			update offline_downloads
 			set revoked_at = now(), revoked_reason = 'dispositivo revocado por staff'
 			where device_id = $1 and revoked_at is null`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+			return nil, apierr.Internal("error revocando las licencias offline", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "dispositivo.revocado", "device", in.ID,
 			map[string]any{"usuario_id": userID, "motivo": in.Body.Motivo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out := &revocarStaffOutput{}
 		out.Body.ID = in.ID

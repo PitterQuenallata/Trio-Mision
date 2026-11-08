@@ -17,6 +17,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -126,7 +127,7 @@ func listar(db database.DB) func(context.Context, *artistaPath) (*listarOutput, 
 			select default_permissions from artist_license_profiles where artist_id = $1`, in.ArtistID,
 		).Scan(&perfil)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el perfil de licencias", err)
+			return nil, apierr.Internal("error consultando el perfil de licencias", err)
 		}
 		if err == nil {
 			out.Body.Perfil = perfil
@@ -140,19 +141,19 @@ func listar(db database.DB) func(context.Context, *artistaPath) (*listarOutput, 
 			where t.artist_id = $1
 			order by t.title, tlo.use_code`, in.ArtistID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las opciones de licencia", err)
+			return nil, apierr.Internal("error consultando las opciones de licencia", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var o opcionLicencia
 			if err := rows.Scan(&o.ID, &o.PistaID, &o.PistaTitulo, &o.Uso, &o.MontoMinor,
 				&o.Moneda, &o.Habilitada, &o.ActualizadaEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las opciones", err)
+				return nil, apierr.Internal("error leyendo las opciones", err)
 			}
 			out.Body.Opciones = append(out.Body.Opciones, o)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las opciones", err)
+			return nil, apierr.Internal("error leyendo las opciones", err)
 		}
 		rows.Close()
 
@@ -160,18 +161,18 @@ func listar(db database.DB) func(context.Context, *artistaPath) (*listarOutput, 
 			select id, version_label, published_at from license_terms_versions
 			where artist_id = $1 order by published_at desc limit 20`, in.ArtistID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los términos", err)
+			return nil, apierr.Internal("error consultando los términos", err)
 		}
 		defer trows.Close()
 		for trows.Next() {
 			var v versionTerminos
 			if err := trows.Scan(&v.ID, &v.Etiqueta, &v.PublicadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los términos", err)
+				return nil, apierr.Internal("error leyendo los términos", err)
 			}
 			out.Body.Terminos = append(out.Body.Terminos, v)
 		}
 		if err := trows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los términos", err)
+			return nil, apierr.Internal("error leyendo los términos", err)
 		}
 		return out, nil
 	}
@@ -207,7 +208,7 @@ func guardarOpcion(db database.DB) func(context.Context, *guardarOpcionInput) (*
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -217,7 +218,7 @@ func guardarOpcion(db database.DB) func(context.Context, *guardarOpcionInput) (*
 			select exists(select 1 from tracks where id = $1 and artist_id = $2 and deleted_at is null)`,
 			in.TrackID, in.ArtistID).Scan(&existe)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la pista", err)
+			return nil, apierr.Internal("error consultando la pista", err)
 		}
 		if !existe {
 			return nil, huma.Error404NotFound("pista no encontrada en este artista")
@@ -250,20 +251,20 @@ func guardarOpcion(db database.DB) func(context.Context, *guardarOpcionInput) (*
 				&out.Body.Moneda, &out.Body.Habilitada, &out.Body.ActualizadaEn)
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error guardando la opción de licencia", err)
+			return nil, apierr.Internal("error guardando la opción de licencia", err)
 		}
 		var titulo string
 		if err := tx.QueryRow(ctx, `select title from tracks where id = $1`, in.TrackID).Scan(&titulo); err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la pista", err)
+			return nil, apierr.Internal("error consultando la pista", err)
 		}
 		out.Body.PistaTitulo = titulo
 		if err := registrarAuditoria(ctx, tx, claims.Subject, accion, "track_license_option", out.Body.ID,
 			map[string]any{"artista_id": in.ArtistID, "pista_id": in.TrackID, "uso": in.UseCode,
 				"monto_minor": in.Body.MontoMinor, "habilitada": in.Body.Habilitada}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return out, nil
 	}
@@ -293,7 +294,7 @@ func publicarTerminos(db database.DB) func(context.Context, *publicarTerminosInp
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -305,14 +306,14 @@ func publicarTerminos(db database.DB) func(context.Context, *publicarTerminosInp
 			in.ArtistID, in.Body.VersionLabel, in.Body.TermsText,
 		).Scan(&out.Body.ID, &out.Body.Etiqueta, &out.Body.Texto, &out.Body.PublicadoEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error publicando los términos", err)
+			return nil, apierr.Internal("error publicando los términos", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "terminos.publicados", "license_terms_version", out.Body.ID,
 			map[string]any{"artista_id": in.ArtistID, "etiqueta": in.Body.VersionLabel}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return out, nil
 	}
@@ -343,7 +344,7 @@ func guardarPerfil(db database.DB) func(context.Context, *guardarPerfilInput) (*
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -356,14 +357,14 @@ func guardarPerfil(db database.DB) func(context.Context, *guardarPerfilInput) (*
 			in.ArtistID, permisos,
 		).Scan(&out.Body.ArtistID, &out.Body.Permisos, &out.Body.ActualizadoEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el perfil de licencias", err)
+			return nil, apierr.Internal("error guardando el perfil de licencias", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "perfil_licencias.actualizado", "artist_license_profile", in.ArtistID,
 			map[string]any{"artista_id": in.ArtistID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return out, nil
 	}
