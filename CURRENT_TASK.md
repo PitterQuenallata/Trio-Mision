@@ -186,6 +186,11 @@ en la corrida con la migración aplicada; 503 del envío de prueba verificado a
 mano con rol admin (sin FCM). Un defecto encontrado y corregido: la rotación
 insertaba antes de revocar y chocaba con el índice único parcial (500).
 
+**Configuración FCM (2026-11-08):** proyecto `trio-mision`, cuenta de servicio
+en `firebase-llv/` (ignorada en git, permisos 600), `FCM_PROJECT_ID` y
+`FCM_CREDENTIALS_FILE` en `.env`. Validado con envío de prueba a un token
+falso: FCM aceptó la autenticación y rechazó el token (`invalidados: 1`).
+
 **Pendiente — no verificable aquí:** el envío real a un dispositivo. Requiere un
 proyecto Firebase con su cuenta de servicio (`FCM_PROJECT_ID`,
 `FCM_CREDENTIALS_FILE`) y un dispositivo de prueba. El criterio de salida de la

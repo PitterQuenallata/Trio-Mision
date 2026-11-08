@@ -48,3 +48,7 @@ __pycache__/
 reverse-lab/**/reference/*extracted*/
 reverse-lab/**/reference/*unpacked*/
 *.apks.zip
+
+# Credenciales locales de Firebase (no versionar)
+firebase-llv/
+*-adminsdk-*.json
