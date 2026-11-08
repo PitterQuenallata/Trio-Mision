@@ -2,6 +2,7 @@
 package server
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -27,6 +28,7 @@ import (
 	"triomision/api/internal/modules/staff"
 	"triomision/api/internal/modules/store"
 	"triomision/api/internal/modules/sync"
+	"triomision/api/internal/ratelimit"
 	"triomision/api/internal/storage"
 )
 
@@ -34,6 +36,22 @@ import (
 const Version = "0.12.0"
 
 // New arma el handler raíz: middlewares chi, OpenAPI/Swagger de Huma y módulos.
+// clientIP devuelve la IP del cliente. chi.RealIP ya la dejó en RemoteAddr
+// (X-Forwarded-For / X-Real-IP): en producción solo debe confiarse detrás del
+// proxy HTTPS del VPS.
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return host
+}
+
+// isHealthProbe exime las sondas de liveness y readiness del límite.
+func isHealthProbe(r *http.Request) bool {
+	return r.URL.Path == "/api/v1/health" || r.URL.Path == "/api/v1/ready"
+}
+
 func New(cfg config.Config, db database.DB, validator *auth.Validator, objects storage.Client) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -41,6 +59,15 @@ func New(cfg config.Config, db database.DB, validator *auth.Validator, objects s
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(30 * time.Second))
+	// Sin tasa configurada (solo pruebas unitarias: Load exige valores > 0)
+	// el límite no se instala.
+	if cfg.RateLimit.RPS > 0 {
+		r.Use(ratelimit.Middleware(
+			ratelimit.New(ratelimit.Config{RPS: cfg.RateLimit.RPS, Burst: cfg.RateLimit.Burst}),
+			clientIP,
+			isHealthProbe,
+		))
+	}
 
 	humaCfg := huma.DefaultConfig("Trio Misión API", Version)
 	humaCfg.Info.Description = "API central del ecosistema Trio Misión."

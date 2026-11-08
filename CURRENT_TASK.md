@@ -191,6 +191,17 @@ en `firebase-llv/` (ignorada en git, permisos 600), `FCM_PROJECT_ID` y
 `FCM_CREDENTIALS_FILE` en `.env`. Validado con envío de prueba a un token
 falso: FCM aceptó la autenticación y rechazó el token (`invalidados: 1`).
 
+**Endurecimiento de la API (2026-11-08, en rama `api-rate-limit`):** límite de
+tasa por IP (token bucket en memoria, `internal/ratelimit`, 429 con
+`Retry-After`; `API_RATE_LIMIT_RPS`/`API_RATE_LIMIT_BURST`, por defecto 20/60).
+Pruebas unitarias del bucket y del middleware; verificado en vivo (ráfaga de 100
+→ 20 rechazos 429; health exento). Bruno 288/288, 136/136, 604/604. El límite es
+por instancia: con varias réplicas habría que moverlo a un almacén compartido.
+
+**Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
+Se configuró y validó; el envío a un dispositivo real se verifica más adelante,
+cuando haya una app web o Android de prueba.
+
 **Pendiente — no verificable aquí:** el envío real a un dispositivo. Requiere un
 proyecto Firebase con su cuenta de servicio (`FCM_PROJECT_ID`,
 `FCM_CREDENTIALS_FILE`) y un dispositivo de prueba. El criterio de salida de la

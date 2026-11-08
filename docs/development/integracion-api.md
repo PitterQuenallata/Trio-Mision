@@ -87,6 +87,12 @@ tokens.
   5 MiB, con detección real de contenido (JPEG/PNG/WebP). Nunca se suben a
   MinIO directamente desde el cliente.
 
+**Límite de tasa.** Cada IP tiene un límite de peticiones (por defecto 20/s con
+ráfaga de 60). Al excederlo la API responde `429 Too Many Requests` con
+cabecera `Retry-After` (segundos) y cuerpo `application/problem+json`. Los
+clientes deben esperar ese tiempo antes de reintentar; `/health` y `/ready` no
+cuentan.
+
 ## 4. Flujo de compra y descarga (QR/transferencia manual)
 
 Estados de la máquina de estados (los strings exactos viajan en los JSON):
