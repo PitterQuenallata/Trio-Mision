@@ -198,6 +198,14 @@ Pruebas unitarias del bucket y del middleware; verificado en vivo (ráfaga de 10
 → 20 rechazos 429; health exento). Bruno 288/288, 136/136, 604/604. El límite es
 por instancia: con varias réplicas habría que moverlo a un almacén compartido.
 
+**Carga y seguridad (2026-11-08):** pruebas de carga con k6 (`loadtest/`,
+resultados en `loadtest/RESULTADOS-2026-11-08.md`): 0 errores 5xx; ~3 363 req/s
+con p95 51 ms en saturación de lecturas. Revisión de seguridad en
+`docs/seguridad/revision-endurecimiento-2026-11-08.md`. Corregido: los 500
+filtraban el texto de error interno (469 sitios) → `internal/apierr`. Autorización
+de las 39 rutas staff verificada en vivo. Pendiente de decisión: límite por IP
+en redes compartidas.
+
 **Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
 Se configuró y validó; el envío a un dispositivo real se verifica más adelante,
 cuando haya una app web o Android de prueba.
