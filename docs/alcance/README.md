@@ -11,8 +11,11 @@ en iglesias y recitales, incluso sin dominar teoría musical. La experiencia de
 letras/acordes y el modo escenario/tablet son el centro del producto.
 
 ```
-apps/web        Sitio público y portal web de cuenta/compras
-apps/mobile     App móvil v2 (Flutter)
+apps/web        Sitio público del grupo Trio Misión (historia, discografía, contacto).
+                Solo tiene una sección de referencia que remite a apps/appweb
+apps/appweb     Portal con login para usuarios con suscripción: panel de usuario
+                (compras, licencias, descargas, biblioteca y cuenta)
+apps/mobile     APK: app móvil v2 (Flutter), offline-first
 apps/pc         Cliente PC para usuarios, con la misma API y cuenta que APK (previsto)
 apps/admin      Panel administrativo v2 para staff, managers y members
 services/api    API central en Go y autoridad de negocio

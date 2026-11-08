@@ -208,6 +208,12 @@ de las 39 rutas staff verificada en vivo. Límite de tasa por usuario autenticad
 para todos. Verificado en vivo (cupos separados en la misma IP, tokens falsos sin
 bypass); Bruno 288/288, 136/136, 604/604.
 
+**Estructura de clientes (2026-11-08):** `apps/web` = sitio público del grupo
+(historia, discografía, contacto) con una sección de referencia al sistema;
+`apps/appweb` = portal con login para usuarios con suscripción (nuevo, placeholder);
+`apps/admin` = panel staff/manager/member; `apps/mobile` = APK. Alcance y
+planificación actualizados. Sin código de UI todavía.
+
 **Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
 Se configuró y validó; el envío a un dispositivo real se verifica más adelante,
 cuando haya una app web o Android de prueba.
