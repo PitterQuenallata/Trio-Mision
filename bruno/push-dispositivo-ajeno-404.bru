@@ -1,0 +1,33 @@
+meta {
+  name: Push - dispositivo ajeno 404
+  type: http
+  seq: 284
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+script:pre-request {
+  bru.setVar("pushToken3", `bruno-fcm-c-${Date.now() + '-' + Math.random().toString(36).slice(2, 10)}-zzzzzzzzzzzzzzzzzzzzzzzz`);
+}
+
+body:json {
+  {
+    "token": "{{pushToken3}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+}
+
+docs {
+  Un usuario no puede registrar tokens en dispositivos de otro.
+}

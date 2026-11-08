@@ -1,0 +1,20 @@
+meta {
+  name: Push - revocar token idempotente
+  type: http
+  seq: 288
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.revocados: eq 0
+}
+

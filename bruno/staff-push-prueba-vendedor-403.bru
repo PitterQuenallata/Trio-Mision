@@ -1,0 +1,31 @@
+meta {
+  name: Staff - push de prueba solo admin (vendedor 403)
+  type: http
+  seq: 289
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/push/prueba
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "usuario_id": "{{devUserId}}",
+    "titulo": "Prueba",
+    "cuerpo": "Mensaje de prueba"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  El envío de prueba es solo para admin; un vendedor recibe 403 antes de llegar a FCM.
+}

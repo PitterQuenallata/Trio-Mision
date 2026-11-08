@@ -1,0 +1,24 @@
+meta {
+  name: Staff - push de prueba sin autenticación 401
+  type: http
+  seq: 290
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/push/prueba
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "usuario_id": "{{devUserId}}",
+    "titulo": "Prueba",
+    "cuerpo": "Mensaje de prueba"
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+

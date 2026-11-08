@@ -1,0 +1,31 @@
+meta {
+  name: Push - mismo token es idempotente
+  type: http
+  seq: 280
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "token": "{{pushToken1}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq activo
+  res.body.rotado: eq false
+}
+
+docs {
+  Repetir el mismo token no rota nada ni duplica la fila.
+}

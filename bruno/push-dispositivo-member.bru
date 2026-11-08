@@ -1,0 +1,35 @@
+meta {
+  name: Push - registrar dispositivo member
+  type: http
+  seq: 282
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+script:pre-request {
+  bru.setVar("pushInstallMember", `bruno-push-mem-${Date.now() + '-' + Math.random().toString(36).slice(2, 10)}`);
+}
+
+body:json {
+  {
+    "install_id": "{{pushInstallMember}}",
+    "platform": "ios",
+    "app_version": "4.1.0"
+  }
+}
+
+assert {
+  res.status: eq 200
+}
+
+docs {
+  Dispositivo de un segundo usuario (member) para probar aislamiento de tokens.
+}

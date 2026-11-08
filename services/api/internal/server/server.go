@@ -21,6 +21,7 @@ import (
 	"triomision/api/internal/modules/importaciones"
 	"triomision/api/internal/modules/licencias"
 	"triomision/api/internal/modules/me"
+	"triomision/api/internal/modules/push"
 	"triomision/api/internal/modules/servicios"
 	"triomision/api/internal/modules/soporte"
 	"triomision/api/internal/modules/staff"
@@ -30,7 +31,7 @@ import (
 )
 
 // Version es la versión del servicio reportada por /api/v1/health.
-const Version = "0.11.0"
+const Version = "0.12.0"
 
 // New arma el handler raíz: middlewares chi, OpenAPI/Swagger de Huma y módulos.
 func New(cfg config.Config, db database.DB, validator *auth.Validator, objects storage.Client) http.Handler {
@@ -71,6 +72,7 @@ func New(cfg config.Config, db database.DB, validator *auth.Validator, objects s
 	soporte.Register(api, db, objects, cfg.S3.PresignTTL)
 	sync.Register(api, db)
 	importaciones.Register(api, db, objects, cfg.S3.PresignTTL)
+	push.Register(api, db, push.NewSender(cfg.FCM.ProjectID, cfg.FCM.CredentialsFile))
 	store.Register(api, db, objects, cfg.S3.PresignTTL)
 	staff.Register(api, db, objects, cfg.S3.PresignTTL)
 

@@ -1,0 +1,23 @@
+meta {
+  name: Push - revocar token del dispositivo
+  type: http
+  seq: 287
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.revocados: eq 1
+}
+
+docs {
+  Solo queda activo el token rotado (pushToken2): se revoca exactamente uno.
+}

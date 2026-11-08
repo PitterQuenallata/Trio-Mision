@@ -1,0 +1,34 @@
+meta {
+  name: Push - rotar token sustituye al anterior
+  type: http
+  seq: 281
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  bru.setVar("pushToken2", `bruno-fcm-b-${Date.now() + '-' + Math.random().toString(36).slice(2, 10)}-yyyyyyyyyyyyyyyyyyyyyyyy`);
+}
+
+body:json {
+  {
+    "token": "{{pushToken2}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.rotado: eq true
+}
+
+docs {
+  Un token nuevo para el mismo dispositivo: el anterior queda revocado y solo hay un activo.
+}

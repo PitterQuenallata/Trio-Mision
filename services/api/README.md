@@ -91,6 +91,8 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 | `S3_PUBLIC_BASE_URL` | no | — | Base URL pública de previews (`public/`) |
 | `S3_REGION` | no | `us-east-1` | Región de firma |
 | `S3_PRESIGN_TTL` | no | `15m` | Vida de URLs firmadas de descarga |
+| `FCM_PROJECT_ID` | no | — | Proyecto Firebase para notificaciones push (juntar con `FCM_CREDENTIALS_FILE`) |
+| `FCM_CREDENTIALS_FILE` | no | — | Ruta a la clave JSON de la cuenta de servicio FCM, fuera del repo. Sin ella el envío responde 503 |
 
 ## Endpoints actuales
 
@@ -162,6 +164,9 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `POST /api/v1/staff/soporte/tickets/{id}/mensajes` — respuesta staff (multipart, adjunto opcional)
 - `POST /api/v1/staff/soporte/tickets/{id}/estado` — `tomar|resolver|cerrar|reabrir` con motivo y auditoría `ticket.estado`
 - `GET /api/v1/sync/catalogo?desde=&limite=` — delta incremental de catálogo e himnario por cursor opaco (`updated_at|id` base64): published vivo siempre, no publicadas/eliminadas solo si cambiaron desde el cursor (tombstone `eliminado=true`); cursor estable en cada página incluida la final
+- `PUT /api/v1/dispositivos/{installId}/push-token` — registra o rota el token FCM de mi dispositivo (idempotente; 409 si el token es de otro usuario; el token nunca se devuelve)
+- `DELETE /api/v1/dispositivos/{installId}/push-token` — revoca el token push de mi dispositivo (idempotente)
+- `POST /api/v1/staff/push/prueba` — envío de prueba a los tokens de un usuario (admin; 503 sin FCM configurado)
 - `POST /api/v1/dispositivos/{installId}/descargas-offline` — concede/renueva licencias offline (30 días) por pista con acceso vigente: entitlement activo (`origen=entitlement`) o Premium activo (`origen=premium`); sin acceso se rechaza con motivo; idempotente por índice único parcial (device_id, track_id) vigente
 - `GET /api/v1/dispositivos/{installId}/descargas-offline` — licencias del dispositivo con vencimiento y estado (404 ajeno, 409 revocado); la licencia offline jamás habilita la descarga del master
 - `GET /api/v1/staff/descargas-offline?usuario=&dispositivo=` — licencias offline registradas (admin+vendedor)

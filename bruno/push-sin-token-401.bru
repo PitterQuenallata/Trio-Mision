@@ -1,0 +1,22 @@
+meta {
+  name: Push - sin autenticación 401
+  type: http
+  seq: 285
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "token": "{{pushToken2}}"
+  }
+}
+
+assert {
+  res.status: eq 401
+}
+

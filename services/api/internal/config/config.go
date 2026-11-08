@@ -24,6 +24,16 @@ type Config struct {
 	// S3 contiene la configuración del almacenamiento compatible con S3
 	// (MinIO en desarrollo). Vacía cuando el servicio no la necesita.
 	S3 S3Config
+	// FCM describe el envío de notificaciones push. Opcional: sin ella la API
+	// arranca y el envío responde 503 (no configurado).
+	FCM FCMConfig
+}
+
+// FCMConfig describe Firebase Cloud Messaging (HTTP v1). Las credenciales de
+// la cuenta de servicio viven fuera del repo (ruta por entorno).
+type FCMConfig struct {
+	ProjectID       string
+	CredentialsFile string
 }
 
 // S3Config describe el almacenamiento de objetos (media privada, previews
@@ -59,6 +69,10 @@ func Load() (Config, error) {
 			PublicBase: strings.TrimRight(os.Getenv("S3_PUBLIC_BASE_URL"), "/"),
 			PresignTTL: presignTTL,
 		},
+		FCM: FCMConfig{
+			ProjectID:       os.Getenv("FCM_PROJECT_ID"),
+			CredentialsFile: os.Getenv("FCM_CREDENTIALS_FILE"),
+		},
 	}
 
 	var errs []error
@@ -67,6 +81,9 @@ func Load() (Config, error) {
 	}
 	if cfg.JWTSecret == "" {
 		errs = append(errs, errors.New("GOTRUE_JWT_SECRET es requerida"))
+	}
+	if (cfg.FCM.ProjectID == "") != (cfg.FCM.CredentialsFile == "") {
+		errs = append(errs, errors.New("FCM_PROJECT_ID y FCM_CREDENTIALS_FILE deben configurarse juntas"))
 	}
 	if len(errs) > 0 {
 		return Config{}, fmt.Errorf("configuración incompleta: %w", errors.Join(errs...))

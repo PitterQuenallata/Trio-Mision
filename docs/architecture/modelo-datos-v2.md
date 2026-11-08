@@ -517,6 +517,19 @@ el dispositivo o con el entitlement que la originó. Habilita la reproducción
 cifrada offline del cliente; jamás la descarga del master por la vía de la
 tienda.
 
+Los tokens push (Sprint 4C, migración `00028_push_tokens.sql`) se atan al
+dispositivo. Como máximo un token activo por dispositivo (índice único parcial);
+un token pertenece a un único usuario y FCM revoca en el acto los rechazados:
+
+```text
+push_tokens
+  id, user_id FK profiles, device_id FK devices, token (unique),
+  provider ('fcm'), created_at, last_seen_at, revoked_at, revoked_reason,
+  índice único parcial (device_id) where revoked_at is null
+```
+
+El token nunca sale por la API.
+
 El procesamiento asíncrono de media se agrega en Fase 4: `media_jobs`/
 `media_job_assets` (§3, migración 00027) implementan la cola y el ciclo de
 vida (`queued|running|done|failed`) de la conversión editorial PDF→ChordPro
