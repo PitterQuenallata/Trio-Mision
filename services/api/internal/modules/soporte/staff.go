@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -121,7 +122,7 @@ func listarTicketsStaff(db database.DB) func(ctx context.Context, in *listarTick
 			`+whereClause+`
 			order by t.created_at desc limit 100`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los tickets", err)
+			return nil, apierr.Internal("error consultando los tickets", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -129,12 +130,12 @@ func listarTicketsStaff(db database.DB) func(ctx context.Context, in *listarTick
 			if err := rows.Scan(&t.ID, &t.UsuarioID, &t.UsuarioMail, &t.Categoria, &t.Asunto, &t.Estado,
 				&t.OrderID, &t.LicenseGrantID, &t.YoutubeURL, &t.YoutubeClaimID, &t.Mensajes,
 				&t.CreadoEn, &t.ActualizadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los tickets", err)
+				return nil, apierr.Internal("error leyendo los tickets", err)
 			}
 			out.Body.Tickets = append(out.Body.Tickets, t)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los tickets", err)
+			return nil, apierr.Internal("error leyendo los tickets", err)
 		}
 		return out, nil
 	}
@@ -172,7 +173,7 @@ func cambiarEstadoTicket(db database.DB) func(ctx context.Context, in *estadoTic
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -183,7 +184,7 @@ func cambiarEstadoTicket(db database.DB) func(ctx context.Context, in *estadoTic
 			return nil, huma.Error404NotFound("ticket no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el ticket", err)
+			return nil, apierr.Internal("error consultando el ticket", err)
 		}
 		estadoNuevo, valida := transiciones[in.Body.Accion][estadoActual]
 		if !valida {
@@ -192,15 +193,15 @@ func cambiarEstadoTicket(db database.DB) func(ctx context.Context, in *estadoTic
 
 		if _, err := tx.Exec(ctx, `
 			update support_tickets set estado = $2 where id = $1`, in.ID, estadoNuevo); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el ticket", err)
+			return nil, apierr.Internal("error actualizando el ticket", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "ticket.estado", "support_ticket", in.ID,
 			map[string]any{"accion": in.Body.Accion, "estado_anterior": estadoActual,
 				"estado_nuevo": estadoNuevo, "motivo": in.Body.Motivo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &estadoTicketOutput{}

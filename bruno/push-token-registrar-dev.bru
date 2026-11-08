@@ -1,0 +1,36 @@
+meta {
+  name: Push - registrar token dev
+  type: http
+  seq: 279
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  bru.setVar("pushToken1", `bruno-fcm-a-${Date.now() + '-' + Math.random().toString(36).slice(2, 10)}-xxxxxxxxxxxxxxxxxxxxxxxx`);
+}
+
+body:json {
+  {
+    "token": "{{pushToken1}}"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.estado: eq activo
+  res.body.rotado: eq false
+  res.body.token: isUndefined
+}
+
+docs {
+  Primer token del dispositivo: no sustituye ninguno (rotado=false). La respuesta nunca incluye el token.
+}

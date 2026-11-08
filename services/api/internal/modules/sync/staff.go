@@ -9,6 +9,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -103,7 +104,7 @@ func listarDescargasStaff(db database.DB) func(ctx context.Context, in *listarDe
 			`+whereClause+`
 			order by od.granted_at desc limit 200`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las licencias offline", err)
+			return nil, apierr.Internal("error consultando las licencias offline", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -114,14 +115,14 @@ func listarDescargasStaff(db database.DB) func(ctx context.Context, in *listarDe
 			if err := rows.Scan(&item.ID, &item.UsuarioID, &item.UsuarioMail, &item.DeviceID,
 				&item.InstallID, &item.PistaID, &item.PistaTitulo, &item.Origen, &item.ConcedidaEn,
 				&item.ExpiraEn, &actividad, &item.RevocadaEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las licencias offline", err)
+				return nil, apierr.Internal("error leyendo las licencias offline", err)
 			}
 			item.ActividadEn = actividad
 			item.Estado = estadoDescarga(item.RevocadaEn, item.ExpiraEn)
 			out.Body.Descargas = append(out.Body.Descargas, item)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las licencias offline", err)
+			return nil, apierr.Internal("error leyendo las licencias offline", err)
 		}
 		return out, nil
 	}
@@ -151,7 +152,7 @@ func revocarDescargaStaff(db database.DB) func(ctx context.Context, in *revocarD
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -170,14 +171,14 @@ func revocarDescargaStaff(db database.DB) func(ctx context.Context, in *revocarD
 			return nil, huma.Error404NotFound("licencia offline no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando la licencia offline", err)
+			return nil, apierr.Internal("error revocando la licencia offline", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "descarga_offline.revocada", "offline_download", in.ID,
 			map[string]any{"motivo": in.Body.Motivo, "usuario_id": userID, "pista_id": trackID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &revocarDescargaOutput{}

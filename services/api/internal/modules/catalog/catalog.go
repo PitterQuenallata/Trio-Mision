@@ -10,6 +10,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/database"
 )
@@ -74,7 +75,7 @@ func listarArtistas(db database.DB) func(context.Context, *struct{}) (*listarArt
 			where a.is_published and a.deleted_at is null
 			order by a.name`)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el catálogo", err)
+			return nil, apierr.Internal("error consultando el catálogo", err)
 		}
 		defer rows.Close()
 
@@ -83,12 +84,12 @@ func listarArtistas(db database.DB) func(context.Context, *struct{}) (*listarArt
 		for rows.Next() {
 			var a artistaResumen
 			if err := rows.Scan(&a.ID, &a.Slug, &a.Nombre, &a.Estilo, &a.Pais, &a.Bio, &a.CoverKey, &a.Redes); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo el catálogo", err)
+				return nil, apierr.Internal("error leyendo el catálogo", err)
 			}
 			out.Body.Artistas = append(out.Body.Artistas, a)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo el catálogo", err)
+			return nil, apierr.Internal("error leyendo el catálogo", err)
 		}
 		return out, nil
 	}
@@ -148,7 +149,7 @@ func obtenerArtista(db database.DB) func(context.Context, *obtenerArtistaInput) 
 			return nil, huma.Error404NotFound("artista no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el artista", err)
+			return nil, apierr.Internal("error consultando el artista", err)
 		}
 
 		// Un solo viaje: álbumes y canciones publicados del artista, agrupados en memoria.
@@ -163,7 +164,7 @@ func obtenerArtista(db database.DB) func(context.Context, *obtenerArtistaInput) 
 			where al.artist_id = $1 and al.is_published and al.deleted_at is null
 			order by al.sort_order, al.title, s.sort_order, s.title`, out.Body.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los álbumes", err)
+			return nil, apierr.Internal("error consultando los álbumes", err)
 		}
 		defer rows.Close()
 
@@ -178,7 +179,7 @@ func obtenerArtista(db database.DB) func(context.Context, *obtenerArtistaInput) 
 			if err := rows.Scan(&albumID, &albumTitulo, &anio, &cover,
 				&cancionID, &cancion.Titulo, &cancion.Tono, &cancion.Capo, &cancion.BPM,
 				&cancion.Autor, &cancion.Arreglo, &cancion.Acceso, &cancion.Orden); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los álbumes", err)
+				return nil, apierr.Internal("error leyendo los álbumes", err)
 			}
 			idx, ok := indices[albumID]
 			if !ok {
@@ -195,7 +196,7 @@ func obtenerArtista(db database.DB) func(context.Context, *obtenerArtistaInput) 
 			}
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los álbumes", err)
+			return nil, apierr.Internal("error leyendo los álbumes", err)
 		}
 		return out, nil
 	}
@@ -244,7 +245,7 @@ func obtenerCancion(db database.DB) func(context.Context, *obtenerCancionInput) 
 			return nil, huma.Error404NotFound("canción no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la canción", err)
+			return nil, apierr.Internal("error consultando la canción", err)
 		}
 		if out.Body.Acceso != "free" {
 			return nil, huma.Error403Forbidden("el contenido de esta canción requiere premium o compra")

@@ -1,0 +1,29 @@
+meta {
+  name: Push - token de otro usuario 409
+  type: http
+  seq: 283
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallMember}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{memberToken}}
+}
+
+body:json {
+  {
+    "token": "{{pushToken2}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  El token activo del usuario dev no puede reasignarse a otro usuario.
+}

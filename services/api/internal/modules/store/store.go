@@ -16,6 +16,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -117,7 +118,7 @@ func ofertasAudio(ctx context.Context, db database.DB, store storage.Client) ([]
 		  and (o.ends_at is null or o.ends_at > now())
 		order by p.title, o.amount_minor`)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando las ofertas de audio", err)
+		return nil, apierr.Internal("error consultando las ofertas de audio", err)
 	}
 	defer rows.Close()
 
@@ -130,7 +131,7 @@ func ofertasAudio(ctx context.Context, db database.DB, store storage.Client) ([]
 			&o.Producto.ID, &o.Producto.Tipo,
 			&o.Pista.ID, &o.Pista.Titulo, &o.Pista.Artista, &previewKey,
 			&o.PistasTotal); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las ofertas", err)
+			return nil, apierr.Internal("error leyendo las ofertas", err)
 		}
 		if previewKey != "" {
 			o.Pista.PreviewURL = store.PublicURL(previewKey)
@@ -138,7 +139,7 @@ func ofertasAudio(ctx context.Context, db database.DB, store storage.Client) ([]
 		ofertas = append(ofertas, o)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo las ofertas", err)
+		return nil, apierr.Internal("error leyendo las ofertas", err)
 	}
 	return ofertas, nil
 }
@@ -157,7 +158,7 @@ func ofertasPremium(ctx context.Context, db database.DB) ([]ofertaItem, error) {
 		  and (o.ends_at is null or o.ends_at > now())
 		order by p.title, o.amount_minor`)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando las ofertas premium", err)
+		return nil, apierr.Internal("error consultando las ofertas premium", err)
 	}
 	defer rows.Close()
 
@@ -168,12 +169,12 @@ func ofertasPremium(ctx context.Context, db database.DB) ([]ofertaItem, error) {
 		if err := rows.Scan(&o.ID, &o.Titulo, &o.Descripcion, &o.MontoMinor, &o.Moneda,
 			&o.Producto.ID, &o.Producto.Tipo,
 			&o.Plan.ID, &o.Plan.Codigo, &o.Plan.Nombre, &o.Plan.DuracionDias, &o.Plan.Beneficios); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las ofertas premium", err)
+			return nil, apierr.Internal("error leyendo las ofertas premium", err)
 		}
 		ofertas = append(ofertas, o)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo las ofertas premium", err)
+		return nil, apierr.Internal("error leyendo las ofertas premium", err)
 	}
 	return ofertas, nil
 }
@@ -220,7 +221,7 @@ func obtenerPista(db database.DB, store storage.Client) func(context.Context, *o
 			return nil, huma.Error404NotFound("pista no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la pista", err)
+			return nil, apierr.Internal("error consultando la pista", err)
 		}
 		if previewKey != "" {
 			out.Body.PreviewURL = store.PublicURL(previewKey)
@@ -237,18 +238,18 @@ func obtenerPista(db database.DB, store storage.Client) func(context.Context, *o
 			  and (o.ends_at is null or o.ends_at > now())
 			order by o.amount_minor`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las ofertas de la pista", err)
+			return nil, apierr.Internal("error consultando las ofertas de la pista", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var o ofertaViva
 			if err := rows.Scan(&o.ID, &o.MontoMinor, &o.Moneda); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las ofertas", err)
+				return nil, apierr.Internal("error leyendo las ofertas", err)
 			}
 			out.Body.Ofertas = append(out.Body.Ofertas, o)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las ofertas", err)
+			return nil, apierr.Internal("error leyendo las ofertas", err)
 		}
 		return out, nil
 	}
@@ -325,7 +326,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 
 		// El perfil debe existir por la FK de orders.user_id.
 		if _, err := ensureProfile(ctx, db, userID, claims.Email); err != nil {
-			return nil, huma.Error500InternalServerError("error asegurando el perfil", err)
+			return nil, apierr.Internal("error asegurando el perfil", err)
 		}
 
 		couponCode := strings.ToUpper(strings.TrimSpace(in.Body.CouponCode))
@@ -339,7 +340,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			return ordenIdempotenteValidada(ctx, db, existingID, userID, in.Body.OfertaID, couponCode, in.Body.Licencias)
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando la orden", err)
+			return nil, apierr.Internal("error consultando la orden", err)
 		}
 
 		// Oferta vigente con su producto activo.
@@ -366,7 +367,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			return nil, huma.Error404NotFound("oferta no encontrada o no vigente")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la oferta", err)
+			return nil, apierr.Internal("error consultando la oferta", err)
 		}
 
 		productSnapshot, _ := json.Marshal(map[string]any{
@@ -402,7 +403,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			// producto se congelan en el snapshot (con include_future_tracks).
 			var includeFuture bool
 			if err := db.QueryRow(ctx, `select include_future_tracks from products where id = $1`, productID).Scan(&includeFuture); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el producto", err)
+				return nil, apierr.Internal("error consultando el producto", err)
 			}
 			pistas, err := pistasPublicadas(ctx, db, productID)
 			if err != nil {
@@ -437,7 +438,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -475,7 +476,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 				return nil, huma.Error404NotFound("cupón no encontrado")
 			}
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el cupón", err)
+				return nil, apierr.Internal("error consultando el cupón", err)
 			}
 			ahora := time.Now()
 			switch {
@@ -494,7 +495,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			if err := tx.QueryRow(ctx, `
 				select count(*) from coupon_uses cu join coupons c on c.id = cu.coupon_id
 				where c.code = $1 and cu.user_id = $2`, couponCode, userID).Scan(&usosUsuario); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando los usos del cupón", err)
+				return nil, apierr.Internal("error consultando los usos del cupón", err)
 			}
 			if usosUsuario >= maxUsesPerUser {
 				return nil, huma.Error409Conflict("alcanzaste el límite de usos de este cupón")
@@ -532,7 +533,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 					return ordenIdempotenteValidada(ctx, db, orderID, userID, in.Body.OfertaID, couponCode, in.Body.Licencias)
 				}
 			}
-			return nil, huma.Error500InternalServerError("error creando la orden", err)
+			return nil, apierr.Internal("error creando la orden", err)
 		}
 
 		_, err = tx.Exec(ctx, `
@@ -542,7 +543,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			values ($1, $2, $3, $4, $5, $6, null, 1, $7, $7)`,
 			orderID, productID, offerID, trackIDOrNil(trackID), productSnapshot, contentSnapshot, amountMinor)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el contenido de la orden", err)
+			return nil, apierr.Internal("error guardando el contenido de la orden", err)
 		}
 
 		// Ítems de licencia: cada permiso adicional congelado es una línea
@@ -559,14 +560,14 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			if _, err := tx.Exec(ctx, `
 				insert into coupon_uses (coupon_id, user_id, order_id, discount_minor)
 				values ((select id from coupons where code = $1), $2, $3, $4)`, couponCode, userID, orderID, discount); err != nil {
-				return nil, huma.Error500InternalServerError("error registrando el uso del cupón", err)
+				return nil, apierr.Internal("error registrando el uso del cupón", err)
 			}
 			if _, err := tx.Exec(ctx, `update coupons set used_count = used_count + 1 where code = $1`, couponCode); err != nil {
-				return nil, huma.Error500InternalServerError("error actualizando el cupón", err)
+				return nil, apierr.Internal("error actualizando el cupón", err)
 			}
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la orden", err)
+			return nil, apierr.Internal("error confirmando la orden", err)
 		}
 
 		return obtenerOrdenPorID(ctx, db, orderID, userID)
@@ -599,7 +600,7 @@ func pistasPublicadas(ctx context.Context, q database.Querier, productID string)
 		where pi.product_id = $1
 		order by pi.sort_order`, productID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el contenido del producto", err)
+		return nil, apierr.Internal("error consultando el contenido del producto", err)
 	}
 	defer rows.Close()
 
@@ -607,13 +608,13 @@ func pistasPublicadas(ctx context.Context, q database.Querier, productID string)
 	for rows.Next() {
 		var p contenidoPista
 		if err := rows.Scan(&p.TrackID, &p.Titulo, &p.Artista); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo el contenido", err)
+			return nil, apierr.Internal("error leyendo el contenido", err)
 		}
 		p.Media = []mediaRef{}
 		pistas = append(pistas, p)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo el contenido", err)
+		return nil, apierr.Internal("error leyendo el contenido", err)
 	}
 	rows.Close()
 
@@ -636,7 +637,7 @@ func mediaPublicada(ctx context.Context, q database.Querier, trackID string) ([]
 		where tm.track_id = $1 and tm.is_published
 		order by tm.role`, trackID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando los archivos de la pista", err)
+		return nil, apierr.Internal("error consultando los archivos de la pista", err)
 	}
 	defer rows.Close()
 
@@ -644,12 +645,12 @@ func mediaPublicada(ctx context.Context, q database.Querier, trackID string) ([]
 	for rows.Next() {
 		var m mediaRef
 		if err := rows.Scan(&m.ID, &m.Rol, &m.MimeType, &m.StorageKey); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los archivos", err)
+			return nil, apierr.Internal("error leyendo los archivos", err)
 		}
 		media = append(media, m)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo los archivos", err)
+		return nil, apierr.Internal("error leyendo los archivos", err)
 	}
 	return media, nil
 }
@@ -668,7 +669,7 @@ func ordenIdempotenteValidada(ctx context.Context, db database.DB, orderID, user
 		limit 1`, orderID, userID,
 	).Scan(&offerExistente, &couponExistente)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando la orden", err)
+		return nil, apierr.Internal("error consultando la orden", err)
 	}
 	if offerExistente == nil || *offerExistente != ofertaID {
 		return nil, huma.Error409Conflict("la clave idempotente ya fue usada con otra oferta")
@@ -688,20 +689,20 @@ func ordenIdempotenteValidada(ctx context.Context, db database.DB, orderID, user
 		where order_id = $1 and license_snapshot is not null
 		order by 1`, orderID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando las licencias de la orden", err)
+		return nil, apierr.Internal("error consultando las licencias de la orden", err)
 	}
 	congeladas := []string{}
 	for rows.Next() {
 		var op string
 		if err := rows.Scan(&op); err != nil {
 			rows.Close()
-			return nil, huma.Error500InternalServerError("error leyendo las licencias de la orden", err)
+			return nil, apierr.Internal("error leyendo las licencias de la orden", err)
 		}
 		congeladas = append(congeladas, op)
 	}
 	rows.Close()
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo las licencias de la orden", err)
+		return nil, apierr.Internal("error leyendo las licencias de la orden", err)
 	}
 	solicitadas := []string{}
 	vistas := map[string]bool{}
@@ -758,7 +759,7 @@ func obtenerOrdenPorID(ctx context.Context, db database.DB, orderID, userID stri
 		return nil, huma.Error404NotFound("orden no encontrada")
 	}
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando la orden", err)
+		return nil, apierr.Internal("error consultando la orden", err)
 	}
 
 	rows, err := db.Query(ctx, `
@@ -766,19 +767,19 @@ func obtenerOrdenPorID(ctx context.Context, db database.DB, orderID, userID stri
 		       quantity, unit_amount_minor, line_total_minor
 		from order_items where order_id = $1 order by id`, orderID)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando los ítems", err)
+		return nil, apierr.Internal("error consultando los ítems", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var item ordenItemOut
 		if err := rows.Scan(&item.ID, &item.OfertaID, &item.ProductSnapshot, &item.ContentSnapshot,
 			&item.LicenseSnapshot, &item.Cantidad, &item.UnitarioMinor, &item.TotalMinor); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los ítems", err)
+			return nil, apierr.Internal("error leyendo los ítems", err)
 		}
 		out.Body.Items = append(out.Body.Items, item)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, huma.Error500InternalServerError("error leyendo los ítems", err)
+		return nil, apierr.Internal("error leyendo los ítems", err)
 	}
 	return out, nil
 }
@@ -822,19 +823,19 @@ func obtenerOrden(db database.DB) func(context.Context, *obtenerOrdenInput) (*ob
 			select id, provider, status, amount_minor, currency, created_at, confirmed_at
 			from payment_attempts where order_id = $1 order by created_at desc`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los pagos", err)
+			return nil, apierr.Internal("error consultando los pagos", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var p pagoResumen
 			if err := rows.Scan(&p.ID, &p.Proveedor, &p.Estado, &p.MontoMinor, &p.Moneda,
 				&p.CreadoEn, &p.ConfirmadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los pagos", err)
+				return nil, apierr.Internal("error leyendo los pagos", err)
 			}
 			out.Body.Pagos = append(out.Body.Pagos, p)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los pagos", err)
+			return nil, apierr.Internal("error leyendo los pagos", err)
 		}
 		return out, nil
 	}

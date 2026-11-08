@@ -1,7 +1,7 @@
 # CURRENT_TASK — Estado del trabajo
 
 > Archivo de estado vivo. Se actualiza al inicio y al final de cada sesión de trabajo.
-> Última actualización: 2026-11-01
+> Última actualización: 2026-11-08
 
 > [!IMPORTANT]
 > **SPRINT 4B DE FASE 4 COMPLETADO Y REVISADO (2026-11-01, Kimi):** worker +
@@ -14,7 +14,9 @@
 > corriendo. **No se construyó ni modificó UI.** El Sprint 4B.5
 > (normalización del himnario .cho, enfoque guitarra) también quedó
 > **completado** el 2026-11-01 (ver su sección). El siguiente paso es el
-> **Sprint 4C** (FCM); ver "Siguiente tarea — Fase 4".
+> **Sprint 4C completado** (2026-11-08, API 0.12.0: tokens push FCM). Pendiente
+> de la Fase 4: verificar el envío real a un dispositivo (requiere Firebase) y
+> confirmar el conflicto alcance/planificación sobre FCM (ver sección 4C).
 
 ## Fase 4 / Sprint 4B — Worker + conversión PDF→ChordPro: COMPLETADA ✅
 
@@ -167,6 +169,66 @@ aplicadas.
   y el destino es por lote; suficiente para el flujo editorial por API.
 - El agente no commiteó (instrucción del prompt); todo el 4B quedó en el
   árbol junto a estas correcciones.
+
+## Fase 4 / Sprint 4C — Tokens push FCM: COMPLETADO (2026-11-08)
+
+API pura **0.12.0**, migración `00028_push_tokens.sql` (un token activo por
+dispositivo, token único por usuario), módulo `push` y `services/api/internal/modules/push/fcm.go`
+(cliente FCM HTTP v1: aserción JWT RS256 de la cuenta de servicio, access token
+con caché, clasificación de tokens inválidos). Endpoints: `PUT`/`DELETE
+/api/v1/dispositivos/{installId}/push-token` y `POST /api/v1/staff/push/prueba`
+(admin). Ver `docs/development/integracion-api.md` §6.3.
+
+**Verificado:** `go test` del módulo push (5 pruebas con servidores OAuth y FCM
+falsos: firma RS256, caché del token, UNREGISTERED → inválido, 500 → transitorio,
+sin configurar); Bruno **288/288 requests, 136/136 tests, 604/604 aserciones**
+en la corrida con la migración aplicada; 503 del envío de prueba verificado a
+mano con rol admin (sin FCM). Un defecto encontrado y corregido: la rotación
+insertaba antes de revocar y chocaba con el índice único parcial (500).
+
+**Configuración FCM (2026-11-08):** proyecto `trio-mision`, cuenta de servicio
+en `firebase-llv/` (ignorada en git, permisos 600), `FCM_PROJECT_ID` y
+`FCM_CREDENTIALS_FILE` en `.env`. Validado con envío de prueba a un token
+falso: FCM aceptó la autenticación y rechazó el token (`invalidados: 1`).
+
+**Endurecimiento de la API (2026-11-08, en rama `api-rate-limit`):** límite de
+tasa por IP (token bucket en memoria, `internal/ratelimit`, 429 con
+`Retry-After`; `API_RATE_LIMIT_RPS`/`API_RATE_LIMIT_BURST`, por defecto 20/60).
+Pruebas unitarias del bucket y del middleware; verificado en vivo (ráfaga de 100
+→ 20 rechazos 429; health exento). Bruno 288/288, 136/136, 604/604. El límite es
+por instancia: con varias réplicas habría que moverlo a un almacén compartido.
+
+**Carga y seguridad (2026-11-08):** pruebas de carga con k6 (`loadtest/`,
+resultados en `loadtest/RESULTADOS-2026-11-08.md`): 0 errores 5xx; ~3 363 req/s
+con p95 51 ms en saturación de lecturas. Revisión de seguridad en
+`docs/seguridad/revision-endurecimiento-2026-11-08.md`. Corregido: los 500
+filtraban el texto de error interno (469 sitios) → `internal/apierr`. Autorización
+de las 39 rutas staff verificada en vivo. Límite de tasa por usuario autenticado
+(JWT verificado) con techo por IP: 20/60 por usuario o IP anónima, 100/300 por IP
+para todos. Verificado en vivo (cupos separados en la misma IP, tokens falsos sin
+bypass); Bruno 288/288, 136/136, 604/604.
+
+**Estructura de clientes (2026-11-08):** `apps/web` = sitio público del grupo
+(historia, discografía, contacto) con una sección de referencia al sistema;
+`apps/appweb` = portal con login para usuarios con suscripción (nuevo, placeholder);
+`apps/admin` = panel staff/manager/member; `apps/mobile` = APK. Alcance y
+planificación actualizados. Sin código de UI todavía.
+
+**Plan de la Fase 5:** ver `docs/planificacion/fase-5-tareas.md` (tareas y bloqueos).
+
+**Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
+Se configuró y validó; el envío a un dispositivo real se verifica más adelante,
+cuando haya una app web o Android de prueba.
+
+**Pendiente — no verificable aquí:** el envío real a un dispositivo. Requiere un
+proyecto Firebase con su cuenta de servicio (`FCM_PROJECT_ID`,
+`FCM_CREDENTIALS_FILE`) y un dispositivo de prueba. El criterio de salida de la
+Fase 4 ("push recibido en dispositivo de prueba") sigue abierto por eso.
+
+**Decisión abierta (conflicto de documentos):** `docs/alcance/README.md:36` dice
+"push FCM entra en v2", mientras `docs/planificacion/README.md` (Fase 4) y el
+criterio de salida lo ponen en Fase 4. Se implementó siguiendo la planificación.
+Confirmar cuál aplica; si es v2, el código queda como capacidad no activada.
 
 ## Siguiente tarea — Fase 4 (worker, sync y notificaciones)
 

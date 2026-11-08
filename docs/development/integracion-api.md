@@ -1,9 +1,10 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.11.0 (Sprint 4B: worker con conversión
-> editorial PDF→ChordPro, cola de trabajos en PostgreSQL y publicación de
-> borradores tras revisión humana; la conversión es staff y el worker jamás
-> escribe en el catálogo). Esta guía es el contrato de
+> **Versión de contrato:** 0.12.0 (Sprint 4C: tokens push FCM por dispositivo
+> y envío de prueba staff; FCM es opcional y sin configurar responde 503).
+> Sprint 4B: worker con conversión editorial PDF→ChordPro, cola de trabajos en
+> PostgreSQL y publicación de borradores tras revisión humana; la conversión es
+> staff y el worker jamás escribe en el catálogo. Esta guía es el contrato de
 > integración para los clientes del ecosistema (APK, PC, `apps/web`, panel
 > admin y panel usuario). Cualquier cambio que rompa compatibilidad exige bump
 > de versión y nota de migración. La especificación viva y ejecutable es
@@ -85,6 +86,14 @@ tokens.
   (`POST /api/v1/tienda/pagos/{pagoId}/comprobante`, campo `file`), máximo
   5 MiB, con detección real de contenido (JPEG/PNG/WebP). Nunca se suben a
   MinIO directamente desde el cliente.
+
+**Límite de tasa.** Cada usuario autenticado tiene su propio cupo (por defecto
+20/s con ráfaga de 60); las peticiones anónimas se limitan por IP con el mismo
+cupo. Además hay un techo por IP (100/s, ráfaga 300) que se aplica también a
+los usuarios autenticados. Al excederlo la API responde `429 Too Many Requests`
+con cabecera `Retry-After` (segundos) y cuerpo `application/problem+json`. Los
+clientes deben esperar ese tiempo antes de reintentar; `/health` y `/ready` no
+cuentan.
 
 ## 4. Flujo de compra y descarga (QR/transferencia manual)
 
@@ -440,6 +449,27 @@ Los borradores publicados son visibles para el manager/owner vía el delta del
 sync (§6.1: viajan con `publicado=false` cuando cambian desde el cursor) y
 son administrables por el manager con su membresía (§5).
 
+## 6.3 Notificaciones push FCM (Sprint 4C)
+
+Cada dispositivo registrado tiene como máximo **un token push activo**. El
+cliente lo obtiene de FCM y lo registra en su instalación; la API nunca lo
+devuelve.
+
+| Método | Ruta | Quién | Respuestas relevantes |
+|---|---|---|---|
+| `PUT` | `/api/v1/dispositivos/{installId}/push-token` | propietario del dispositivo | 200 `{install_id, estado, rotado}`; 404 dispositivo ajeno o inexistente; 409 dispositivo revocado o token de otro usuario; 422 token fuera de 32–4096 caracteres |
+| `DELETE` | `/api/v1/dispositivos/{installId}/push-token` | propietario | 200 `{install_id, revocados}` (idempotente) |
+| `POST` | `/api/v1/staff/push/prueba` | admin | 200 `{usuario_id, enviados, fallidos, invalidados}`; 409 sin tokens activos; 503 FCM no configurado |
+
+- Repetir el mismo token es idempotente (`rotado=false`). Un token nuevo
+  sustituye al anterior del dispositivo (`rotado=true`).
+- Si FCM rechaza un token (UNREGISTERED o token mal formado), la API lo revoca
+  al instante y lo cuenta en `invalidados`. Un error transitorio de FCM cuenta
+  en `fallidos` y el token sigue activo.
+- El envío de prueba queda en auditoría (`push.prueba`) con los contadores, sin
+  el contenido del token.
+- Un token ya ligado a otro usuario no puede reasignarse (409).
+
 ## 7. Matriz de permisos por rol
 
 | Recurso | anónimo | usuario autenticado | member | manager | editor | vendedor | admin |
@@ -486,7 +516,7 @@ del token **nunca** autorizan por sí solos.
 ## 9. Verificación y pruebas
 
 La colección Bruno (`bruno/`) ejecuta el contrato completo contra el sistema
-real: 275 requests, 136 tests y 582 aserciones en verde tras reset desde cero
+real: 288 requests, 136 tests y 604 aserciones en verde (Sprint 4C; 275/582 en 4B)
 (y en re-ejecución consecutiva sobre los mismos datos), cubriendo los flujos
 3A, 3B, 3C.1, 3C.2, 3C.3, 4A y 4B: compra de audio con licencias adicionales
 y cupón, aprobación transaccional e idempotente que concede entitlements y

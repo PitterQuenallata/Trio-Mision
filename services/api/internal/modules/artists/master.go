@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -69,7 +70,7 @@ func subirMaster(db database.DB, objects storage.Client) func(ctx context.Contex
 		if err := db.QueryRow(ctx, `
 			select exists(select 1 from tracks where id = $1 and artist_id = $2 and deleted_at is null)`,
 			in.TrackID, in.ArtistID).Scan(&existe); err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la pista", err)
+			return nil, apierr.Internal("error consultando la pista", err)
 		}
 		if !existe {
 			return nil, huma.Error404NotFound("pista no encontrada en este artista")
@@ -100,12 +101,12 @@ func subirMaster(db database.DB, objects storage.Client) func(ctx context.Contex
 		sum := sha256.Sum256(data)
 		key := fmt.Sprintf("tracks/%s/master/%d%s", in.TrackID, time.Now().UnixNano(), ext)
 		if err := objects.PutObject(ctx, key, mimeType, bytes.NewReader(data)); err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el master", err)
+			return nil, apierr.Internal("error guardando el master", err)
 		}
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -118,28 +119,28 @@ func subirMaster(db database.DB, objects storage.Client) func(ctx context.Contex
 			returning id, created_at`, key, mimeType, len(data), fmt.Sprintf("%x", sum),
 		).Scan(&assetID, &subidoEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error registrando el activo", err)
+			return nil, apierr.Internal("error registrando el activo", err)
 		}
 
 		// Solo un master publicado por pista: se despublica el anterior.
 		if _, err := tx.Exec(ctx, `
 			update track_media set is_published = false
 			where track_id = $1 and role = 'master' and is_published`, in.TrackID); err != nil {
-			return nil, huma.Error500InternalServerError("error despublicando el master anterior", err)
+			return nil, apierr.Internal("error despublicando el master anterior", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			insert into track_media (track_id, media_asset_id, role, is_published)
 			values ($1, $2, 'master', true)
 			on conflict (track_id, media_asset_id, role) do update set is_published = true`,
 			in.TrackID, assetID); err != nil {
-			return nil, huma.Error500InternalServerError("error publicando el master", err)
+			return nil, apierr.Internal("error publicando el master", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "pista.master_subido", "track", in.TrackID,
 			map[string]any{"asset_id": assetID, "mime": mimeType, "bytes": len(data)}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &subirMasterOutput{}

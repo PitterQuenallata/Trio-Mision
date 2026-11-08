@@ -12,6 +12,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -53,7 +54,7 @@ func crearPago(db database.DB) func(ctx context.Context, in *crearPagoInput) (*c
 			return nil, huma.Error404NotFound("orden no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la orden", err)
+			return nil, apierr.Internal("error consultando la orden", err)
 		}
 		if userID != claims.Subject {
 			return nil, huma.Error404NotFound("orden no encontrada")
@@ -62,7 +63,7 @@ func crearPago(db database.DB) func(ctx context.Context, in *crearPagoInput) (*c
 		if existing, err := pagoPorClave(ctx, db, orderID, in.Body.IdempotencyKey); err == nil {
 			return respuestaReintentoPago(existing, in)
 		} else if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el pago", err)
+			return nil, apierr.Internal("error consultando el pago", err)
 		}
 
 		if status != "pending" {
@@ -96,7 +97,7 @@ func crearPago(db database.DB) func(ctx context.Context, in *crearPagoInput) (*c
 					return respuestaReintentoPago(existing, in)
 				}
 			}
-			return nil, huma.Error500InternalServerError("error registrando el pago", err)
+			return nil, apierr.Internal("error registrando el pago", err)
 		}
 		out := &crearPagoOutput{}
 		out.Body = pago
@@ -175,7 +176,7 @@ func urlComprobante(db database.DB, store storage.Client, ttl time.Duration) fun
 		key := fmt.Sprintf("evidence/%s/comprobante%s", pago.ID, ext)
 		upload, err := store.PresignPost(ctx, key, in.Body.MimeType, maxComprobanteBytes, ttl)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error firmando la subida", err)
+			return nil, apierr.Internal("error firmando la subida", err)
 		}
 
 		out := &urlComprobanteOutput{}
@@ -254,7 +255,7 @@ func confirmarComprobante(db database.DB, store storage.Client) func(ctx context
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un comprobante para este pago")
 			}
-			return nil, huma.Error500InternalServerError("error registrando el comprobante", err)
+			return nil, apierr.Internal("error registrando el comprobante", err)
 		}
 
 		out := &confirmarComprobanteOutput{}
@@ -316,7 +317,7 @@ func subirComprobante(db database.DB, store storage.Client) func(context.Context
 		}
 		key := fmt.Sprintf("evidence/%s/comprobante%s", pago.ID, ext)
 		if err := store.PutObject(ctx, key, mimeType, archivo); err != nil {
-			return nil, huma.Error500InternalServerError("error guardando el comprobante", err)
+			return nil, apierr.Internal("error guardando el comprobante", err)
 		}
 
 		var subidoEn time.Time
@@ -335,7 +336,7 @@ func subirComprobante(db database.DB, store storage.Client) func(context.Context
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un comprobante para este pago")
 			}
-			return nil, huma.Error500InternalServerError("error registrando el comprobante", err)
+			return nil, apierr.Internal("error registrando el comprobante", err)
 		}
 
 		out := &subirComprobanteOutput{}
@@ -361,7 +362,7 @@ func pagoDelUsuario(ctx context.Context, db database.DB, pagoID, userID string) 
 		return nil, huma.Error404NotFound("pago no encontrado")
 	}
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el pago", err)
+		return nil, apierr.Internal("error consultando el pago", err)
 	}
 	return &p, nil
 }

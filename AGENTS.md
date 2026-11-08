@@ -156,9 +156,13 @@ Docker o PostgreSQL estén ausentes. Verificar con
   8 tests) con 455 archivos corregidos y 14 538 acordes eliminados de
   estrofas 2+; stray `01 - copia.cho` eliminado (614+614 archivos). Sin
   cambio de contrato (API 0.11.0); Bruno 275/275 tras reset.
-- Siguiente tarea: Sprint 4C de Fase 4 (FCM: `push_tokens`, envío desde
-  backend, limpieza de tokens). La versión "simplificada/modo fácil" de los
-  himnos espera el análisis REA de Chord AI
+- **Sprint 4C de Fase 4 completado** (2026-11-08): API 0.12.0, migración
+  00028 (`push_tokens`), módulo `push` (tokens FCM por dispositivo, envío de
+  prueba staff, revocación automática de tokens rechazados por FCM). FCM es
+  opcional (`FCM_PROJECT_ID`/`FCM_CREDENTIALS_FILE`); sin configurar responde
+  503. Pendiente: envío real a dispositivo (requiere Firebase).
+- Siguiente tarea: decidir el conflicto de alcance (FCM en v2 vs Fase 4) y el
+  análisis REA de Chord AI para la versión fácil de los himnos
   (`reverse-lab/projects/chord-ai/` aún vacío).
 - API actual: versión 0.11.0.
 

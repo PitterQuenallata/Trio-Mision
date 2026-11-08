@@ -13,6 +13,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -136,7 +137,7 @@ func listarPlanesStaff(db database.DB) func(context.Context, *struct{}) (*listar
 			       p.active, (select count(*) from subscriptions s where s.plan_id = p.id), p.created_at
 			from plans p order by p.created_at desc`)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los planes", err)
+			return nil, apierr.Internal("error consultando los planes", err)
 		}
 		defer rows.Close()
 		out := &listarPlanesStaffOutput{}
@@ -145,12 +146,12 @@ func listarPlanesStaff(db database.DB) func(context.Context, *struct{}) (*listar
 			var p planStaffOut
 			if err := rows.Scan(&p.ID, &p.Codigo, &p.Nombre, &p.Descripcion, &p.DuracionDias,
 				&p.Beneficios, &p.Activo, &p.Suscripciones, &p.CreadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los planes", err)
+				return nil, apierr.Internal("error leyendo los planes", err)
 			}
 			out.Body.Planes = append(out.Body.Planes, p)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los planes", err)
+			return nil, apierr.Internal("error leyendo los planes", err)
 		}
 		return out, nil
 	}
@@ -183,7 +184,7 @@ func crearPlan(db database.DB) func(context.Context, *crearPlanInput) (*planIDOu
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -200,14 +201,14 @@ func crearPlan(db database.DB) func(context.Context, *crearPlanInput) (*planIDOu
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un plan con ese código")
 			}
-			return nil, huma.Error500InternalServerError("error creando el plan", err)
+			return nil, apierr.Internal("error creando el plan", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "plan.creado", "plan", out.Body.ID,
 			map[string]any{"codigo": out.Body.Codigo, "duracion_dias": out.Body.DuracionDias}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return &planIDOutput{Body: out.Body}, nil
 	}
@@ -232,7 +233,7 @@ func actualizarPlan(db database.DB) func(context.Context, *actualizarPlanInput) 
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -253,7 +254,7 @@ func actualizarPlan(db database.DB) func(context.Context, *actualizarPlanInput) 
 			return nil, huma.Error404NotFound("plan no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el plan", err)
+			return nil, apierr.Internal("error actualizando el plan", err)
 		}
 		campos := []string{}
 		if in.Body.Nombre != nil {
@@ -273,10 +274,10 @@ func actualizarPlan(db database.DB) func(context.Context, *actualizarPlanInput) 
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "plan.actualizado", "plan", in.ID,
 			map[string]any{"campos": campos}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return &planIDOutput{Body: out.Body}, nil
 	}
@@ -329,7 +330,7 @@ func listarCupones(db database.DB) func(context.Context, *struct{}) (*listarCupo
 	return func(ctx context.Context, _ *struct{}) (*listarCuponesOutput, error) {
 		rows, err := db.Query(ctx, cuponColumnas+" order by created_at desc limit 200")
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los cupones", err)
+			return nil, apierr.Internal("error consultando los cupones", err)
 		}
 		defer rows.Close()
 		out := &listarCuponesOutput{}
@@ -337,12 +338,12 @@ func listarCupones(db database.DB) func(context.Context, *struct{}) (*listarCupo
 		for rows.Next() {
 			c, err := escanearCupon(rows)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los cupones", err)
+				return nil, apierr.Internal("error leyendo los cupones", err)
 			}
 			out.Body.Cupones = append(out.Body.Cupones, *c)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los cupones", err)
+			return nil, apierr.Internal("error leyendo los cupones", err)
 		}
 		return out, nil
 	}
@@ -394,7 +395,7 @@ func crearCupon(db database.DB) func(context.Context, *crearCuponInput) (*cuponI
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -413,18 +414,18 @@ func crearCupon(db database.DB) func(context.Context, *crearCuponInput) (*cuponI
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un cupón con ese código")
 			}
-			return nil, huma.Error500InternalServerError("error creando el cupón", err)
+			return nil, apierr.Internal("error creando el cupón", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "cupon.creado", "coupon", id,
 			map[string]any{"codigo": strings.ToUpper(strings.TrimSpace(in.Body.Codigo)), "tipo": in.Body.Tipo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		c, err := escanearCupon(db.QueryRow(ctx, cuponColumnas+" where id = $1", id))
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el cupón", err)
+			return nil, apierr.Internal("error consultando el cupón", err)
 		}
 		return &cuponIDOutput{Body: *c}, nil
 	}
@@ -451,7 +452,7 @@ func actualizarCupon(db database.DB) func(context.Context, *actualizarCuponInput
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -467,20 +468,20 @@ func actualizarCupon(db database.DB) func(context.Context, *actualizarCuponInput
 			where id = $1`, in.ID, in.Body.Descripcion, in.Body.MinSubtotalMinor,
 			in.Body.MaxUsosTotal, in.Body.MaxUsosPorUsuario, in.Body.IniciaEn, in.Body.TerminaEn, in.Body.Activo)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el cupón", err)
+			return nil, apierr.Internal("error actualizando el cupón", err)
 		}
 		if tag.RowsAffected() == 0 {
 			return nil, huma.Error404NotFound("cupón no encontrado")
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "cupon.actualizado", "coupon", in.ID, nil); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		c, err := escanearCupon(db.QueryRow(ctx, cuponColumnas+" where id = $1", in.ID))
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el cupón", err)
+			return nil, apierr.Internal("error consultando el cupón", err)
 		}
 		return &cuponIDOutput{Body: *c}, nil
 	}
@@ -528,7 +529,7 @@ func listarCanjes(db database.DB) func(context.Context, *struct{}) (*listarCanje
 	return func(ctx context.Context, _ *struct{}) (*listarCanjesOutput, error) {
 		rows, err := db.Query(ctx, canjeColumnas+" order by created_at desc limit 200")
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los códigos de canje", err)
+			return nil, apierr.Internal("error consultando los códigos de canje", err)
 		}
 		defer rows.Close()
 		out := &listarCanjesOutput{}
@@ -536,12 +537,12 @@ func listarCanjes(db database.DB) func(context.Context, *struct{}) (*listarCanje
 		for rows.Next() {
 			c, err := escanearCanje(rows)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los códigos", err)
+				return nil, apierr.Internal("error leyendo los códigos", err)
 			}
 			out.Body.Canjes = append(out.Body.Canjes, *c)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los códigos", err)
+			return nil, apierr.Internal("error leyendo los códigos", err)
 		}
 		return out, nil
 	}
@@ -588,7 +589,7 @@ func crearCanje(db database.DB) func(context.Context, *crearCanjeInput) (*canjeI
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -598,7 +599,7 @@ func crearCanje(db database.DB) func(context.Context, *crearCanjeInput) (*canjeI
 			if err := tx.QueryRow(ctx, `select active from plans where id = $1`, *planID).Scan(&activo); errors.Is(err, pgx.ErrNoRows) {
 				return nil, huma.Error422UnprocessableEntity("el plan no existe")
 			} else if err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el plan", err)
+				return nil, apierr.Internal("error consultando el plan", err)
 			} else if !activo {
 				return nil, huma.Error422UnprocessableEntity("el plan está inactivo")
 			}
@@ -608,7 +609,7 @@ func crearCanje(db database.DB) func(context.Context, *crearCanjeInput) (*canjeI
 			if err := tx.QueryRow(ctx, `select active from products where id = $1`, *productID).Scan(&activo); errors.Is(err, pgx.ErrNoRows) {
 				return nil, huma.Error422UnprocessableEntity("el producto no existe")
 			} else if err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el producto", err)
+				return nil, apierr.Internal("error consultando el producto", err)
 			} else if !activo {
 				return nil, huma.Error422UnprocessableEntity("el producto está inactivo")
 			}
@@ -626,18 +627,18 @@ func crearCanje(db database.DB) func(context.Context, *crearCanjeInput) (*canjeI
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("ya existe un código de canje con ese código")
 			}
-			return nil, huma.Error500InternalServerError("error creando el código", err)
+			return nil, apierr.Internal("error creando el código", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "canje.creado", "redemption_code", id,
 			map[string]any{"codigo": strings.ToUpper(strings.TrimSpace(in.Body.Codigo)), "tipo": in.Body.Tipo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		c, err := escanearCanje(db.QueryRow(ctx, canjeColumnas+" where id = $1", id))
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el código", err)
+			return nil, apierr.Internal("error consultando el código", err)
 		}
 		return &canjeIDOutput{Body: *c}, nil
 	}
@@ -662,7 +663,7 @@ func actualizarCanje(db database.DB) func(context.Context, *actualizarCanjeInput
 		}
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -680,20 +681,20 @@ func actualizarCanje(db database.DB) func(context.Context, *actualizarCanjeInput
 			if errors.As(err, &pgErr) && pgErr.Code == "23514" {
 				return nil, huma.Error409Conflict("max_usos no puede ser menor a los usos ya consumidos")
 			}
-			return nil, huma.Error500InternalServerError("error actualizando el código", err)
+			return nil, apierr.Internal("error actualizando el código", err)
 		}
 		if tag.RowsAffected() == 0 {
 			return nil, huma.Error404NotFound("código de canje no encontrado")
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "canje.actualizado", "redemption_code", in.ID, nil); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		c, err := escanearCanje(db.QueryRow(ctx, canjeColumnas+" where id = $1", in.ID))
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el código", err)
+			return nil, apierr.Internal("error consultando el código", err)
 		}
 		return &canjeIDOutput{Body: *c}, nil
 	}
@@ -721,7 +722,7 @@ func obtenerCanje(db database.DB) func(context.Context, *obtenerCanjeInput) (*ob
 			return nil, huma.Error404NotFound("código de canje no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el código", err)
+			return nil, apierr.Internal("error consultando el código", err)
 		}
 		out := &obtenerCanjeOutput{}
 		out.Body.Canje = *c
@@ -733,7 +734,7 @@ func obtenerCanje(db database.DB) func(context.Context, *obtenerCanjeInput) (*ob
 		rows, err := db.Query(ctx, `
 			select id, user_id, created_at from redemptions where code_id = $1 order by created_at desc limit 200`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las redenciones", err)
+			return nil, apierr.Internal("error consultando las redenciones", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -743,12 +744,12 @@ func obtenerCanje(db database.DB) func(context.Context, *obtenerCanjeInput) (*ob
 				ConcedidoEn time.Time `json:"concedido_en"`
 			}
 			if err := rows.Scan(&r.ID, &r.UsuarioID, &r.ConcedidoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las redenciones", err)
+				return nil, apierr.Internal("error leyendo las redenciones", err)
 			}
 			out.Body.Redenciones = append(out.Body.Redenciones, r)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las redenciones", err)
+			return nil, apierr.Internal("error leyendo las redenciones", err)
 		}
 		return out, nil
 	}

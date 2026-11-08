@@ -18,6 +18,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -221,7 +222,7 @@ func listarPagos(db database.DB) func(context.Context, *listarPagosInput) (*list
 		}
 		rows, err := db.Query(ctx, pagoColumnas+" "+where+" order by pa.created_at desc limit 100", args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los pagos", err)
+			return nil, apierr.Internal("error consultando los pagos", err)
 		}
 		defer rows.Close()
 
@@ -230,12 +231,12 @@ func listarPagos(db database.DB) func(context.Context, *listarPagosInput) (*list
 		for rows.Next() {
 			p, err := escanearPago(rows)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los pagos", err)
+				return nil, apierr.Internal("error leyendo los pagos", err)
 			}
 			out.Body.Pagos = append(out.Body.Pagos, *p)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los pagos", err)
+			return nil, apierr.Internal("error leyendo los pagos", err)
 		}
 		return out, nil
 	}
@@ -256,7 +257,7 @@ func obtenerPago(db database.DB, store storage.Client) func(context.Context, *ob
 			return nil, huma.Error404NotFound("pago no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el pago", err)
+			return nil, apierr.Internal("error consultando el pago", err)
 		}
 
 		out := &obtenerPagoOutput{}
@@ -270,14 +271,14 @@ func obtenerPago(db database.DB, store storage.Client) func(context.Context, *ob
 			select private_storage_key, coalesce(review_comment, '')
 			from payment_evidence where payment_attempt_id = $1`, in.ID).Scan(&key, &comentario)
 		if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el comprobante", err)
+			return nil, apierr.Internal("error consultando el comprobante", err)
 		}
 		if key != "" {
 			out.Body.ComprobanteKey = key
 			out.Body.Comentario = comentario
 			url, err := store.PresignGet(ctx, key, 5*time.Minute)
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error firmando el comprobante", err)
+				return nil, apierr.Internal("error firmando el comprobante", err)
 			}
 			out.Body.ComprobanteURL = url
 		}
@@ -285,18 +286,18 @@ func obtenerPago(db database.DB, store storage.Client) func(context.Context, *ob
 		rows, err := db.Query(ctx, `
 			select product_snapshot, content_snapshot from order_items where order_id = $1`, p.Orden.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los ítems", err)
+			return nil, apierr.Internal("error consultando los ítems", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
 			var product, content json.RawMessage
 			if err := rows.Scan(&product, &content); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los ítems", err)
+				return nil, apierr.Internal("error leyendo los ítems", err)
 			}
 			out.Body.Items = append(out.Body.Items, product, content)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los ítems", err)
+			return nil, apierr.Internal("error leyendo los ítems", err)
 		}
 		rows.Close()
 
@@ -307,18 +308,18 @@ func obtenerPago(db database.DB, store storage.Client) func(context.Context, *ob
 			   or (entity_type = 'entitlement' and metadata->>'payment_attempt_id' = $1)
 			order by created_at asc limit 50`, in.ID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la auditoría", err)
+			return nil, apierr.Internal("error consultando la auditoría", err)
 		}
 		defer auditRows.Close()
 		for auditRows.Next() {
 			var a auditItem
 			if err := auditRows.Scan(&a.Accion, &a.ActorID, &a.EntityType, &a.EntityID, &a.Metadata, &a.CreadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo la auditoría", err)
+				return nil, apierr.Internal("error leyendo la auditoría", err)
 			}
 			out.Body.Auditoria = append(out.Body.Auditoria, a)
 		}
 		if err := auditRows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo la auditoría", err)
+			return nil, apierr.Internal("error leyendo la auditoría", err)
 		}
 		return out, nil
 	}
@@ -368,7 +369,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -383,7 +384,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			return nil, huma.Error404NotFound("pago no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el pago", err)
+			return nil, apierr.Internal("error consultando el pago", err)
 		}
 
 		out := &revisarPagoOutput{}
@@ -393,7 +394,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 
 		// Bloquear la orden serializa aprobaciones de intentos distintos.
 		if err := tx.QueryRow(ctx, `select status from orders where id = $1 for update`, orderID).Scan(&out.Body.OrdenEstado); err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la orden", err)
+			return nil, apierr.Internal("error consultando la orden", err)
 		}
 
 		if estado == "confirmed" {
@@ -401,22 +402,22 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			if err := tx.QueryRow(ctx, `
 				select count(*) from entitlements where order_item_id in
 					(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.AccesosTotales); err != nil {
-				return nil, huma.Error500InternalServerError("error contando los accesos", err)
+				return nil, apierr.Internal("error contando los accesos", err)
 			}
 			if err := tx.QueryRow(ctx, `
 				select count(*) from subscriptions where order_item_id in
 					(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.SuscripcionesTotales); err != nil {
-				return nil, huma.Error500InternalServerError("error contando las suscripciones", err)
+				return nil, apierr.Internal("error contando las suscripciones", err)
 			}
 			if err := tx.QueryRow(ctx, `
 				select count(*) from license_grants where order_item_id in
 					(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.LicenciasTotales); err != nil {
-				return nil, huma.Error500InternalServerError("error contando las licencias", err)
+				return nil, apierr.Internal("error contando las licencias", err)
 			}
 			out.Body.Estado = "confirmed"
 			out.Body.YaEstabaConfirmado = true
 			if err := tx.Commit(ctx); err != nil {
-				return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+				return nil, apierr.Internal("error confirmando la transacción", err)
 			}
 			return out, nil
 		}
@@ -430,26 +431,26 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 		if _, err := tx.Exec(ctx, `
 			update payment_attempts set status = 'confirmed', confirmed_at = now()
 			where id = $1`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando el pago", err)
+			return nil, apierr.Internal("error confirmando el pago", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			update payment_evidence set review_status = 'approved', reviewed_by = $2,
 				reviewed_at = now(), review_comment = coalesce($3, review_comment)
 			where payment_attempt_id = $1`, in.ID, staffID, in.Body.Comentario); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el comprobante", err)
+			return nil, apierr.Internal("error actualizando el comprobante", err)
 		}
 		orderTag, err := tx.Exec(ctx, `
 			update orders set status = 'paid', paid_at = coalesce(paid_at, now())
 			where id = $1 and status = 'pending'`, orderID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error marcando la orden pagada", err)
+			return nil, apierr.Internal("error marcando la orden pagada", err)
 		}
 		if orderTag.RowsAffected() != 1 {
 			return nil, huma.Error409Conflict("la orden ya tiene un pago confirmado o no admite revisión")
 		}
 		if err := registrarAuditoria(ctx, tx, staffID, "pago.aprobado", "payment_attempt", in.ID,
 			map[string]any{"orden_id": orderID, "comentario": in.Body.Comentario}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 
 		// Efectos por ítem de la orden, en la misma transacción y con locks:
@@ -460,7 +461,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 		// dos clics dupliquen períodos ni accesos.
 		var userID string
 		if err := tx.QueryRow(ctx, `select user_id from orders where id = $1`, orderID).Scan(&userID); err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la orden", err)
+			return nil, apierr.Internal("error consultando la orden", err)
 		}
 		type itemEfecto struct {
 			itemID          string
@@ -477,14 +478,14 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			select id, product_snapshot, content_snapshot, license_snapshot
 			from order_items where order_id = $1`, orderID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los ítems de la orden", err)
+			return nil, apierr.Internal("error consultando los ítems de la orden", err)
 		}
 		for itemRows.Next() {
 			var it itemEfecto
 			var productSnapshot json.RawMessage
 			if err := itemRows.Scan(&it.itemID, &productSnapshot, &it.contentSnapshot, &it.licenseSnapshot); err != nil {
 				itemRows.Close()
-				return nil, huma.Error500InternalServerError("error leyendo los ítems de la orden", err)
+				return nil, apierr.Internal("error leyendo los ítems de la orden", err)
 			}
 			var product struct {
 				ID   string `json:"product_id"`
@@ -499,11 +500,11 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			}
 			if err := json.Unmarshal(productSnapshot, &product); err != nil {
 				itemRows.Close()
-				return nil, huma.Error500InternalServerError("error interpretando el producto congelado", err)
+				return nil, apierr.Internal("error interpretando el producto congelado", err)
 			}
 			if err := json.Unmarshal(it.contentSnapshot, &content); err != nil {
 				itemRows.Close()
-				return nil, huma.Error500InternalServerError("error interpretando el contenido congelado", err)
+				return nil, apierr.Internal("error interpretando el contenido congelado", err)
 			}
 			it.productID, it.productType, it.includeFuture = product.ID, product.Tipo, content.IncludeFuture
 			if content.Plan != nil {
@@ -513,7 +514,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 		}
 		itemRows.Close()
 		if err := itemRows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los ítems de la orden", err)
+			return nil, apierr.Internal("error leyendo los ítems de la orden", err)
 		}
 
 		for _, it := range items {
@@ -524,7 +525,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 				}
 				creada, err := store.ConcederPremium(ctx, tx, userID, it.planID, it.durationDays, &it.itemID, nil, "purchase")
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error concediendo el período premium", err)
+					return nil, apierr.Internal("error concediendo el período premium", err)
 				}
 				if creada {
 					out.Body.SuscripcionesCreados++
@@ -535,7 +536,7 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 				// configuración actual. Jamás crea entitlement de audio.
 				creada, err := store.ConcederLicencia(ctx, tx, userID, it.itemID, it.licenseSnapshot)
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error concediendo la licencia", err)
+					return nil, apierr.Internal("error concediendo la licencia", err)
 				}
 				if creada {
 					out.Body.LicenciasCreados++
@@ -543,13 +544,13 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 			case it.includeFuture:
 				n, err := store.ConcederPistasProducto(ctx, tx, userID, it.productID, &it.itemID, nil, "purchase")
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error concediendo el acceso", err)
+					return nil, apierr.Internal("error concediendo el acceso", err)
 				}
 				out.Body.AccesosCreados += int(n)
 			default:
 				n, err := store.ConcederPistasSnapshot(ctx, tx, userID, &it.itemID, it.contentSnapshot, "purchase")
 				if err != nil {
-					return nil, huma.Error500InternalServerError("error concediendo el acceso", err)
+					return nil, apierr.Internal("error concediendo el acceso", err)
 				}
 				out.Body.AccesosCreados += int(n)
 			}
@@ -558,36 +559,36 @@ func aprobarPago(db database.DB) func(context.Context, *revisarPagoInput) (*revi
 		if err := tx.QueryRow(ctx, `
 			select count(*) from entitlements where order_item_id in
 				(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.AccesosTotales); err != nil {
-			return nil, huma.Error500InternalServerError("error contando los accesos", err)
+			return nil, apierr.Internal("error contando los accesos", err)
 		}
 		if err := tx.QueryRow(ctx, `
 			select count(*) from subscriptions where order_item_id in
 				(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.SuscripcionesTotales); err != nil {
-			return nil, huma.Error500InternalServerError("error contando las suscripciones", err)
+			return nil, apierr.Internal("error contando las suscripciones", err)
 		}
 		if err := tx.QueryRow(ctx, `
 			select count(*) from license_grants where order_item_id in
 				(select id from order_items where order_id = $1)`, orderID).Scan(&out.Body.LicenciasTotales); err != nil {
-			return nil, huma.Error500InternalServerError("error contando las licencias", err)
+			return nil, apierr.Internal("error contando las licencias", err)
 		}
 		if err := registrarAuditoria(ctx, tx, staffID, "acceso.concedido", "entitlement", orderID,
 			map[string]any{"orden_id": orderID, "payment_attempt_id": in.ID,
 				"accesos": out.Body.AccesosCreados, "suscripciones": out.Body.SuscripcionesCreados,
 				"licencias": out.Body.LicenciasCreados, "usuario_id": userID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if out.Body.LicenciasCreados > 0 {
 			if err := registrarAuditoria(ctx, tx, staffID, "licencia.concedida", "license_grant", orderID,
 				map[string]any{"orden_id": orderID, "usuario_id": userID, "licencias_creadas": out.Body.LicenciasCreados}); err != nil {
-				return nil, huma.Error500InternalServerError("error registrando auditoría de licencia", err)
+				return nil, apierr.Internal("error registrando auditoría de licencia", err)
 			}
 		}
 		if err := tx.QueryRow(ctx, `select status from orders where id = $1`, orderID).Scan(&out.Body.OrdenEstado); err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la orden", err)
+			return nil, apierr.Internal("error consultando la orden", err)
 		}
 
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out.Body.Estado = "confirmed"
 		return out, nil
@@ -604,7 +605,7 @@ func rechazarPago(db database.DB) func(context.Context, *revisarPagoInput) (*rev
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -615,7 +616,7 @@ func rechazarPago(db database.DB) func(context.Context, *revisarPagoInput) (*rev
 			return nil, huma.Error404NotFound("pago no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el pago", err)
+			return nil, apierr.Internal("error consultando el pago", err)
 		}
 		if estado != "in_review" {
 			return nil, huma.Error409Conflict("solo se puede rechazar un pago con comprobante en revisión")
@@ -623,20 +624,20 @@ func rechazarPago(db database.DB) func(context.Context, *revisarPagoInput) (*rev
 
 		if _, err := tx.Exec(ctx, `
 			update payment_attempts set status = 'rejected' where id = $1`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error rechazando el pago", err)
+			return nil, apierr.Internal("error rechazando el pago", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			update payment_evidence set review_status = 'rejected', reviewed_by = $2,
 				reviewed_at = now(), review_comment = coalesce($3, review_comment)
 			where payment_attempt_id = $1`, in.ID, staffID, in.Body.Comentario); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el comprobante", err)
+			return nil, apierr.Internal("error actualizando el comprobante", err)
 		}
 		if err := registrarAuditoria(ctx, tx, staffID, "pago.rechazado", "payment_attempt", in.ID,
 			map[string]any{"comentario": in.Body.Comentario}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &revisarPagoOutput{}
@@ -687,7 +688,7 @@ func listarAccesos(db database.DB) func(context.Context, *listarAccesosInput) (*
 			`+where+`
 			order by e.granted_at desc limit 200`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando los accesos", err)
+			return nil, apierr.Internal("error consultando los accesos", err)
 		}
 		defer rows.Close()
 
@@ -697,12 +698,12 @@ func listarAccesos(db database.DB) func(context.Context, *listarAccesosInput) (*
 			var a accesoItem
 			if err := rows.Scan(&a.ID, &a.UsuarioID, &a.UsuarioMail, &a.PistaID, &a.PistaTitulo,
 				&a.Origen, &a.ConcedidoEn, &a.RevocadoEn, &a.ValidoHasta); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo los accesos", err)
+				return nil, apierr.Internal("error leyendo los accesos", err)
 			}
 			out.Body.Accesos = append(out.Body.Accesos, a)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo los accesos", err)
+			return nil, apierr.Internal("error leyendo los accesos", err)
 		}
 		return out, nil
 	}
@@ -732,7 +733,7 @@ func revocarAcceso(db database.DB) func(context.Context, *revocarAccesoInput) (*
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -750,7 +751,7 @@ func revocarAcceso(db database.DB) func(context.Context, *revocarAccesoInput) (*
 			return nil, huma.Error404NotFound("acceso no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando el acceso", err)
+			return nil, apierr.Internal("error revocando el acceso", err)
 		}
 		// Cascada: las licencias offline de esta pista concedidas por el
 		// entitlement se revocan con él; las de origen premium siguen
@@ -761,16 +762,16 @@ func revocarAcceso(db database.DB) func(context.Context, *revocarAccesoInput) (*
 			where user_id = $1 and track_id = $2 and origen = 'entitlement' and revoked_at is null`,
 			userID, trackID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando las licencias offline", err)
+			return nil, apierr.Internal("error revocando las licencias offline", err)
 		}
 		licenciasOfflineRevoc = cascadaTag.RowsAffected()
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "acceso.revocado", "entitlement", in.ID,
 			map[string]any{"motivo": in.Body.Motivo, "usuario_id": userID, "track_id": trackID,
 				"descargas_offline_revocadas": licenciasOfflineRevoc}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &revocarAccesoOutput{}
@@ -814,7 +815,7 @@ func listarAuditoria(db database.DB) func(context.Context, *listarAuditoriaInput
 			from audit_events `+where+`
 			order by created_at desc limit $`+itoa(len(args)), args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la auditoría", err)
+			return nil, apierr.Internal("error consultando la auditoría", err)
 		}
 		defer rows.Close()
 
@@ -823,12 +824,12 @@ func listarAuditoria(db database.DB) func(context.Context, *listarAuditoriaInput
 		for rows.Next() {
 			var a auditItem
 			if err := rows.Scan(&a.Accion, &a.ActorID, &a.EntityType, &a.EntityID, &a.Metadata, &a.CreadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo la auditoría", err)
+				return nil, apierr.Internal("error leyendo la auditoría", err)
 			}
 			out.Body.Eventos = append(out.Body.Eventos, a)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo la auditoría", err)
+			return nil, apierr.Internal("error leyendo la auditoría", err)
 		}
 		return out, nil
 	}
@@ -902,7 +903,7 @@ func listarLicencias(db database.DB) func(context.Context, *listarLicenciasInput
 			`+whereClause+`
 			order by lg.granted_at desc limit 200`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las licencias", err)
+			return nil, apierr.Internal("error consultando las licencias", err)
 		}
 		defer rows.Close()
 
@@ -915,7 +916,7 @@ func listarLicencias(db database.DB) func(context.Context, *listarLicenciasInput
 				&l.PistaID, &l.PistaTitulo, &l.ArtistaID, &l.ArtistaNombre,
 				&l.Uso, &l.OrderItemID, &l.LicenseOptionID, &l.TermsVersionID,
 				&l.TerminosEtiqueta, &acceptedUses, &l.ConcedidoEn, &l.RevocadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+				return nil, apierr.Internal("error leyendo las licencias", err)
 			}
 			l.AcceptedUses = acceptedUses
 			if l.RevocadoEn != nil {
@@ -926,7 +927,7 @@ func listarLicencias(db database.DB) func(context.Context, *listarLicenciasInput
 			out.Body.Licencias = append(out.Body.Licencias, l)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las licencias", err)
+			return nil, apierr.Internal("error leyendo las licencias", err)
 		}
 		return out, nil
 	}
@@ -956,7 +957,7 @@ func revocarLicencia(db database.DB) func(context.Context, *revocarLicenciaInput
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -974,16 +975,16 @@ func revocarLicencia(db database.DB) func(context.Context, *revocarLicenciaInput
 			return nil, huma.Error404NotFound("licencia no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error revocando la licencia", err)
+			return nil, apierr.Internal("error revocando la licencia", err)
 		}
 
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "licencia.revocada", "license_grant", in.ID,
 			map[string]any{"motivo": in.Body.Motivo, "usuario_id": userID, "track_id": trackID}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &revocarLicenciaOutput{}

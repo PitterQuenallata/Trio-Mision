@@ -133,8 +133,9 @@ de negocio duplicada.
 
 ### Fase 5 — Clientes v2 y producción
 
-- `apps/admin` (panel v2) consumiendo la API.
-- `apps/mobile` (app v2 Flutter) con offline-first sobre la API.
+- `apps/admin` (panel administrativo para staff, managers y members) consumiendo la API.
+- `apps/mobile` (APK, Flutter) con offline-first sobre la API.
+- `apps/appweb` (portal con login para usuarios con suscripción) consumiendo la API.
 - Endurecimiento: rate limiting, auditoría, pruebas de carga y seguridad.
 - Despliegue: VPS, proxy HTTPS, backups verificados, monitoreo.
 - **Criterio de salida**: flujo completo en producción (registro → premium →
@@ -151,8 +152,9 @@ Fase 0 (docs)
                       └─ Fase 5 (clientes v2 + producción)
 ```
 
-La web pública (`apps/web`) evoluciona en paralelo: completar los 6 álbumes
-faltantes y conectar los CTAs al portal cuando la Fase 3 lo habilite.
+La web pública (`apps/web`, sitio del grupo) evoluciona en paralelo: completar
+los 6 álbumes faltantes y enlazar a `apps/appweb` desde una sección de referencia
+al sistema.
 
 ## 3. Riesgos conocidos
 

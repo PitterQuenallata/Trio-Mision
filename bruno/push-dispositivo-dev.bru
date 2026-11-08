@@ -1,0 +1,36 @@
+meta {
+  name: Push - registrar dispositivo dev
+  type: http
+  seq: 278
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+script:pre-request {
+  bru.setVar("pushInstallId", `bruno-push-dev-${Date.now() + '-' + Math.random().toString(36).slice(2, 10)}`);
+}
+
+body:json {
+  {
+    "install_id": "{{pushInstallId}}",
+    "platform": "android",
+    "app_version": "4.1.0"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.install_id: eq {{pushInstallId}}
+}
+
+docs {
+  Dispositivo Android del usuario dev para los flujos de token push (Sprint 4C).
+}

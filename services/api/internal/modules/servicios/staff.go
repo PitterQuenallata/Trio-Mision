@@ -12,6 +12,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/authz"
@@ -176,7 +177,7 @@ func listarSolicitudesStaff(db database.DB) func(ctx context.Context, in *listar
 			`+where+`
 			order by sr.created_at desc limit 100`, args...)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las solicitudes", err)
+			return nil, apierr.Internal("error consultando las solicitudes", err)
 		}
 		defer rows.Close()
 		for rows.Next() {
@@ -184,7 +185,7 @@ func listarSolicitudesStaff(db database.DB) func(ctx context.Context, in *listar
 			var proyectoJSON *string
 			if err := rows.Scan(&s.ID, &s.UsuarioID, &s.UsuarioMail, &s.Tipo, &s.Titulo, &s.Descripcion,
 				&s.Referencias, &s.Estado, &s.CreadaEn, &s.ActualizadaEn, &proyectoJSON); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las solicitudes", err)
+				return nil, apierr.Internal("error leyendo las solicitudes", err)
 			}
 			if proyectoJSON != nil {
 				var p proyectoCorto
@@ -195,7 +196,7 @@ func listarSolicitudesStaff(db database.DB) func(ctx context.Context, in *listar
 			out.Body.Solicitudes = append(out.Body.Solicitudes, s)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las solicitudes", err)
+			return nil, apierr.Internal("error leyendo las solicitudes", err)
 		}
 		return out, nil
 	}
@@ -226,7 +227,7 @@ func cotizar(db database.DB) func(ctx context.Context, in *cotizarInput) (*cotiz
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -237,7 +238,7 @@ func cotizar(db database.DB) func(ctx context.Context, in *cotizarInput) (*cotiz
 			return nil, huma.Error404NotFound("solicitud no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la solicitud", err)
+			return nil, apierr.Internal("error consultando la solicitud", err)
 		}
 		switch estado {
 		case "nueva", "en_revision", "cotizada":
@@ -253,18 +254,18 @@ func cotizar(db database.DB) func(ctx context.Context, in *cotizarInput) (*cotiz
 			in.ID, claims.Subject, in.Body.MontoMinor, moneda, in.Body.TermsText,
 		).Scan(&c.ID, &c.SolicitudID, &c.MontoMinor, &c.Moneda, &c.TermsText, &c.Estado, &c.CreadaEn)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error creando la cotización", err)
+			return nil, apierr.Internal("error creando la cotización", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			update service_requests set estado = 'cotizada' where id = $1`, in.ID); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando la solicitud", err)
+			return nil, apierr.Internal("error actualizando la solicitud", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.cotizado", "service_request", in.ID,
 			map[string]any{"cotizacion_id": c.ID, "monto_minor": in.Body.MontoMinor, "moneda": moneda}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out := &cotizarOutput{}
 		out.Body = c
@@ -303,7 +304,7 @@ func cambiarEstadoSolicitud(db database.DB) func(ctx context.Context, in *estado
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -314,7 +315,7 @@ func cambiarEstadoSolicitud(db database.DB) func(ctx context.Context, in *estado
 			return nil, huma.Error404NotFound("solicitud no encontrada")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando la solicitud", err)
+			return nil, apierr.Internal("error consultando la solicitud", err)
 		}
 		estadoNuevo, valida := transiciones[in.Body.Accion][estadoActual]
 		if !valida {
@@ -323,15 +324,15 @@ func cambiarEstadoSolicitud(db database.DB) func(ctx context.Context, in *estado
 
 		if _, err := tx.Exec(ctx, `
 			update service_requests set estado = $2 where id = $1`, in.ID, estadoNuevo); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando la solicitud", err)
+			return nil, apierr.Internal("error actualizando la solicitud", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.estado", "service_request", in.ID,
 			map[string]any{"accion": in.Body.Accion, "estado_anterior": estadoActual,
 				"estado_nuevo": estadoNuevo, "motivo": in.Body.Motivo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &estadoSolicitudOutput{}
@@ -376,7 +377,7 @@ func crearEntrega(db database.DB, objects storage.Client) func(ctx context.Conte
 		// El proyecto debe existir y estar en curso (lock).
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -388,7 +389,7 @@ func crearEntrega(db database.DB, objects storage.Client) func(ctx context.Conte
 			return nil, huma.Error404NotFound("proyecto no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el proyecto", err)
+			return nil, apierr.Internal("error consultando el proyecto", err)
 		}
 		if projectEstado != "en_curso" {
 			return nil, huma.Error409Conflict("el proyecto no admite entregas en su estado actual")
@@ -410,7 +411,7 @@ func crearEntrega(db database.DB, objects storage.Client) func(ctx context.Conte
 			out.Body.Entrega = *entrega
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		return out, nil
 	}
@@ -442,7 +443,7 @@ func entregarPista(ctx context.Context, tx pgx.Tx, staffID, projectID, projectUs
 		return nil, false, huma.Error422UnprocessableEntity("la pista no existe o no tiene master publicado")
 	}
 	if err != nil {
-		return nil, false, huma.Error500InternalServerError("error consultando la pista", err)
+		return nil, false, apierr.Internal("error consultando la pista", err)
 	}
 
 	var entregaID string
@@ -453,7 +454,7 @@ func entregarPista(ctx context.Context, tx pgx.Tx, staffID, projectID, projectUs
 		returning id, created_at`, projectID, staffID, titulo, notaNull(nota), trackID,
 	).Scan(&entregaID, &creadaEn)
 	if err != nil {
-		return nil, false, huma.Error500InternalServerError("error registrando la entrega", err)
+		return nil, false, apierr.Internal("error registrando la entrega", err)
 	}
 
 	// Acceso vinculado: idempotente por el índice único parcial vigente.
@@ -467,18 +468,18 @@ func entregarPista(ctx context.Context, tx pgx.Tx, staffID, projectID, projectUs
 	if err == nil {
 		accesoCreado = true
 	} else if !errors.Is(err, pgx.ErrNoRows) {
-		return nil, false, huma.Error500InternalServerError("error concediendo el acceso", err)
+		return nil, false, apierr.Internal("error concediendo el acceso", err)
 	}
 
 	if err := registrarAuditoria(ctx, tx, staffID, "servicio.entregado", "service_deliverable", entregaID,
 		map[string]any{"proyecto_id": projectID, "pista_id": trackID, "tipo": "pista"}); err != nil {
-		return nil, false, huma.Error500InternalServerError("error registrando auditoría", err)
+		return nil, false, apierr.Internal("error registrando auditoría", err)
 	}
 	if accesoCreado {
 		if err := registrarAuditoria(ctx, tx, staffID, "acceso.concedido", "entitlement", accesoID,
 			map[string]any{"proyecto_id": projectID, "pista_id": trackID, "usuario_id": projectUserID,
 				"origen": "service", "entrega_id": entregaID}); err != nil {
-			return nil, false, huma.Error500InternalServerError("error registrando auditoría de acceso", err)
+			return nil, false, apierr.Internal("error registrando auditoría de acceso", err)
 		}
 	}
 
@@ -503,7 +504,7 @@ func entregarArchivo(ctx context.Context, tx pgx.Tx, objects storage.Client, sta
 	}
 	key := fmt.Sprintf("services/proyectos/%s/entregas/%d%s", projectID, time.Now().UnixNano(), entregaExt[mimeType])
 	if err := objects.PutObject(ctx, key, mimeType, archivo); err != nil {
-		return nil, huma.Error500InternalServerError("error guardando la entrega", err)
+		return nil, apierr.Internal("error guardando la entrega", err)
 	}
 
 	var entregaID string
@@ -514,11 +515,11 @@ func entregarArchivo(ctx context.Context, tx pgx.Tx, objects storage.Client, sta
 		returning id, created_at`, projectID, staffID, titulo, notaNull(nota), key, mimeType, archivo.Size,
 	).Scan(&entregaID, &creadaEn)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error registrando la entrega", err)
+		return nil, apierr.Internal("error registrando la entrega", err)
 	}
 	if err := registrarAuditoria(ctx, tx, staffID, "servicio.entregado", "service_deliverable", entregaID,
 		map[string]any{"proyecto_id": projectID, "tipo": "archivo", "mime": mimeType, "bytes": archivo.Size}); err != nil {
-		return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+		return nil, apierr.Internal("error registrando auditoría", err)
 	}
 	return &entregaResumen{
 		ID:       entregaID,
@@ -562,7 +563,7 @@ func cambiarEstadoProyecto(db database.DB) func(ctx context.Context, in *estadoP
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -573,7 +574,7 @@ func cambiarEstadoProyecto(db database.DB) func(ctx context.Context, in *estadoP
 			return nil, huma.Error404NotFound("proyecto no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el proyecto", err)
+			return nil, apierr.Internal("error consultando el proyecto", err)
 		}
 
 		var estadoNuevo string
@@ -585,7 +586,7 @@ func cambiarEstadoProyecto(db database.DB) func(ctx context.Context, in *estadoP
 			var entregas int
 			if err := tx.QueryRow(ctx, `
 				select count(*) from service_deliverables where project_id = $1`, in.ID).Scan(&entregas); err != nil {
-				return nil, huma.Error500InternalServerError("error contando las entregas", err)
+				return nil, apierr.Internal("error contando las entregas", err)
 			}
 			if entregas == 0 {
 				return nil, huma.Error422UnprocessableEntity("no se puede marcar entregado sin entregas publicadas")
@@ -600,15 +601,15 @@ func cambiarEstadoProyecto(db database.DB) func(ctx context.Context, in *estadoP
 
 		if _, err := tx.Exec(ctx, `
 			update service_projects set estado = $2 where id = $1`, in.ID, estadoNuevo); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el proyecto", err)
+			return nil, apierr.Internal("error actualizando el proyecto", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, "servicio.proyecto_estado", "service_project", in.ID,
 			map[string]any{"accion": in.Body.Accion, "estado_anterior": estadoActual,
 				"estado_nuevo": estadoNuevo, "motivo": in.Body.Motivo}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &estadoProyectoOutput{}
@@ -651,7 +652,7 @@ func revisarPagoServicio(db database.DB, aprobar bool) func(ctx context.Context,
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -663,7 +664,7 @@ func revisarPagoServicio(db database.DB, aprobar bool) func(ctx context.Context,
 			return nil, huma.Error404NotFound("pago no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el pago", err)
+			return nil, apierr.Internal("error consultando el pago", err)
 		}
 
 		estadoNuevo := "rejected"
@@ -683,10 +684,10 @@ func revisarPagoServicio(db database.DB, aprobar bool) func(ctx context.Context,
 			out.Body.YaEstabaRevisado = true
 			if err := tx.QueryRow(ctx, `
 				select reviewed_at from service_payments where id = $1`, in.ID).Scan(&out.Body.RevisadoEn); err != nil {
-				return nil, huma.Error500InternalServerError("error consultando el pago", err)
+				return nil, apierr.Internal("error consultando el pago", err)
 			}
 			if err := tx.Commit(ctx); err != nil {
-				return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+				return nil, apierr.Internal("error confirmando la transacción", err)
 			}
 			return out, nil
 		}
@@ -699,14 +700,14 @@ func revisarPagoServicio(db database.DB, aprobar bool) func(ctx context.Context,
 			set estado = $2, reviewed_by = $3, reviewed_at = now()
 			where id = $1
 			returning reviewed_at`, in.ID, estadoNuevo, claims.Subject).Scan(&out.Body.RevisadoEn); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el pago", err)
+			return nil, apierr.Internal("error actualizando el pago", err)
 		}
 		if err := registrarAuditoria(ctx, tx, claims.Subject, accion, "service_payment", in.ID,
 			map[string]any{"proyecto_id": proyectoID, "comentario": in.Body.Comentario}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 		out.Body.Estado = estadoNuevo
 		return out, nil

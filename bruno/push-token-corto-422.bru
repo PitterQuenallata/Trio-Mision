@@ -1,0 +1,29 @@
+meta {
+  name: Push - token mal formado 422
+  type: http
+  seq: 286
+}
+
+put {
+  url: {{baseUrl}}/api/v1/dispositivos/{{pushInstallId}}/push-token
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueAccessToken}}
+}
+
+body:json {
+  {
+    "token": "corto"
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Validación de entrada: un token menor de 32 caracteres se rechaza antes de tocar la base.
+}

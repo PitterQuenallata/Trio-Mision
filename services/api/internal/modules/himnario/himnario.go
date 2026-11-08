@@ -8,6 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/database"
 )
@@ -78,7 +79,7 @@ func listarHimnos(db database.DB) func(context.Context, *listarHimnosInput) (*li
 			order by h.hymn_number
 			limit $2 offset $3`, in.Coleccion, limite, in.Desde)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el himnario", err)
+			return nil, apierr.Internal("error consultando el himnario", err)
 		}
 		defer rows.Close()
 
@@ -88,12 +89,12 @@ func listarHimnos(db database.DB) func(context.Context, *listarHimnosInput) (*li
 		for rows.Next() {
 			var h himnoResumen
 			if err := rows.Scan(&h.Numero, &h.Titulo, &h.Versiones); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo el himnario", err)
+				return nil, apierr.Internal("error leyendo el himnario", err)
 			}
 			out.Body.Himnos = append(out.Body.Himnos, h)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo el himnario", err)
+			return nil, apierr.Internal("error leyendo el himnario", err)
 		}
 		return out, nil
 	}
@@ -139,7 +140,7 @@ func obtenerHimno(db database.DB) func(context.Context, *obtenerHimnoInput) (*ob
 			return nil, huma.Error404NotFound("himno no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el himno", err)
+			return nil, apierr.Internal("error consultando el himno", err)
 		}
 
 		rows, err := db.Query(ctx, `
@@ -149,19 +150,19 @@ func obtenerHimno(db database.DB) func(context.Context, *obtenerHimnoInput) (*ob
 			where hymn_id = $1 and is_published and deleted_at is null
 			order by version_code`, hymnID)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando las versiones", err)
+			return nil, apierr.Internal("error consultando las versiones", err)
 		}
 		defer rows.Close()
 
 		for rows.Next() {
 			var v versionDetalle
 			if err := rows.Scan(&v.Codigo, &v.Alcance, &v.Etiqueta, &v.Formato, &v.Tono, &v.Capo, &v.Chordpro); err != nil {
-				return nil, huma.Error500InternalServerError("error leyendo las versiones", err)
+				return nil, apierr.Internal("error leyendo las versiones", err)
 			}
 			out.Body.Versiones = append(out.Body.Versiones, v)
 		}
 		if err := rows.Err(); err != nil {
-			return nil, huma.Error500InternalServerError("error leyendo las versiones", err)
+			return nil, apierr.Internal("error leyendo las versiones", err)
 		}
 		return out, nil
 	}

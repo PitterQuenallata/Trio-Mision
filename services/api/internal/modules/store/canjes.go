@@ -14,6 +14,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"triomision/api/internal/apierr"
 
 	"triomision/api/internal/auth"
 	"triomision/api/internal/database"
@@ -57,14 +58,14 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 		}
 		userID := claims.Subject
 		if _, err := ensureProfile(ctx, db, userID, claims.Email); err != nil {
-			return nil, huma.Error500InternalServerError("error asegurando el perfil", err)
+			return nil, apierr.Internal("error asegurando el perfil", err)
 		}
 
 		codigo := canjearCode(in.Body.Codigo)
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error iniciando la transacción", err)
+			return nil, apierr.Internal("error iniciando la transacción", err)
 		}
 		defer tx.Rollback(ctx)
 
@@ -78,7 +79,7 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 			return respuestaCanjeExistente(ctx, existenteID, userID, in, tx)
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el canje", err)
+			return nil, apierr.Internal("error consultando el canje", err)
 		}
 
 		// Código de canje con lock: serializa usos concurrentes del mismo código.
@@ -98,7 +99,7 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 			return nil, huma.Error404NotFound("código de canje no encontrado")
 		}
 		if err != nil {
-			return nil, huma.Error500InternalServerError("error consultando el código", err)
+			return nil, apierr.Internal("error consultando el código", err)
 		}
 
 		// Idempotencia natural: mismo usuario + mismo código devuelve el canje
@@ -110,7 +111,7 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 			return respuestaCanjeExistente(ctx, yaCanjeada, userID, in, tx)
 		}
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return nil, huma.Error500InternalServerError("error consultando el canje", err)
+			return nil, apierr.Internal("error consultando el canje", err)
 		}
 
 		ahora := time.Now()
@@ -190,7 +191,7 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 				return nil, huma.Error409Conflict("el código ya fue canjeado o la clave idempotente ya fue usada")
 			}
-			return nil, huma.Error500InternalServerError("error registrando el canje", err)
+			return nil, apierr.Internal("error registrando el canje", err)
 		}
 
 		suscripcionCreada := false
@@ -198,29 +199,29 @@ func canjear(db database.DB) func(context.Context, *canjearInput) (*canjearOutpu
 		case "premium":
 			creada, err := ConcederPremium(ctx, tx, userID, *planID, duracion, nil, &redemptionID, "redemption")
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error concediendo el período premium", err)
+				return nil, apierr.Internal("error concediendo el período premium", err)
 			}
 			suscripcionCreada = creada
 		case "package":
 			n, err := ConcederPistasProducto(ctx, tx, userID, *productID, nil, &redemptionID, "redemption")
 			if err != nil {
-				return nil, huma.Error500InternalServerError("error concediendo el acceso", err)
+				return nil, apierr.Internal("error concediendo el acceso", err)
 			}
 			accesosCreados = int(n)
 		}
 
 		if _, err := tx.Exec(ctx, `update redemption_codes set used_count = used_count + 1 where id = $1`, codeID); err != nil {
-			return nil, huma.Error500InternalServerError("error actualizando el código", err)
+			return nil, apierr.Internal("error actualizando el código", err)
 		}
 		if _, err := tx.Exec(ctx, `
 			insert into audit_events (actor_id, action, entity_type, entity_id, metadata)
 			values ($1, 'canje.canjeado', 'redemption_code', $2, $3)`,
 			userID, codeID, map[string]any{"redencion_id": redemptionID, "usuario_id": userID, "tipo": grantType}); err != nil {
-			return nil, huma.Error500InternalServerError("error registrando auditoría", err)
+			return nil, apierr.Internal("error registrando auditoría", err)
 		}
 
 		if err := tx.Commit(ctx); err != nil {
-			return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+			return nil, apierr.Internal("error confirmando la transacción", err)
 		}
 
 		out := &canjearOutput{}
@@ -259,7 +260,7 @@ func respuestaCanjeExistente(ctx context.Context, redemptionID, userID string, i
 		where r.id = $1 and r.user_id = $2`, redemptionID, userID,
 	).Scan(&codigo, &grantType, &concedidoEn, &contenido)
 	if err != nil {
-		return nil, huma.Error500InternalServerError("error consultando el canje", err)
+		return nil, apierr.Internal("error consultando el canje", err)
 	}
 	// La clave de cliente no se reutiliza con otro código.
 	if !strings.EqualFold(codigo, in.Body.Codigo) {
@@ -282,7 +283,7 @@ func respuestaCanjeExistente(ctx context.Context, redemptionID, userID string, i
 		}
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return nil, huma.Error500InternalServerError("error confirmando la transacción", err)
+		return nil, apierr.Internal("error confirmando la transacción", err)
 	}
 	return out, nil
 }
