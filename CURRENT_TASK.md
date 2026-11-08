@@ -214,6 +214,8 @@ bypass); Bruno 288/288, 136/136, 604/604.
 `apps/admin` = panel staff/manager/member; `apps/mobile` = APK. Alcance y
 planificación actualizados. Sin código de UI todavía.
 
+**Plan de la Fase 5:** ver `docs/planificacion/fase-5-tareas.md` (tareas y bloqueos).
+
 **Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
 Se configuró y validó; el envío a un dispositivo real se verifica más adelante,
 cuando haya una app web o Android de prueba.
