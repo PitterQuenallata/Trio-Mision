@@ -91,8 +91,10 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 | `S3_PUBLIC_BASE_URL` | no | — | Base URL pública de previews (`public/`) |
 | `S3_REGION` | no | `us-east-1` | Región de firma |
 | `S3_PRESIGN_TTL` | no | `15m` | Vida de URLs firmadas de descarga |
-| `API_RATE_LIMIT_RPS` | no | `20` | Peticiones sostenidas por segundo y por IP (token bucket). Las sondas `/health` y `/ready` quedan exentas |
-| `API_RATE_LIMIT_BURST` | no | `60` | Ráfaga máxima por IP antes de responder 429 |
+| `API_RATE_LIMIT_RPS` | no | `20` | Peticiones sostenidas por segundo y por IP (token bucket). Por usuario autenticado (token verificado); por IP si es anónimo. `/health` y `/ready` exentos |
+| `API_RATE_LIMIT_BURST` | no | `60` | Ráfaga máxima antes de responder 429 |
+| `API_RATE_LIMIT_IP_RPS` | no | `100` | Techo por IP para cualquier petición (frena a una IP que cree cuentas sin parar) |
+| `API_RATE_LIMIT_IP_BURST` | no | `300` | Ráfaga del techo por IP |
 | `FCM_PROJECT_ID` | no | — | Proyecto Firebase para notificaciones push (juntar con `FCM_CREDENTIALS_FILE`) |
 | `FCM_CREDENTIALS_FILE` | no | — | Ruta a la clave JSON de la cuenta de servicio FCM, fuera del repo. Sin ella el envío responde 503 |
 

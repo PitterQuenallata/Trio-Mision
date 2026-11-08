@@ -32,10 +32,13 @@ type Config struct {
 	RateLimit RateLimitConfig
 }
 
-// RateLimitConfig: tasa sostenida (RPS) y ráfaga máxima por cliente.
+// RateLimitConfig: límite por usuario autenticado (o por IP si es anónimo) y
+// techo por IP para cualquier petición.
 type RateLimitConfig struct {
-	RPS   float64
-	Burst int
+	RPS     float64
+	Burst   int
+	IPRPS   float64
+	IPBurst int
 }
 
 // FCMConfig describe Firebase Cloud Messaging (HTTP v1). Las credenciales de
@@ -79,8 +82,10 @@ func Load() (Config, error) {
 			PresignTTL: presignTTL,
 		},
 		RateLimit: RateLimitConfig{
-			RPS:   getEnvFloat("API_RATE_LIMIT_RPS", 20),
-			Burst: getEnvInt("API_RATE_LIMIT_BURST", 60),
+			RPS:     getEnvFloat("API_RATE_LIMIT_RPS", 20),
+			Burst:   getEnvInt("API_RATE_LIMIT_BURST", 60),
+			IPRPS:   getEnvFloat("API_RATE_LIMIT_IP_RPS", 100),
+			IPBurst: getEnvInt("API_RATE_LIMIT_IP_BURST", 300),
 		},
 		FCM: FCMConfig{
 			ProjectID:       os.Getenv("FCM_PROJECT_ID"),
@@ -95,8 +100,8 @@ func Load() (Config, error) {
 	if cfg.JWTSecret == "" {
 		errs = append(errs, errors.New("GOTRUE_JWT_SECRET es requerida"))
 	}
-	if cfg.RateLimit.RPS <= 0 || cfg.RateLimit.Burst <= 0 {
-		errs = append(errs, errors.New("API_RATE_LIMIT_RPS y API_RATE_LIMIT_BURST deben ser mayores que 0"))
+	if cfg.RateLimit.RPS <= 0 || cfg.RateLimit.Burst <= 0 || cfg.RateLimit.IPRPS <= 0 || cfg.RateLimit.IPBurst <= 0 {
+		errs = append(errs, errors.New("los límites de tasa (API_RATE_LIMIT_*) deben ser mayores que 0"))
 	}
 	if (cfg.FCM.ProjectID == "") != (cfg.FCM.CredentialsFile == "") {
 		errs = append(errs, errors.New("FCM_PROJECT_ID y FCM_CREDENTIALS_FILE deben configurarse juntas"))

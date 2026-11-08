@@ -4,6 +4,7 @@ package server
 import (
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -36,15 +37,26 @@ import (
 const Version = "0.12.0"
 
 // New arma el handler raíz: middlewares chi, OpenAPI/Swagger de Huma y módulos.
-// clientIP devuelve la IP del cliente. chi.RealIP ya la dejó en RemoteAddr
-// (X-Forwarded-For / X-Real-IP): en producción solo debe confiarse detrás del
-// proxy HTTPS del VPS.
-func clientIP(r *http.Request) string {
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
+// identifyClient devuelve el sub del JWT verificado (vacío si la petición es
+// anónima o el token no valida: la firma se comprueba antes de confiar en él)
+// y la IP del cliente. chi.RealIP deja la IP real en RemoteAddr: en producción
+// solo debe confiarse detrás del proxy HTTPS del VPS.
+func identifyClient(v *auth.Validator) ratelimit.Identify {
+	return func(r *http.Request) (string, string) {
+		ip := r.RemoteAddr
+		if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+			ip = host
+		}
+		h := r.Header.Get("Authorization")
+		if !strings.HasPrefix(h, "Bearer ") {
+			return "", ip
+		}
+		claims, err := v.Parse(strings.TrimPrefix(h, "Bearer "))
+		if err != nil || claims.Subject == "" {
+			return "", ip
+		}
+		return claims.Subject, ip
 	}
-	return host
 }
 
 // isHealthProbe exime las sondas de liveness y readiness del límite.
@@ -64,7 +76,8 @@ func New(cfg config.Config, db database.DB, validator *auth.Validator, objects s
 	if cfg.RateLimit.RPS > 0 {
 		r.Use(ratelimit.Middleware(
 			ratelimit.New(ratelimit.Config{RPS: cfg.RateLimit.RPS, Burst: cfg.RateLimit.Burst}),
-			clientIP,
+			ratelimit.New(ratelimit.Config{RPS: cfg.RateLimit.IPRPS, Burst: cfg.RateLimit.IPBurst}),
+			identifyClient(validator),
 			isHealthProbe,
 		))
 	}

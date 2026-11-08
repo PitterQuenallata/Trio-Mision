@@ -203,8 +203,10 @@ resultados en `loadtest/RESULTADOS-2026-11-08.md`): 0 errores 5xx; ~3 363 req/s
 con p95 51 ms en saturación de lecturas. Revisión de seguridad en
 `docs/seguridad/revision-endurecimiento-2026-11-08.md`. Corregido: los 500
 filtraban el texto de error interno (469 sitios) → `internal/apierr`. Autorización
-de las 39 rutas staff verificada en vivo. Pendiente de decisión: límite por IP
-en redes compartidas.
+de las 39 rutas staff verificada en vivo. Límite de tasa por usuario autenticado
+(JWT verificado) con techo por IP: 20/60 por usuario o IP anónima, 100/300 por IP
+para todos. Verificado en vivo (cupos separados en la misma IP, tokens falsos sin
+bypass); Bruno 288/288, 136/136, 604/604.
 
 **Decisión (2026-11-08):** FCM queda en Fase 4 (no v2), según la planificación.
 Se configuró y validó; el envío a un dispositivo real se verifica más adelante,

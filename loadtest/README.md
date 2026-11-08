@@ -11,5 +11,6 @@ k6 run -e VUS=100 -e THINK=0 loadtest/lectura.js   # saturación
 
 Variables: `VUS` (usuarios virtuales), `THINK` (pausa en s entre peticiones; 0 = máxima carga), `BASE_URL`, `GOTRUE_URL`, `EMAIL`, `PASSWORD`.
 
-Todos los VUs salen de la misma IP: con el límite por defecto la prueba mide el
-límite, no la capacidad. Para capacidad, sube el límite como arriba.
+Todos los VUs salen de la misma IP y las lecturas autenticadas usan un solo
+usuario: con el límite por defecto la prueba mide el límite, no la capacidad.
+Para capacidad, sube los límites como arriba (incluido `API_RATE_LIMIT_IP_RPS`).

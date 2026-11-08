@@ -82,33 +82,56 @@ func (l *Limiter) sweep(now time.Time) {
 	}
 }
 
-// Middleware aplica el límite por IP. Responde 429 en formato problem+json con
-// Retry-After (segundos, redondeado hacia arriba). Las sondas de salud quedan
-// fuera para que el monitoreo no provoque falsos bloqueos.
-func Middleware(l *Limiter, clientKey func(*http.Request) string, exempt func(*http.Request) bool) func(http.Handler) http.Handler {
+// Identify devuelve el usuario autenticado (sub del JWT ya verificado) o "" si
+// la petición es anónima o su token no es válido, y la IP real del cliente.
+type Identify func(*http.Request) (sub string, ip string)
+
+// Middleware aplica dos niveles:
+//   - strict: por usuario autenticado, o por IP si la petición es anónima.
+//   - ceiling: techo por IP para cualquier petición, que frena a una IP que
+//     abuse creando cuentas.
+//
+// Responde 429 en formato problem+json con Retry-After (segundos, redondeado
+// hacia arriba). Las rutas exentas (sondas de salud) no se limitan.
+func Middleware(strict, ceiling *Limiter, identify Identify, exempt func(*http.Request) bool) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if exempt != nil && exempt(r) {
 				next.ServeHTTP(w, r)
 				return
 			}
-			ok, wait := l.Allow(clientKey(r))
+			sub, ip := identify(r)
+
+			var ok bool
+			var wait time.Duration
+			if sub != "" {
+				ok, wait = strict.Allow("user:" + sub)
+				if ok {
+					ok, wait = ceiling.Allow("ip:" + ip)
+				}
+			} else {
+				ok, wait = strict.Allow("ip:" + ip)
+			}
 			if ok {
 				next.ServeHTTP(w, r)
 				return
 			}
-			secs := int(math.Ceil(wait.Seconds()))
-			if secs < 1 {
-				secs = 1
-			}
-			w.Header().Set("Retry-After", strconv.Itoa(secs))
-			w.Header().Set("Content-Type", "application/problem+json")
-			w.WriteHeader(http.StatusTooManyRequests)
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"title":  "Too Many Requests",
-				"status": http.StatusTooManyRequests,
-				"detail": "demasiadas peticiones; reintenta en unos segundos",
-			})
+			reject(w, wait)
 		})
 	}
+}
+
+func reject(w http.ResponseWriter, wait time.Duration) {
+	secs := int(math.Ceil(wait.Seconds()))
+	if secs < 1 {
+		secs = 1
+	}
+	w.Header().Set("Retry-After", strconv.Itoa(secs))
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(http.StatusTooManyRequests)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"title":  "Too Many Requests",
+		"status": http.StatusTooManyRequests,
+		"detail": "demasiadas peticiones; reintenta en unos segundos",
+	})
 }

@@ -25,9 +25,9 @@ producción.
 
 ## Pendientes (antes de producción)
 
-- Límite de tasa por IP: en redes compartidas (oficina, colegio, datos móviles
-  con NAT) todos los usuarios comparten el mismo cupo. Valorar limitar por
-  usuario autenticado y subir el valor por defecto.
+- Límite de tasa: resuelto en la misma rama. Ahora el cupo es por usuario
+  autenticado (verificado con la firma del JWT) y hay un techo por IP. Los
+  tokens falsificados no obtienen cupo propio: cuentan como anónimos.
 - `X-Forwarded-For`: solo confiar en la cabecera cuando la petición llega del
   proxy HTTPS del VPS.
 - Revisar cabeceras de seguridad y CORS cuando existan los clientes web.

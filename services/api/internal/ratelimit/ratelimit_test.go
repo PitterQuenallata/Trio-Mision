@@ -50,9 +50,10 @@ func TestClientsAreIndependent(t *testing.T) {
 }
 
 func TestMiddlewareReturns429WithRetryAfter(t *testing.T) {
-	l, _ := limiterWithClock(Config{RPS: 1, Burst: 1})
-	h := Middleware(l,
-		func(*http.Request) string { return "ip" },
+	strict, _ := limiterWithClock(Config{RPS: 1, Burst: 1})
+	ceiling, _ := limiterWithClock(Config{RPS: 100, Burst: 100})
+	h := Middleware(strict, ceiling,
+		func(*http.Request) (string, string) { return "", "1.2.3.4" },
 		func(r *http.Request) bool { return r.URL.Path == "/api/v1/health" },
 	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
 
@@ -75,8 +76,55 @@ func TestMiddlewareReturns429WithRetryAfter(t *testing.T) {
 	if ct := rec.Header().Get("Content-Type"); ct != "application/problem+json" {
 		t.Fatalf("content-type del 429: %q", ct)
 	}
-	// Las sondas de salud están exentas aunque el bucket esté agotado.
 	if rec := do("/api/v1/health"); rec.Code != http.StatusOK {
 		t.Fatalf("health debe quedar exento, fue %d", rec.Code)
+	}
+}
+
+// Dos usuarios detrás de la misma IP tienen cupos independientes.
+func TestUsuariosEnMismaIPTienenCupoPropio(t *testing.T) {
+	strict, _ := limiterWithClock(Config{RPS: 1, Burst: 1})
+	ceiling, _ := limiterWithClock(Config{RPS: 100, Burst: 100})
+	sub := ""
+	h := Middleware(strict, ceiling,
+		func(*http.Request) (string, string) { return sub, "10.0.0.7" },
+		nil,
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+
+	call := func(u string) int {
+		sub = u
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+		return rec.Code
+	}
+	if call("ana") != http.StatusOK {
+		t.Fatal("ana: primera petición")
+	}
+	if call("ana") != http.StatusTooManyRequests {
+		t.Fatal("ana: segunda petición debe limitarse")
+	}
+	if call("luis") != http.StatusOK {
+		t.Fatal("luis comparte IP con ana pero no debe heredar su límite")
+	}
+}
+
+// El techo por IP frena a una IP que cambia de cuenta sin parar.
+func TestTechoPorIPFrenaCuentasRotadas(t *testing.T) {
+	strict, _ := limiterWithClock(Config{RPS: 100, Burst: 100})
+	ceiling, _ := limiterWithClock(Config{RPS: 1, Burst: 2})
+	n := 0
+	h := Middleware(strict, ceiling,
+		func(*http.Request) (string, string) { n++; return "u" + string(rune('a'+n)), "9.9.9.9" },
+		nil,
+	)(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) }))
+
+	codes := []int{}
+	for i := 0; i < 4; i++ {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/x", nil))
+		codes = append(codes, rec.Code)
+	}
+	if codes[0] != 200 || codes[1] != 200 || codes[2] != 429 {
+		t.Fatalf("el techo por IP debe agotarse tras la ráfaga: %v", codes)
 	}
 }
