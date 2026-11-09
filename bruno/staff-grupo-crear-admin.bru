@@ -1,0 +1,41 @@
+meta {
+  name: Staff - crear grupo (admin)
+  type: http
+  seq: 421
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "nombre": "Grupo Bruno {{$timestamp}}",
+    "pais": "Bolivia",
+    "bio": "Grupo de prueba de la colección",
+    "redes": {
+      "instagram": "https://instagram.com/grupobruno"
+    },
+    "publicado": false
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isString
+  res.body.vende_pistas: eq false
+}
+
+script:post-response {
+  bru.setVar("brunoGrupoId", res.body.id);
+}
+
+docs {
+  POST /api/v1/staff/grupos: alta de un grupo por admin. Guarda `brunoGrupoId` para las requests siguientes. El slug se genera del nombre.
+}

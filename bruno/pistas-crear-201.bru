@@ -1,0 +1,34 @@
+meta {
+  name: Pistas - crear pista del grupo (201)
+  type: http
+  seq: 447
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/pistas
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "titulo": "Pista Bruno {{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isString
+}
+
+script:post-response {
+  bru.setVar("brunoPistaId", res.body.id);
+}
+
+docs {
+  POST pista del grupo. Aún no está a la venta: se vincula a una canción. Guarda `brunoPistaId`.
+}

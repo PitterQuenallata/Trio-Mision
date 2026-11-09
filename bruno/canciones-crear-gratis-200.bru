@@ -1,0 +1,37 @@
+meta {
+  name: Canciones - crear canción gratis (200)
+  type: http
+  seq: 448
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/canciones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "album_id": "{{brunoAlbumId}}",
+    "titulo": "Canción Bruno {{$timestamp}}",
+    "chordpro": "[C]Hola [G]mundo",
+    "acceso": "free"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.id: isString
+}
+
+script:post-response {
+  bru.setVar("brunoCancionId", res.body.id);
+}
+
+docs {
+  POST canción en el álbum de prueba: gratis. Guarda `brunoCancionId` para vincular una pista.
+}

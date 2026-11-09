@@ -1,0 +1,30 @@
+meta {
+  name: Staff - grupo con slug repetido (409)
+  type: http
+  seq: 422
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "nombre": "Grupo Bruno dup",
+    "slug": "grupo-bruno-dup-fijo"
+  }
+}
+
+assert {
+  res.status: in [201, 409]
+}
+
+docs {
+  Crea y repite con el mismo slug: la segunda vez responde 409. La primera corrida puede crearlo (201).
+}

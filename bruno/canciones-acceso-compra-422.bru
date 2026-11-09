@@ -1,0 +1,32 @@
+meta {
+  name: Canciones - acceso compra no admitido (422)
+  type: http
+  seq: 451
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/canciones
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "album_id": "{{brunoAlbumId}}",
+    "titulo": "Compra no admitida",
+    "chordpro": "[C]x",
+    "acceso": "purchase"
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Las canciones solo son gratis (free) o Premium. La venta de pistas es aparte, vinculada a la canción.
+}

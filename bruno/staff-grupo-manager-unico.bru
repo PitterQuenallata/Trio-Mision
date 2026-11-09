@@ -1,0 +1,25 @@
+meta {
+  name: Staff - vincular único manager al grupo de prueba (200)
+  type: http
+  seq: 430
+}
+
+put {
+  url: {{baseUrl}}/api/v1/staff/artistas/{{brunoGrupoId}}/managers/{{managerUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.manager: eq true
+}
+
+docs {
+  Prepara la regresión de último manager: el grupo recién creado en esta
+  colección recibe un único manager (el usuario de `managerUserId`).
+}

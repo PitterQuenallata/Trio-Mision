@@ -1,0 +1,26 @@
+meta {
+  name: Staff - listar usuarios con roles (admin)
+  type: http
+  seq: 420
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/usuarios?rol=admin
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.usuarios: isArray
+}
+
+docs {
+  GET /api/v1/staff/usuarios?rol=admin: listado de usuarios con roles staff y
+  membresías. Requiere un token de un admin (variable `adminToken`, de
+  "GoTrue - login admin"); con vendedor, editor, miembro o cliente responde 403.
+}

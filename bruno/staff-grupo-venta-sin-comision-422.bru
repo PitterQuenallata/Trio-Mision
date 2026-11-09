@@ -1,0 +1,30 @@
+meta {
+  name: Staff - vender pistas sin comisión (422)
+  type: http
+  seq: 423
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "nombre": "Venta sin comision {{$timestamp}}",
+    "vende_pistas": true
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Regla de venta: para vender pistas la comisión es obligatoria (5 a 10 %).
+}

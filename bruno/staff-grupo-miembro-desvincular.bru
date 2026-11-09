@@ -1,0 +1,24 @@
+meta {
+  name: Staff - desvincular miembro (200)
+  type: http
+  seq: 435
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}/miembros/{{devUserId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.desvinculado: eq true
+}
+
+docs {
+  DELETE: quita la membresía del grupo. Si era el último manager activo, responde 409 (ver las pruebas de manager).
+}

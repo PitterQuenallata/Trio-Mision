@@ -13,6 +13,8 @@ get {
 assert {
   res.status: eq 200
   res.body.display_name: isNotEmpty
+  res.body.staff_roles: isArray
+  res.body.artist_memberships: isArray
 }
 
 docs {
@@ -21,6 +23,8 @@ docs {
   local del correo del token).
 
   Requiere un Bearer token válido (variable secreta `gotrueToken`, salida de
-  `make api-token`). Sin token debe responder 401. Para el flujo real
+  `make api-token`). Sin token debe responder 401. Devuelve además `staff_roles`
+  (roles staff, lista vacía si no aplica) y `artist_memberships` (membresías por
+  artista, lista vacía si no aplica). Para el flujo real
   (signup → login → token GoTrue) ver "Me con token GoTrue".
 }

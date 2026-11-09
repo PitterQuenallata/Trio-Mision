@@ -1,0 +1,24 @@
+meta {
+  name: Staff - quitar manager de artista (admin)
+  type: http
+  seq: 415
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/staff/artistas/00000000-0000-4000-8000-000000000001/managers/{{bruStaffId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.manager: eq false
+}
+
+docs {
+  DELETE /api/v1/staff/artistas/{artistId}/managers/{userId}: solo admin. Deja al artista con al menos un manager (409 si es el último).
+}

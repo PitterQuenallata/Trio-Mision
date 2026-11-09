@@ -1,0 +1,31 @@
+meta {
+  name: Pistas - vincular con grupo que no vende (422)
+  type: http
+  seq: 450
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/canciones/{{brunoCancionId}}/pista
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "track_id": "{{brunoPistaId}}",
+    "precio_minor": 1500,
+    "moneda": "BOB"
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  Con la venta deshabilitada (paso anterior), vincular una pista responde 422. Requiere `brunoCancionId` y `brunoPistaId`.
+}

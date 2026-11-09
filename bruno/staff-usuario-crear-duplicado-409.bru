@@ -1,0 +1,31 @@
+meta {
+  name: Staff - crear usuario duplicado (409)
+  type: http
+  seq: 411
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/usuarios
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "email": "{{bruStaffEmail}}",
+    "password": "clave-bruno-12345",
+    "rol": "editor"
+  }
+}
+
+assert {
+  res.status: eq 409
+}
+
+docs {
+  POST /api/v1/staff/usuarios con un correo existente: 409; para asignar otro rol usar PUT .../roles/{rol}.
+}

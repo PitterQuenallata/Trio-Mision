@@ -1,0 +1,33 @@
+meta {
+  name: Staff - habilitar venta de pistas (200)
+  type: http
+  seq: 425
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "vende_pistas": true,
+    "comision_pct": 7.5,
+    "publicado": true
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.vende_pistas: eq true
+  res.body.comision_pct: eq 7.5
+}
+
+docs {
+  PATCH parcial: habilita la venta de pistas con comisión 7.5 % y publica el grupo. Solo admin.
+}

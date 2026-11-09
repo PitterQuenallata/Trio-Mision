@@ -1,0 +1,30 @@
+meta {
+  name: Staff - desactivar miembro (200)
+  type: http
+  seq: 434
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}/miembros/{{devUserId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "activo": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.activo: eq false
+}
+
+docs {
+  PATCH: desactiva el acceso del vinculado sin borrar su membresía. Solo admin.
+}

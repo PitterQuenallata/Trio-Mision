@@ -1,0 +1,39 @@
+meta {
+  name: GoTrue - signup admin
+  type: http
+  seq: 403
+}
+
+post {
+  url: {{gotrueUrl}}/signup
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@triomision.local",
+    "password": "AdminPass123!"
+  }
+}
+
+tests {
+  test("signup admin crea el usuario, o informa que ya existe (repetible)", function() {
+    const status = res.getStatus();
+    expect([200, 422]).to.include(status);
+    if (status === 200) {
+      expect(res.getBody().user.email).to.equal("admin@triomision.local");
+    } else {
+      expect(res.getBody().error_code).to.equal("user_already_exists");
+    }
+  });
+}
+
+docs {
+  Alta en GoTrue del administrador de desarrollo. El rol NO se concede aquí:
+
+      make db-staff EMAIL=admin@triomision.local ROLE=admin
+
+  Ejecutar una vez tras el alta (y tras `make db-reset`). Lo usan los flujos de
+  gestión de cuentas y roles (`adminToken`).
+}

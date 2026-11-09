@@ -1,0 +1,30 @@
+meta {
+  name: Pistas - deshabilitar venta del grupo de prueba (200)
+  type: http
+  seq: 449
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "vende_pistas": false
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.vende_pistas: eq false
+}
+
+docs {
+  El admin deshabilita la venta de pistas del grupo de prueba. Prepara la prueba de vinculación rechazada (422).
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Staff - buscar artistas (admin)
+  type: http
+  seq: 418
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/artistas?q=trio&limite=5
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.artistas: isArray
+}
+
+docs {
+  GET /api/v1/staff/artistas?q=&limite=: búsqueda de artistas para asignar
+  managers (solo admin). Devuelve solo coincidencias, con límite. Requiere `adminToken` (ver "GoTrue - login admin").
+}

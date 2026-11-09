@@ -1,0 +1,32 @@
+meta {
+  name: Negativo - manager no puede crear usuario staff (403)
+  type: http
+  seq: 416
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/usuarios
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "email": "no-{{$timestamp}}@triomision.local",
+    "password": "clave-bruno-12345",
+    "rol": "admin"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Un manager no puede crear cuentas staff. Requiere `managerToken` (token de una
+  cuenta manager de un artista): `bru run ... --env-var "managerToken=..."`.
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Staff - añadir manager a artista (admin)
+  type: http
+  seq: 414
+}
+
+put {
+  url: {{baseUrl}}/api/v1/staff/artistas/00000000-0000-4000-8000-000000000001/managers/{{bruStaffId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.manager: eq true
+}
+
+docs {
+  PUT /api/v1/staff/artistas/{artistId}/managers/{userId}: solo admin vincula a un
+  usuario como manager del artista (seed: trio-mision). Idempotente.
+}

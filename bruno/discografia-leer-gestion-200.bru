@@ -1,0 +1,24 @@
+meta {
+  name: Discografía - gestión con borradores (200)
+  type: http
+  seq: 441
+}
+
+get {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/discografia
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.albumes: isArray
+}
+
+docs {
+  GET discografía completa para gestión: incluye álbumes y canciones en borrador. Solo manager o admin.
+}

@@ -1,0 +1,41 @@
+meta {
+  name: Staff - crear usuario staff (admin)
+  type: http
+  seq: 410
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/usuarios
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "email": "bru-{{$timestamp}}@triomision.local",
+    "password": "clave-bruno-12345",
+    "display_name": "Bruno staff",
+    "rol": "vendedor"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.id: isString
+  res.body.rol: eq vendedor
+}
+
+script:post-response {
+  bru.setVar("bruStaffId", res.body.id);
+  bru.setVar("bruStaffEmail", res.body.email);
+}
+
+docs {
+  POST /api/v1/staff/usuarios: solo admin. Crea la cuenta en GoTrue (correo
+  confirmado) con rol staff vendedor y guarda su id para las requests siguientes
+  de esta sección. Cada corrida crea un usuario nuevo (correo con timestamp).
+}

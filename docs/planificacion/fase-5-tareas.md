@@ -1,6 +1,6 @@
 # Fase 5 — Tareas: clientes v2 y producción
 
-> Estado al 2026-11-08. Orden de trabajo sugerido. Marcar con [x] al cerrar.
+> Estado al 2026-11-09. Orden de trabajo sugerido. Marcar con [x] al cerrar.
 > Ramas pendientes de fusionar a `main` en este orden: `sprint-4c-push-fcm` →
 > `api-rate-limit` → `docs-estructura-apps` (incluye las anteriores) y luego
 > `apps-admin-scaffold` (sale de `main`).
@@ -32,19 +32,33 @@
 
 ## 3. Panel admin (`apps/admin`, plantilla blakor-admin-pro)
 
-- [ ] Login con GoTrue (`VITE_GOTRUE_URL`), guardar sesión, cerrar sesión,
-      renovación de token y guard de rutas por rol (`/api/v1/me`).
-- [ ] Cliente de API tipado por dominio, con tipos generados desde `/openapi.json`.
-- [ ] Dashboard con KPIs reales (pagos, licencias, soporte).
-- [ ] Usuarios y staff (roles) conectados a la API.
-- [ ] Pagos: listar, ver comprobante privado, aprobar o rechazar (staff).
-- [ ] Licencias de audio y configuración comercial (planes, cupones, canjes).
-- [ ] Catálogo: artistas, álbumes y canciones (member solo lectura, manager edita).
-- [ ] Himnario (lectura) e importación de PDF: subir, revisar, publicar borradores, reintentar.
-- [ ] Servicios por encargo: solicitudes, cotización, proyecto y entregas.
-- [ ] Soporte y auditoría.
-- [ ] Quitar el selector de emojis de la plantilla (las guías de la plantilla lo prohíben).
-- [ ] Pruebas: al menos un smoke test por dominio contra la API local.
+Estado al 2026-11-09. Orden acordado con el dueño.
+
+### Hecho
+- [x] Login con GoTrue, sesión persistente, cierre por inactividad y guard por rol.
+- [x] Cliente de API tipado (`openapi-fetch` + `openapi-typescript`, `pnpm api:types`).
+- [x] Dashboard con KPIs reales (pagos en revisión, licencias, tickets, solicitudes).
+- [x] Usuarios: alta de cuentas staff, roles, vinculación de managers, matriz de permisos en modal.
+- [x] Grupos (API 0.17.0 y panel): alta con portada, ficha con pestañas, configuración de venta de pistas con comisión 5–10 %, miembros (vincular como member o manager, cambiar rol, desactivar/reactivar, desvincular).
+- [x] Discografía (API 0.19.0 y panel): álbumes, EP y sencillos; canciones con editor ChordPro y vista previa; orden; publicar por lanzamiento y por canción; asistente de nuevo lanzamiento.
+- [x] Venta de pistas (API 0.20.0 y panel): canciones solo gratis o Premium; pista vinculada a una canción con precio; solo grupos habilitados; la tienda oculta y rechaza pistas de grupos no habilitados.
+
+### Siguiente, en orden
+- [ ] **Mi grupo del manager:** la misma discografía y ficha que el admin, sin la pestaña de configuración de ventas. Hoy sigue la pantalla anterior.
+- [ ] **Audio de la pista:** subir el master desde la ficha de la pista (la API ya tiene `POST …/pistas/{trackId}/master`; falta la pantalla).
+- [ ] **Prueba de compra de pista de punta a punta:** orden, pago manual, aprobación y descarga, con un grupo habilitado.
+- [ ] **Himnario e importación de PDF:** recuperar la experiencia de la v1 (conversión automática con marcas "revisar", revisión y edición por canción antes de publicar, subida real al servidor). Hoy la API ya convierte y publica borradores; falta la pantalla y permitir editar datos por canción antes de publicar.
+- [ ] **Servicios por encargo:** detalle de solicitud para staff (referencias, cotización, pago y proyecto), listado de proyectos y comprobantes de pagos de servicio.
+- [ ] **Soporte:** tickets por estado y categoría, detalle con mensajes y adjuntos privados, cambio de estado.
+- [ ] **Auditoría:** tabla con filtros (acción, actor, fechas) y detalle.
+- [ ] **Licencias, cupones y ofertas (staff):** listado de licencias vigentes y revocadas; alta y edición de cupones; ofertas de lanzamiento y tipo Black Friday por fechas, sin código (hoy solo hay lectura pública).
+- [ ] **Pagos manuales y suscripciones (casi al final):** registro de pago en persona por staff que concede el acceso igual que un pago aprobado; planes mensual, trimestral y anual; suscripción de usuario.
+- [ ] **Reclamación de membresía de grupo:** el usuario reclama desde appweb con evidencia; revisión y concesión de Premium solo para ese grupo. Pendiente de definir quién revisa (manager, admin o ambos) y si caduca.
+- [ ] **Pendiente de decisión:** cómo se habilita a un grupo nuevo para vender pistas, si no hay suscripción de grupo (hoy, decisión manual del admin).
+- [ ] **Verificación:** recorrido en navegador de login, roles, grupos, discografía y venta; smoke test por dominio contra la API local.
+
+### Después de producción
+- [ ] Pasarelas de pago: Google Play y una pasarela internacional.
 
 ## 4. Panel de usuario (`apps/appweb`, portal con login para suscriptores)
 

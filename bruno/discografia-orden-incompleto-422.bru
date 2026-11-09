@@ -1,0 +1,32 @@
+meta {
+  name: Discografía - orden incompleto (422)
+  type: http
+  seq: 442
+}
+
+put {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/albumes/{{brunoAlbumId}}/orden
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "canciones": [
+    "00000000-0000-4000-8000-000000000999"
+  ]
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  PUT orden con una canción que no pertenece al álbum: 422. La lista debe
+  incluir exactamente las canciones del álbum. Requiere `brunoAlbumId`.
+}

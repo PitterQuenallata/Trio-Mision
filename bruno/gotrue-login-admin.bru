@@ -1,0 +1,34 @@
+meta {
+  name: GoTrue - login admin
+  type: http
+  seq: 404
+}
+
+post {
+  url: {{gotrueUrl}}/token?grant_type=password
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "admin@triomision.local",
+    "password": "AdminPass123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.access_token: isNotEmpty
+}
+
+tests {
+  test("guarda el token admin para la gestión de cuentas y roles", function() {
+    bru.setVar("adminToken", res.getBody().access_token);
+  });
+}
+
+docs {
+  Login del administrador de desarrollo (requiere "GoTrue - signup admin" y
+  `make db-staff EMAIL=admin@triomision.local ROLE=admin`). Guarda `adminToken`.
+}

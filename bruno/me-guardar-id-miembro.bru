@@ -1,0 +1,29 @@
+meta {
+  name: Me - guardar id para pruebas de miembros
+  type: http
+  seq: 432
+}
+
+get {
+  url: {{baseUrl}}/api/v1/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{gotrueToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.user_id: isString
+}
+
+script:post-response {
+  bru.setVar("devUserId", res.body.user_id);
+}
+
+docs {
+  Guarda el id del usuario de desarrollo (sub) en `devUserId`, para vincularlo
+  como member del grupo de prueba. Evita depender de un id fijo del entorno.
+}

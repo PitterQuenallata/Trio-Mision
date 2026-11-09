@@ -1,0 +1,36 @@
+meta {
+  name: Discografía - crear sencillo (200)
+  type: http
+  seq: 440
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/{{brunoGrupoId}}/albumes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "titulo": "Sencillo Bruno {{$timestamp}}",
+    "tipo": "sencillo",
+    "anio": 2026
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.tipo: eq sencillo
+}
+
+script:post-response {
+  bru.setVar("brunoAlbumId", res.body.id);
+}
+
+docs {
+  POST álbumes con tipo sencillo (álbum, EP o sencillo). Guarda `brunoAlbumId` para la discografía y el orden. Admin puede gestionar cualquier grupo.
+}

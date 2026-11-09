@@ -1,0 +1,32 @@
+meta {
+  name: Staff - preparar subida de portada (201)
+  type: http
+  seq: 428
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/imagenes
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "tipo": "grupo",
+    "content_type": "image/png"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.key: contains public/imagenes/grupo/
+  res.body.upload_url: isString
+}
+
+docs {
+  POST subida firmada para portada: devuelve la clave, la URL y los campos del formulario. La imagen real se sube por POST multipart a MinIO.
+}

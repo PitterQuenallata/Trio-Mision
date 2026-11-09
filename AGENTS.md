@@ -168,6 +168,8 @@ Docker o PostgreSQL estén ausentes. Verificar con
 
 ## Convenciones
 
+- Interfaz del panel (`apps/admin`): usar siempre los componentes de la plantilla (modales, botones, alertas `pillToast`, `AlertDialog`); reglas en `apps/admin/CLAUDE.md`.
+
 - API: monolito modular Go, chi, Huma, pgx/v5 y golang-jwt/v5.
 - Módulos en `services/api/internal/modules/<dominio>/` con registro en el servidor.
 - Todo endpoint nuevo o modificado debe documentarse mediante Huma/OpenAPI y tener

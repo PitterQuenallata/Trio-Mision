@@ -1,0 +1,29 @@
+meta {
+  name: Negativo - manager no crea grupos (403)
+  type: http
+  seq: 429
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "nombre": "Grupo no permitido {{$timestamp}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Solo admin crea grupos. Requiere `managerToken` (ver negativo-manager-crear-usuario-403).
+}

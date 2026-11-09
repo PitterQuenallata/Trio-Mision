@@ -1,0 +1,25 @@
+meta {
+  name: Staff - ficha del grupo (200)
+  type: http
+  seq: 426
+}
+
+get {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.gestores: isArray
+  res.body.redes.instagram: contains grupobruno
+}
+
+docs {
+  GET ficha: datos, redes, venta de pistas, managers vinculados.
+}

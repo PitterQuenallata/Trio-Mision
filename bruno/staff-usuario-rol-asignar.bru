@@ -1,0 +1,24 @@
+meta {
+  name: Staff - asignar rol editor a usuario
+  type: http
+  seq: 412
+}
+
+put {
+  url: {{baseUrl}}/api/v1/staff/usuarios/{{bruStaffId}}/roles/editor
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.concedido: eq true
+}
+
+docs {
+  PUT /api/v1/staff/usuarios/{id}/roles/{rol}: concede el rol (idempotente). Solo admin.
+}

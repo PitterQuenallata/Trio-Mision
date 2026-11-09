@@ -1,0 +1,32 @@
+meta {
+  name: Staff - vincular member al grupo (201)
+  type: http
+  seq: 433
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos/{{brunoGrupoId}}/miembros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "user_id": "{{devUserId}}",
+    "rol": "member"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.rol: eq member
+  res.body.activo: eq true
+}
+
+docs {
+  POST /api/v1/staff/grupos/{id}/miembros: vincula un usuario existente como member del grupo de prueba. Solo admin.
+}

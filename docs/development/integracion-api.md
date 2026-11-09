@@ -1,6 +1,22 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.12.0 (Sprint 4C: tokens push FCM por dispositivo
+> **Versión de contrato:** 0.20.0 (venta de pistas vinculadas a canciones: canciones
+> solo `free|premium`; `POST|GET /api/v1/mis-artistas/{id}/pistas`; `PUT|DELETE
+> …/canciones/{songId}/pista` con precio (solo grupos habilitados para vender); la
+> tienda oculta y rechaza pistas de grupos no habilitados). 0.19.0 (discografía: tipo de lanzamiento `album|ep|sencillo`
+> en álbumes; `GET /api/v1/mis-artistas/{id}/discografia` para gestión con borradores;
+> `PUT …/albumes/{albumId}/orden` para ordenar canciones). 0.18.0 (vinculados de grupo por admin: `POST|PATCH|DELETE
+> /api/v1/staff/grupos/{id}/miembros[/{userId}]`, con activar/desactivar sin borrar
+> la membresía; `artist_members.activo`). 0.17.0 (administración de grupos por admin: `GET|POST
+> /api/v1/staff/grupos`, `GET|PATCH /api/v1/staff/grupos/{id}` con venta de pistas
+> y comisión 5 a 10 %, y `POST /api/v1/staff/imagenes` para portadas. El admin
+> pasa la autorización de grupo en `/mis-artistas/…`: control total). 0.16.0 (`GET /api/v1/staff/artistas?q=&limite=`: búsqueda
+> de artistas para admin, sin listar el catálogo; `artist_memberships` de
+> `GET /api/v1/staff/usuarios` incluye `nombre`). 0.15.0 (gestión de cuentas y roles por admin: crear
+> cuentas staff, asignar/quitar roles, añadir/quitar managers de artista; los
+> managers ya no pueden asignar managers). 0.14.0: `GET /api/v1/staff/usuarios`, listado de
+> usuarios con roles para admin; `GET /me` devuelve `staff_roles` y
+> `artist_memberships` desde 0.13.0). Sprint 4C: tokens push FCM por dispositivo
 > y envío de prueba staff; FCM es opcional y sin configurar responde 503).
 > Sprint 4B: worker con conversión editorial PDF→ChordPro, cola de trabajos en
 > PostgreSQL y publicación de borradores tras revisión humana; la conversión es
@@ -44,6 +60,12 @@ El `access_token` identifica al usuario en la API (`sub` = UUID del usuario,
 `aud=authenticated`). El primer request autenticado crea la fila en `profiles`
 (aseguramiento perezoso); `GET /api/v1/me` devuelve la identidad y asegura el
 perfil en la misma llamada.
+
+Además devuelve `staff_roles` (lista de `admin`, `editor`, `vendedor`; vacía si el
+usuario no es staff) y `artist_memberships` (lista de `{artist_id, role}` con `role`
+`member` o `manager`; vacía si no pertenece a ningún artista). Sirven para decidir
+qué mostrar en la interfaz; la API vuelve a autorizar en cada endpoint, así que un
+rol en `/me` no concede acceso por sí mismo.
 
 ### 2.2 Refresh y logout
 
@@ -315,9 +337,21 @@ vez; la API valida el alcance por `artist_id` en cada query y mutación.
 
 Reglas de códigos: quien no es miembro del artista recibe **404** (no se
 revela la existencia del artista); quien es member pero intenta mutar recibe
-**403**. Los managers asignan roles desde la API (auditoría `rol.asignado` /
-`rol.revocado` con `source=api`); el arranque del primer manager es operación
-SQL (`make db-artist-role`).
+**403**.
+
+**Managers: solo el admin los asigna o quita** (0.15.0). Un manager puede añadir
+y quitar **members** de su artista, pero no managers (403). El admin usa:
+
+```
+PUT    /api/v1/staff/artistas/{artistId}/managers/{userId}   # admin: añadir manager (idempotente)
+DELETE /api/v1/staff/artistas/{artistId}/managers/{userId}   # admin: quitar manager (409 si es el último)
+```
+
+Un usuario tiene **una sola membresía por artista**: añadir un manager a un
+member lo convierte en manager, y quitar el manager elimina el acceso (para
+volver a member, el manager lo añade de nuevo con `POST …/miembros`). Las
+asignaciones quedan auditadas (`rol.asignado` / `rol.revocado`, `source=api`).
+El arranque del primer manager sigue siendo operación SQL (`make db-artist-role`).
 
 ```bash
 GET    /api/v1/mis-artistas                                  # mis membresías + rol
@@ -507,6 +541,7 @@ del token **nunca** autorizan por sí solos.
 | Cuenta | `GET /me` | autenticado |
 | Tienda | `POST /tienda/ordenes`, `GET /tienda/ordenes/{id}`, `POST /tienda/ordenes/{id}/pagos`, `POST /tienda/pagos/{id}/comprobante`, `POST /tienda/canjes`, `GET /mis-compras`, `GET /mis-compras/accesos/{id}/descarga` | autenticado (solo propios; 404 ajeno) |
 | Por artista | `GET|PATCH /mis-artistas…`, `GET|PUT /mis-artistas/{id}/licencias…`, `POST /mis-artistas/{id}/terminos-licencia`, `POST /mis-artistas/{id}/pistas/{trackId}/master` | member/manager del artista (mutación: manager) |
+| Gestión de cuentas (admin) | `POST /staff/usuarios`, `PUT|DELETE /staff/usuarios/{id}/roles/{rol}`, `PUT|DELETE /staff/artistas/{artistId}/managers/{userId}`, `GET /staff/usuarios` | solo `admin` |
 | Dispositivos | `PUT|GET /dispositivos`, `POST …/{installId}/heartbeat|revocar` | autenticado (solo propios) |
 | Sync | `GET /sync/catalogo`, `POST|GET /dispositivos/{installId}/descargas-offline` | autenticado (solo sus dispositivos; 404 ajeno) |
 | Servicios | `POST|GET /servicios/solicitudes`, `GET /servicios/solicitudes/{id}`, `POST /servicios/cotizaciones/{id}/aceptar|rechazar`, `POST /servicios/proyectos/{id}/pagos`, `GET /servicios/proyectos/{id}` | autenticado (solo propios; 404 ajeno) |

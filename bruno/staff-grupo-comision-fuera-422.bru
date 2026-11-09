@@ -1,0 +1,31 @@
+meta {
+  name: Staff - comisión fuera de rango (422)
+  type: http
+  seq: 424
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/grupos
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{adminToken}}
+}
+
+body:json {
+  {
+    "nombre": "Comision baja {{$timestamp}}",
+    "vende_pistas": true,
+    "comision_pct": 4
+  }
+}
+
+assert {
+  res.status: eq 422
+}
+
+docs {
+  La comisión debe estar entre 5 y 10 %.
+}

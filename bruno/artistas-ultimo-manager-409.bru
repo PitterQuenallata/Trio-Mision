@@ -1,17 +1,17 @@
 meta {
-  name: Artistas - no eliminar último manager
+  name: Artistas - no quitar el último manager (admin, 409)
   type: http
-  seq: 67
+  seq: 431
 }
 
 delete {
-  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/miembros/{{managerUserId}}
+  url: {{baseUrl}}/api/v1/staff/artistas/{{brunoGrupoId}}/managers/{{managerUserId}}
   body: none
   auth: bearer
 }
 
 auth:bearer {
-  token: {{managerToken}}
+  token: {{adminToken}}
 }
 
 assert {
@@ -19,7 +19,8 @@ assert {
 }
 
 docs {
-  Regresión de continuidad administrativa: incluso el propio manager no puede
-  eliminar su membresía si es la última de ese artista. La comprobación y la
-  revocación/auditoría se serializan por artista dentro de una transacción.
+  Regresión de continuidad administrativa: el admin no puede quitar al último
+  manager de un artista (409). Usa el grupo creado en esta colección, que tiene un
+  único manager (paso anterior), así que no depende de los datos del seed ni de
+  otras pruebas. La comprobación se hace bajo bloqueo del artista en la base.
 }

@@ -4,6 +4,49 @@
 > Última actualización: 2026-11-08
 
 > [!IMPORTANT]
+> **FASE 5 — VENTA DE PISTAS (2026-11-09):** API **0.20.0**. Canciones solo
+> gratis o Premium (migración 00034). Pista = venta aparte vinculada a una canción
+> con su precio; solo grupos habilitados (interruptor del admin). La tienda oculta y
+> rechaza pistas de grupos no habilitados. Bruno 322/322, 138/138 y 668/668. Pendiente:
+> subir el audio de la pista (master) desde el panel y la prueba de compra real.
+
+> **FASE 5 — DISCOGRAFÍA (2026-11-09):** API **0.19.0**. Lanzamientos con tipo
+> (álbum, EP, sencillo; migración 00033), discografía de gestión con borradores,
+> reordenar canciones. Panel: discografía en cuadrícula de portadas, página de
+> lanzamiento estilo Spotify (lista de canciones con orden, publicar y editar),
+> editor ChordPro con vista previa y asistente de nuevo lanzamiento. Bruno 317/317,
+> 138/138 y 660/660 tras corrida completa. Pendiente: canción con pista y precio.
+
+> **FASE 5 — GRUPOS (2026-11-08):** API **0.17.0**. Administración de grupos por
+> admin: `GET|POST /api/v1/staff/grupos`, `GET|PATCH /api/v1/staff/grupos/{id}`
+> (venta de pistas y comisión 5 a 10 %), `POST /api/v1/staff/imagenes` (portadas
+> firmadas, JPEG/PNG/WebP, máx. 2 MiB). El admin pasa la autorización de grupo en
+> `/mis-artistas/…` (control total). Migración 00031. Staff y managers siguen el
+> modelo de decisiones en `docs/planificacion/decisiones-fase-5.md`. **Paso 0
+> hecho:** base reseteada y colección completa en verde (310/310 requests, 138/138
+> tests, 646/646 aserciones). Panel: pantalla de **Grupos** hecha (lista, alta en
+> modal, ficha con pestañas Datos, Configuración con interruptor de venta de pistas
+> y comisión, Álbumes con alta, y Managers con búsqueda). Página de álbum con
+> canciones en lectura. Vinculados del grupo (pestaña Miembros): vincular como
+> member o manager, cambiar rol, desactivar/reactivar y desvincular; API 0.18.0
+> (migración 00032, `artist_members.activo`). Pendiente: alta de canciones (editor
+> ChordPro), ajustar el indicador de pestaña y la pantalla de Mi grupo del manager.
+
+> **FASE 5, SECCIÓN 3 — PANEL ADMIN (2026-11-08):** API **0.15.0**. Gestión de
+> cuentas y roles solo por admin: `POST /api/v1/staff/usuarios` (crear staff),
+> `PUT|DELETE /api/v1/staff/usuarios/{id}/roles/{rol}`,
+> `PUT|DELETE /api/v1/staff/artistas/{artistId}/managers/{userId}`. Migraciones
+> 00029–00030 (funciones `SECURITY DEFINER` con validaciones; el último admin y el
+> último manager de un artista no se pueden quitar). Los managers ya no pueden
+> asignar managers (`POST …/miembros` con `manager` → 403). Panel: entran solo staff
+> y managers; secciones Panel de control, Mi grupo (manager), Usuarios
+> (admin; la matriz de permisos por rol va en un modal dentro de Usuarios). Se retiraron las secciones de plantilla sin API (pagos, licencias,
+> catálogo, etc.; siguen en el historial, commit `bde2d5d`). Bruno: 8 requests
+> nuevas verdes (14/14), con `managerToken` por variable de entorno para las dos
+> negativas. Pendiente: catálogo y resto de secciones; pruebas de interfaz en
+> navegador; colección Bruno completa (las cuentas del seed se borraron).
+> Ramas encadenadas (merge de `docs-estructura-apps`); nada fusionado a `main`.
+
 > **SPRINT 4B DE FASE 4 COMPLETADO Y REVISADO (2026-11-01, Kimi):** worker +
 > conversión editorial PDF→ChordPro en API pura 0.11.0 (migración 00027,
 > módulo `importaciones`, `services/worker` con cola SKIP LOCKED y extracción

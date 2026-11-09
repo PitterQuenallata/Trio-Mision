@@ -1,0 +1,31 @@
+meta {
+  name: Negativo - manager no puede añadir manager (403)
+  type: http
+  seq: 417
+}
+
+post {
+  url: {{baseUrl}}/api/v1/mis-artistas/00000000-0000-4000-8000-000000000001/miembros
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{managerToken}}
+}
+
+body:json {
+  {
+    "email": "{{bruStaffEmail}}",
+    "member_role": "manager"
+  }
+}
+
+assert {
+  res.status: eq 403
+}
+
+docs {
+  Un manager puede añadir members a su artista, pero no managers (403). Requiere
+  `managerToken`, igual que la request anterior.
+}
