@@ -22,9 +22,8 @@ import {
 import { useTheme } from '../../context/theme-context';
 import { useSound } from '../../context/sound-context';
 import { useLayout } from '../../context/layout-context';
+import { useAuth } from '../../auth/auth-context';
 import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
-import { pillToast } from '../ui/pill-toast';
 import { cn } from '../../lib/utils';
 
 interface TopNavbarProps {
@@ -39,6 +38,14 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ currentPath, onSearchClick
   const { soundEnabled, toggleSound, play } = useSound();
   const { preset, setIsCustomizerOpen, isDrawerOpen, setIsDrawerOpen, glassMode, toggleGlassMode } = useLayout();
   const [isProfileOpen, setIsProfileOpen] = React.useState(false);
+  const { identidad, signOut } = useAuth();
+  const nombre = identidad?.display_name || identidad?.email?.split('@')[0] || 'Usuario';
+  const iniciales = nombre
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((parte) => parte[0]?.toUpperCase())
+    .join('') || 'U';
   const bellHover = useIconHover();
 
   const handleNavigate = (path: string) => {
@@ -108,7 +115,7 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ currentPath, onSearchClick
             </div>
             <div className="flex flex-col">
               <span className="font-semibold text-sm tracking-tight flex items-center gap-1.5 leading-none">
-                Blakor <span className="text-primary font-bold">Pro</span>
+                Trio <span className="text-primary font-bold">Misión</span>
               </span>
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-mono mt-0.5">
                 Admin Shell
@@ -219,11 +226,11 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ currentPath, onSearchClick
               className="flex items-center gap-2 pl-1 pr-1.5 py-0.5 rounded-xl hover:bg-muted/60 transition-colors cursor-pointer group"
             >
               <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-xs font-semibold group-hover:scale-105 transition-transform">
-                JD
+                {iniciales}
               </div>
               <div className="hidden xl:flex flex-col text-left">
-                <span className="text-xs font-medium leading-none">J. Daniels</span>
-                <span className="text-[10px] text-muted-foreground mt-0.5">Admin Pro</span>
+                <span className="text-xs font-medium leading-none">{nombre}</span>
+                <span className="text-[10px] text-muted-foreground mt-0.5">Trio Misión</span>
               </div>
             </button>
 
@@ -235,54 +242,10 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ currentPath, onSearchClick
                 />
                 <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-border/80 bg-card p-2 text-card-foreground shadow-xl z-50 animate-in fade-in zoom-in-95">
                   <div className="px-2.5 py-2 border-b border-border/60 mb-1">
-                    <p className="text-xs font-semibold leading-none">John Daniels</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">admin@blakor.dev</p>
-                    <div className="mt-1.5 flex gap-1">
-                      <Badge variant="default" className="text-[10px] py-0 px-1.5">Owner</Badge>
-                      <Badge variant="secondary" className="text-[10px] py-0 px-1.5">RBAC Super</Badge>
-                    </div>
+                    <p className="text-xs font-semibold leading-none">{nombre}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">{identidad?.email ?? ''}</p>
                   </div>
                   <div className="space-y-0.5">
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/80 text-foreground transition-colors cursor-pointer group"
-                      onClick={() => handleNavigate('/usuarios?tab=profile')}
-                    >
-                      <UserIcon size={16} className="text-muted-foreground group-hover:text-primary group-hover:scale-115 transition-all duration-200" />
-                      <span>Mi Perfil</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/80 text-foreground transition-colors cursor-pointer group"
-                      onClick={() => handleNavigate('/usuarios?tab=account')}
-                    >
-                      <Sliders className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:scale-115 transition-all duration-200" />
-                      <span>Ajustes de Perfil</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/80 text-foreground transition-colors cursor-pointer group"
-                      onClick={() => handleNavigate('/configuracion?tab=seguridad')}
-                    >
-                      <ShieldCheckIcon size={16} className="text-muted-foreground group-hover:text-primary group-hover:scale-115 transition-all duration-200" />
-                      <span>Seguridad & 2FA</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/80 text-foreground transition-colors cursor-pointer group"
-                      onClick={() => handleNavigate('/documentacion')}
-                    >
-                      <BookOpen className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:scale-115 transition-all duration-200" />
-                      <span>Documentación & Manual</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs hover:bg-muted/80 text-foreground transition-colors cursor-pointer group"
-                      onClick={() => handleNavigate('/configuracion')}
-                    >
-                      <SettingsIcon size={16} className="text-muted-foreground group-hover:text-primary group-hover:scale-115 transition-all duration-200" />
-                      <span>Configuración del Sistema</span>
-                    </button>
                     <div className="h-px bg-border/60 my-1" />
                     <button
                       type="button"
@@ -290,7 +253,8 @@ export const TopNavbar: React.FC<TopNavbarProps> = ({ currentPath, onSearchClick
                       onClick={() => {
                         play('alert');
                         setIsProfileOpen(false);
-                        pillToast.info('Sesión Finalizada', 'Has cerrado la sesión administrativa con éxito.');
+                        // El guard de la raíz redirige a /auth/login al quedar anónimo.
+                        void signOut();
                       }}
                     >
                       <LogOut className="h-3.5 w-3.5" />

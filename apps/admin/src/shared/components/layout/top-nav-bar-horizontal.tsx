@@ -83,68 +83,8 @@ export const TopNavLinks: React.FC<TopNavLinksProps> = ({ currentPath, onNavigat
         <div className="h-4 w-px bg-border/60 mx-1 shrink-0" />
 
         {/* Quick Profile & Security Pills */}
-        <button
-          {...hProfileHover.triggerProps}
-          type="button"
-          onClick={() => {
-            play('tab');
-            onNavigate('/usuarios?tab=profile');
-          }}
-          title="Ajustes de Perfil"
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer group',
-            basePath === '/usuarios' && currentPath.includes('tab=profile')
-              ? 'bg-primary text-primary-foreground font-semibold'
-              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-          )}
-        >
-          <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-            <UserIcon ref={hProfileHover.ref} size={16} />
-          </div>
-          <span className="hidden md:inline">Mi Perfil</span>
-        </button>
 
-        <button
-          {...hSecurityHover.triggerProps}
-          type="button"
-          onClick={() => {
-            play('tab');
-            onNavigate('/configuracion?tab=seguridad');
-          }}
-          title="Seguridad & 2FA"
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer group',
-            currentPath.includes('tab=seguridad')
-              ? 'bg-primary text-primary-foreground font-semibold'
-              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-          )}
-        >
-          <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-            <ShieldCheckIcon ref={hSecurityHover.ref} size={16} />
-          </div>
-          <span className="hidden md:inline">Seguridad & 2FA</span>
-        </button>
 
-        <button
-          {...hSettingsHover.triggerProps}
-          type="button"
-          onClick={() => {
-            play('tab');
-            onNavigate('/configuracion');
-          }}
-          title="Configuración App"
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer group',
-            basePath === '/configuracion' && !currentPath.includes('tab=seguridad')
-              ? 'bg-primary text-primary-foreground font-semibold'
-              : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-          )}
-        >
-          <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-            <SettingsIcon ref={hSettingsHover.ref} size={16} />
-          </div>
-          <span className="hidden md:inline">Configuración</span>
-        </button>
       </div>
     </div>
   );

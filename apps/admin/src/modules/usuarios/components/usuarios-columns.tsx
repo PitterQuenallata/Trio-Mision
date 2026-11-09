@@ -1,100 +1,66 @@
-import { ColumnDef } from '@tanstack/react-table';
-import { Usuario } from '../types/usuarios.types';
-import { DataTableColumnHeader } from '../../../shared/components/data-table/data-table-column-header';
-import { Badge } from '../../../shared/components/ui/badge';
-import { Button } from '../../../shared/components/ui/button';
-import { MoreHorizontal, Edit2, Trash2 } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
+import type { UsuarioStaff } from '../../../shared/api/domains/usuarios';
 
-export const usuariosColumns: ColumnDef<Usuario>[] = [
+const ROLE_LABEL: Record<string, string> = { admin: 'Admin', editor: 'Editor', vendedor: 'Vendedor' };
+
+/** Columnas de la tabla de usuarios. `onGestionar` abre el panel de gestión del usuario. */
+export const usuariosColumns = (onGestionar?: (usuario: UsuarioStaff) => void): ColumnDef<UsuarioStaff>[] => [
   {
-    accessorKey: 'name',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Usuario / Nombre" />,
-    cell: ({ row }) => {
-      const user = row.original;
-      return (
-        <div className="flex items-center gap-3">
-          {user.avatar ? (
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="h-9 w-9 rounded-xl object-cover border border-border shrink-0"
-            />
-          ) : (
-            <div className="h-9 w-9 rounded-xl bg-primary/10 text-primary font-semibold flex items-center justify-center text-xs shrink-0">
-              {user.avatarText}
-            </div>
-          )}
-          <div>
-            <div className="font-semibold text-foreground text-xs leading-tight">{user.name}</div>
-            <div className="text-[11px] text-muted-foreground font-mono">{user.email}</div>
-          </div>
+    accessorKey: 'email',
+    header: 'Correo',
+    cell: ({ row }) => <span className="font-mono text-xs">{row.original.email || '—'}</span>,
+  },
+  {
+    accessorKey: 'display_name',
+    header: 'Nombre',
+    cell: ({ row }) => row.original.display_name || '—',
+  },
+  {
+    id: 'roles',
+    header: 'Roles staff',
+    cell: ({ row }) =>
+      row.original.staff_roles.length === 0 ? (
+        <span className="text-xs text-muted-foreground">Sin rol</span>
+      ) : (
+        <div className="flex flex-wrap gap-1">
+          {row.original.staff_roles.map((role) => (
+            <span key={role} className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-medium text-primary">
+              {ROLE_LABEL[role] ?? role}
+            </span>
+          ))}
         </div>
-      );
+      ),
+  },
+  {
+    id: 'membresias',
+    header: 'Artistas',
+    cell: ({ row }) => {
+      const m = row.original.artist_memberships;
+      if (m.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
+      return m.map((x) => (x.role === 'manager' ? 'Manager' : 'Member')).join(', ');
     },
   },
   {
-    accessorKey: 'role',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Rol" />,
-    cell: ({ row }) => {
-      const role = row.getValue('role') as string;
-      return (
-        <span className="font-medium text-foreground">
-          {role}
-        </span>
-      );
-    },
+    accessorKey: 'created_at',
+    header: 'Alta',
+    cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString('es'),
   },
-  {
-    accessorKey: 'subscription',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Plan SaaS" />,
-    cell: ({ row }) => {
-      return (
-        <Badge variant="blue" className="text-[11px]">
-          {row.getValue('subscription')}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Estado" />,
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string;
-      return (
-        <Badge
-          variant={
-            status === 'Activo'
-              ? 'success'
-              : status === 'Pendiente'
-              ? 'warning'
-              : 'secondary'
-          }
-        >
-          {status}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: 'joinedAt',
-    header: ({ column }) => <DataTableColumnHeader column={column} title="Fecha Registro" />,
-    cell: ({ row }) => {
-      return <span className="text-muted-foreground font-mono text-[11px]">{row.getValue('joinedAt')}</span>;
-    },
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => {
-      return (
-        <div className="flex items-center justify-end gap-1">
-          <Button variant="ghost" size="iconSm" soundType="click" title="Editar">
-            <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
-          </Button>
-          <Button variant="ghost" size="iconSm" soundType="alert" title="Eliminar">
-            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-          </Button>
-        </div>
-      );
-    },
-  },
+  ...(onGestionar
+    ? [
+        {
+          id: 'gestionar',
+          header: '',
+          enableSorting: false,
+          cell: ({ row }: { row: { original: UsuarioStaff } }) => (
+            <button
+              type="button"
+              onClick={() => onGestionar(row.original)}
+              className="rounded-lg border border-border/60 px-2.5 py-1 text-xs font-medium hover:bg-muted/70"
+            >
+              Gestionar
+            </button>
+          ),
+        } satisfies ColumnDef<UsuarioStaff>,
+      ]
+    : []),
 ];

@@ -1,8 +1,12 @@
 import React from 'react';
+import { LogOut } from 'lucide-react';
+import { useAuth } from '../../auth/auth-context';
+import { nombreDe } from './user-identity';
 import { PanelLeft } from 'lucide-react';
 import { useIconHover } from '@animateicons/react';
 import { UserIcon, ShieldCheckIcon, SettingsIcon } from '@animateicons/react/lucide';
-import { navItems, navigationCategories } from '../../lib/navigation';
+import { navigationCategories } from '../../lib/navigation';
+import { useVisibleNavItems } from '../../auth/use-visible-nav';
 import { useSound } from '../../context/sound-context';
 import { useLayout } from '../../context/layout-context';
 import { useTheme } from '../../context/theme-context';
@@ -14,6 +18,8 @@ interface MiniSidebarProps {
 }
 
 export const MiniSidebar: React.FC<MiniSidebarProps> = ({ currentPath, onNavigate }) => {
+  const visibleNavItems = useVisibleNavItems();
+  const { identidad, signOut } = useAuth();
   const { play } = useSound();
   const { setIsDrawerOpen, glassMode } = useLayout();
   const { resolvedTheme } = useTheme();
@@ -66,7 +72,7 @@ export const MiniSidebar: React.FC<MiniSidebarProps> = ({ currentPath, onNavigat
       {/* Main Categorized Items */}
       <div className="flex-1 w-full space-y-3 py-2 overflow-y-auto no-scrollbar relative z-10">
         {navigationCategories.map((cat, catIdx) => {
-          const items = navItems.filter((i) => i.category === cat.key);
+          const items = visibleNavItems.filter((i) => i.category === cat.key);
           if (items.length === 0) return null;
 
           return (
@@ -115,88 +121,20 @@ export const MiniSidebar: React.FC<MiniSidebarProps> = ({ currentPath, onNavigat
         })}
       </div>
 
-      {/* Mini Sidebar Bottom Profile & Security Dock */}
-      <div className="w-full flex flex-col items-center pt-2 border-t border-border/40 space-y-1.5 relative z-10">
-        {/* Mi Perfil Button */}
+      {/* Cierre de sesión (versión compacta de la identidad) */}
+      <div className="w-full flex flex-col items-center pt-2 border-t border-border/40 relative z-10">
         <div className="relative group flex justify-center">
           <button
-            {...miniProfileHover.triggerProps}
             type="button"
-            onClick={() => {
-              play('tab');
-              onNavigate('/usuarios?tab=profile');
-            }}
-            title="Mi Perfil"
-            className={cn(
-              'h-9 w-9 rounded-xl flex items-center justify-center transition-all cursor-pointer group',
-              basePath === '/usuarios' && currentPath.includes('tab=profile')
-                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                : 'bg-primary/10 text-primary border border-primary/20 hover:scale-105'
-            )}
+            onClick={() => void signOut()}
+            aria-label="Cerrar sesión"
+            className="h-9 w-9 rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted/70 hover:text-foreground transition-colors cursor-pointer"
           >
-            <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90">
-              <UserIcon ref={miniProfileHover.ref} size={19} />
-            </div>
+            <LogOut className="h-[18px] w-[18px]" />
           </button>
           <div className="absolute left-14 top-1 hidden group-hover:flex items-center z-50 pointer-events-none">
             <div className="rounded-xl border border-border/80 bg-card px-2.5 py-1 text-xs font-medium text-card-foreground shadow-lg whitespace-nowrap">
-              Mi Perfil (John Daniels)
-            </div>
-          </div>
-        </div>
-
-        {/* Seguridad & 2FA Button */}
-        <div className="relative group flex justify-center">
-          <button
-            {...miniSecurityHover.triggerProps}
-            type="button"
-            onClick={() => {
-              play('tab');
-              onNavigate('/configuracion?tab=seguridad');
-            }}
-            title="Seguridad & 2FA"
-            className={cn(
-              'h-9 w-9 rounded-xl flex items-center justify-center transition-all cursor-pointer group',
-              currentPath.includes('tab=seguridad')
-                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-            )}
-          >
-            <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90">
-              <ShieldCheckIcon ref={miniSecurityHover.ref} size={19} className="transition-colors group-hover:text-primary" />
-            </div>
-          </button>
-          <div className="absolute left-14 top-1 hidden group-hover:flex items-center z-50 pointer-events-none">
-            <div className="rounded-xl border border-border/80 bg-card px-2.5 py-1 text-xs font-medium text-card-foreground shadow-lg whitespace-nowrap">
-              Seguridad & 2FA
-            </div>
-          </div>
-        </div>
-
-        {/* Configuración App Button */}
-        <div className="relative group flex justify-center">
-          <button
-            {...miniSettingsHover.triggerProps}
-            type="button"
-            onClick={() => {
-              play('tab');
-              onNavigate('/configuracion');
-            }}
-            title="Configuración App"
-            className={cn(
-              'h-9 w-9 rounded-xl flex items-center justify-center transition-all cursor-pointer group',
-              basePath === '/configuracion' && !currentPath.includes('tab=seguridad')
-                ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground'
-            )}
-          >
-            <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90">
-              <SettingsIcon ref={miniSettingsHover.ref} size={19} className="transition-colors group-hover:text-primary" />
-            </div>
-          </button>
-          <div className="absolute left-14 top-1 hidden group-hover:flex items-center z-50 pointer-events-none">
-            <div className="rounded-xl border border-border/80 bg-card px-2.5 py-1 text-xs font-medium text-card-foreground shadow-lg whitespace-nowrap">
-              Configuración & Ajustes
+              {nombreDe(identidad)} · Cerrar sesión
             </div>
           </div>
         </div>

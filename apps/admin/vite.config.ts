@@ -40,8 +40,18 @@ export default defineConfig({
       },
     },
   },
+  // Desarrollo: /api se reenvía a services/api, así el navegador no necesita
+  // CORS (la API aún no lo configura; ver Fase 5, sección 2).
   server: {
     port: 3000,
     host: true,
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false },
+    },
+  },
+  preview: {
+    proxy: {
+      '/api': { target: 'http://127.0.0.1:8080', changeOrigin: false },
+    },
   },
 });

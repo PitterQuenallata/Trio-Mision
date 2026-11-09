@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  Plus,
-  Layers,
-  UserPlus,
-  CreditCard,
-  Newspaper,
-  LifeBuoy,
-} from 'lucide-react';
-import { UserIcon, ShieldCheckIcon, SettingsIcon } from '@animateicons/react/lucide';
+import { Plus, Layers, UserPlus, Music } from 'lucide-react';
 import { useSound } from '../../context/sound-context';
 import { useLayout } from '../../context/layout-context';
 import { cn } from '../../lib/utils';
@@ -24,13 +16,8 @@ export const ActionFab: React.FC<ActionFabProps> = ({ onQuickAction }) => {
 
   const actions = [
     { id: 'open-sidebar', label: 'Abrir Sidebar Completo', icon: Layers, primary: true },
-    { id: 'profile', label: 'Mi Perfil (John Daniels)', icon: UserIcon, animated: true },
-    { id: 'security', label: 'Seguridad & 2FA', icon: ShieldCheckIcon, animated: true },
-    { id: 'config', label: 'Configuración App', icon: SettingsIcon, animated: true },
-    { id: 'new-user', label: 'Nuevo Usuario', icon: UserPlus },
-    { id: 'new-payment', label: 'Cobrar Factura', icon: CreditCard },
-    { id: 'new-blog', label: 'Publicar en Blog', icon: Newspaper },
-    { id: 'new-ticket', label: 'Ticket de Soporte SLA', icon: LifeBuoy },
+    { id: 'new-user', label: 'Cuentas staff', icon: UserPlus },
+    { id: 'mi-grupo', label: 'Mi grupo', icon: Music },
   ];
 
   const handleToggle = () => {
@@ -80,11 +67,7 @@ export const ActionFab: React.FC<ActionFabProps> = ({ onQuickAction }) => {
                         : 'bg-primary/10 text-primary'
                     )}
                   >
-                    {act.animated ? (
-                      <Icon size={16} />
-                    ) : (
-                      <Icon className="h-3.5 w-3.5" />
-                    )}
+                    <Icon className="h-3.5 w-3.5" />
                   </div>
                 </button>
               );

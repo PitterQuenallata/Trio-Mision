@@ -1,5 +1,11 @@
-import { ApiErrorResponse } from './types';
+// Cliente tipado de la API de Trio Misión. Los tipos salen de
+// src/shared/api/generated/openapi.ts (regenerar con `pnpm api:types` tras
+// cambiar la API). Vacío = mismo origen: en desarrollo Vite reenvía /api.
+import createClient, { type Middleware } from 'openapi-fetch';
+import type { paths } from './generated/openapi';
+import { getAccessToken } from '../auth/session';
 
+/** Error de la API con el mensaje y los errores de campo que devuelve. */
 export class ApiError extends Error {
   public statusCode: number;
   public errors?: Record<string, string[]>;
@@ -12,129 +18,42 @@ export class ApiError extends Error {
   }
 }
 
-interface RequestOptions extends RequestInit {
-  params?: Record<string, string | number | boolean | undefined>;
-}
-
-class HttpClient {
-  private baseUrl: string;
-
-  constructor(baseUrl: string = '/api') {
-    this.baseUrl = baseUrl;
-  }
-
-  private getToken(): string | null {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('blakor_auth_token');
-    }
-    return null;
-  }
-
-  private handleUnauthorized() {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('blakor_auth_token');
-      // Dispatch custom auth event or redirect to login
+const authMiddleware: Middleware = {
+  async onRequest({ request }) {
+    const token = getAccessToken();
+    if (token) request.headers.set('Authorization', `Bearer ${token}`);
+    return request;
+  },
+  async onResponse({ response }) {
+    // La sesión ya no es válida: el AuthProvider cierra la sesión al recibir el evento.
+    if (response.status === 401 && typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('blakor:unauthorized'));
     }
-  }
+    return response;
+  },
+};
 
-  public async request<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
-    const { params, headers, ...customConfig } = options;
+const baseUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
 
-    let url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+export const api = createClient<paths>({ baseUrl });
+api.use(authMiddleware);
 
-    if (params) {
-      const searchParams = new URLSearchParams();
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(key, String(value));
-        }
-      });
-      const queryString = searchParams.toString();
-      if (queryString) {
-        url += (url.includes('?') ? '&' : '?') + queryString;
-      }
-    }
-
-    const token = this.getToken();
-    const defaultHeaders: HeadersInit = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    };
-
-    try {
-      const response = await fetch(url, {
-        headers: defaultHeaders,
-        ...customConfig,
-      });
-
-      if (response.status === 401) {
-        this.handleUnauthorized();
-        throw new ApiError('Sesión expirada o no autorizada', 401);
-      }
-
-      if (!response.ok) {
-        let errorData: ApiErrorResponse = {
-          message: `Error HTTP ${response.status}: ${response.statusText}`,
-          statusCode: response.status,
-        };
-        try {
-          const parsed = await response.json();
-          errorData = { ...errorData, ...parsed };
-        } catch {
-          // Response body was not JSON
-        }
-        throw new ApiError(errorData.message, response.status, errorData.errors);
-      }
-
-      if (response.status === 204) {
-        return {} as T;
-      }
-
-      return (await response.json()) as T;
-    } catch (err: unknown) {
-      if (err instanceof ApiError) throw err;
-      throw new ApiError(
-        err instanceof Error ? err.message : 'Error desconocido de red',
-        500
-      );
-    }
-  }
-
-  public get<T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>(endpoint, { method: 'GET', params });
-  }
-
-  public post<T>(endpoint: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'POST',
-      body: body ? JSON.stringify(body) : undefined,
-      params,
-    });
-  }
-
-  public put<T>(endpoint: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined,
-      params,
-    });
-  }
-
-  public patch<T>(endpoint: string, body?: unknown, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>(endpoint, {
-      method: 'PATCH',
-      body: body ? JSON.stringify(body) : undefined,
-      params,
-    });
-  }
-
-  public delete<T>(endpoint: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-    return this.request<T>(endpoint, { method: 'DELETE', params });
-  }
+interface ApiResult<T> {
+  data?: T;
+  error?: unknown;
+  response: Response;
 }
 
-// Base de la API de Trio Misión (services/api). Se configura con VITE_API_URL.
-export const http = new HttpClient(import.meta.env.VITE_API_URL || 'http://127.0.0.1:8080');
+/**
+ * Convierte la respuesta de openapi-fetch en el dato o lanza ApiError.
+ * Uso: const pagos = await unwrap(api.GET('/api/v1/staff/pagos', {}));
+ */
+export async function unwrap<T>(request: Promise<ApiResult<T>>): Promise<T> {
+  const { data, error, response } = await request;
+  if (!response.ok || error !== undefined) {
+    // Huma responde con { title, status, detail } (RFC 9457); "detail" es el motivo legible.
+    const body = (error ?? {}) as { detail?: string; message?: string; errors?: Record<string, string[]> };
+    throw new ApiError(body.detail ?? body.message ?? `Error HTTP ${response.status}`, response.status, body.errors);
+  }
+  return data as T;
+}

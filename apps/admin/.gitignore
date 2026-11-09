@@ -9,3 +9,6 @@ dist/
 # Caché de pnpm y skills locales del asistente (no versionar)
 .pnpm-store/
 .agents/
+
+# Caché de Vite (generada)
+.vite/

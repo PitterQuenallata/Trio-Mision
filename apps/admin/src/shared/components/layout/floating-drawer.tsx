@@ -2,13 +2,15 @@ import React from 'react';
 import { X, Layers } from 'lucide-react';
 import { useIconHover } from '@animateicons/react';
 import { UserIcon, ShieldCheckIcon, SettingsIcon } from '@animateicons/react/lucide';
-import { navItems, navigationCategories } from '../../lib/navigation';
+import { navigationCategories } from '../../lib/navigation';
+import { useVisibleNavItems } from '../../auth/use-visible-nav';
 import { useSound } from '../../context/sound-context';
 import { useLayout } from '../../context/layout-context';
 import { useTheme } from '../../context/theme-context';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { cn } from '../../lib/utils';
+import { UserIdentityCard } from './user-identity';
 
 interface FloatingDrawerProps {
   currentPath: string;
@@ -16,6 +18,7 @@ interface FloatingDrawerProps {
 }
 
 export const FloatingDrawer: React.FC<FloatingDrawerProps> = ({ currentPath, onNavigate }) => {
+  const visibleNavItems = useVisibleNavItems();
   const { play } = useSound();
   const { isDrawerOpen, setIsDrawerOpen, glassMode } = useLayout();
   const { resolvedTheme } = useTheme();
@@ -63,7 +66,7 @@ export const FloatingDrawer: React.FC<FloatingDrawerProps> = ({ currentPath, onN
             <div className="h-7 w-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center">
               <Layers className="h-4 w-4" />
             </div>
-            <span className="font-semibold text-sm">Blakor Menú</span>
+            <span className="font-semibold text-sm">Menú</span>
           </div>
           <Button
             variant="ghost"
@@ -79,7 +82,7 @@ export const FloatingDrawer: React.FC<FloatingDrawerProps> = ({ currentPath, onN
 
         <nav className="flex-1 overflow-y-auto py-2 space-y-4 no-scrollbar relative z-10">
           {navigationCategories.map((cat) => {
-            const items = navItems.filter((i) => i.category === cat.key);
+            const items = visibleNavItems.filter((i) => i.category === cat.key);
             if (items.length === 0) return null;
 
             return (
@@ -129,77 +132,9 @@ export const FloatingDrawer: React.FC<FloatingDrawerProps> = ({ currentPath, onN
           })}
         </nav>
 
-        {/* Drawer Footer with Profile & Security Quick Links */}
-        <div className="pt-3 border-t border-border/40 space-y-2 relative z-10">
-          <div
-            onClick={() => {
-              play('tab');
-              onNavigate('/usuarios?tab=profile');
-              setIsDrawerOpen(false);
-            }}
-            className="p-2 rounded-2xl bg-muted/40 border border-border/60 flex items-center justify-between cursor-pointer hover:bg-muted/60 transition-colors"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center text-xs font-semibold shrink-0">
-                JD
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold leading-none truncate">John Daniels</span>
-                <span className="text-[10px] text-muted-foreground truncate font-mono mt-0.5">admin@blakor.dev</span>
-              </div>
-            </div>
-            <Badge variant="outline" className="text-[9px] py-0 px-1 font-mono">Owner</Badge>
-          </div>
-
-          <div className="grid grid-cols-3 gap-1">
-            <button
-              {...drawerProfileHover.triggerProps}
-              type="button"
-              onClick={() => {
-                play('tab');
-                onNavigate('/usuarios?tab=profile');
-                setIsDrawerOpen(false);
-              }}
-              className="flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[11px] font-medium bg-muted/50 hover:bg-muted text-foreground transition-all cursor-pointer group"
-            >
-              <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-                <UserIcon ref={drawerProfileHover.ref} size={16} className="text-primary" />
-              </div>
-              <span>Perfil</span>
-            </button>
-
-            <button
-              {...drawerSecurityHover.triggerProps}
-              type="button"
-              onClick={() => {
-                play('tab');
-                onNavigate('/configuracion?tab=seguridad');
-                setIsDrawerOpen(false);
-              }}
-              className="flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[11px] font-medium bg-muted/50 hover:bg-muted text-foreground transition-all cursor-pointer group"
-            >
-              <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-                <ShieldCheckIcon ref={drawerSecurityHover.ref} size={16} className="text-primary" />
-              </div>
-              <span>Seguridad</span>
-            </button>
-
-            <button
-              {...drawerSettingsHover.triggerProps}
-              type="button"
-              onClick={() => {
-                play('tab');
-                onNavigate('/configuracion');
-                setIsDrawerOpen(false);
-              }}
-              className="flex items-center justify-center gap-1.5 py-2 px-1 rounded-xl text-[11px] font-medium bg-muted/50 hover:bg-muted text-foreground transition-all cursor-pointer group"
-            >
-              <div className="transition-transform duration-200 group-hover:scale-120 group-active:scale-90 flex items-center justify-center">
-                <SettingsIcon ref={drawerSettingsHover.ref} size={16} className="text-primary" />
-              </div>
-              <span>Ajustes</span>
-            </button>
-          </div>
+        {/* Identidad del usuario y cierre de sesión */}
+        <div className="pt-3 border-t border-border/40 relative z-10">
+          <UserIdentityCard />
         </div>
       </div>
     </div>

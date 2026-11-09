@@ -112,15 +112,8 @@ export const BlakorShell: React.FC<BlakorShellProps> = ({
         <ActionFab
           onQuickAction={(actionId) => {
             if (actionId === 'open-sidebar') setIsDrawerOpen(true);
-            if (actionId === 'profile') onNavigate('/usuarios?tab=profile');
-            if (actionId === 'security') onNavigate('/configuracion?tab=seguridad');
-            if (actionId === 'config') onNavigate('/configuracion');
             if (actionId === 'new-user') onNavigate('/usuarios');
-            if (actionId === 'new-payment') onNavigate('/pagos');
-            if (actionId === 'new-blog') onNavigate('/blog');
-            if (actionId === 'new-ticket') onNavigate('/soporte');
-            if (actionId === 'new-license') onNavigate('/licencias');
-            if (actionId === 'new-report') onNavigate('/reportes');
+            if (actionId === 'mi-grupo') onNavigate('/mi-grupo');
           }}
         />
       )}

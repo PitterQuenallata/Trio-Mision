@@ -329,18 +329,6 @@ export const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 
         {/* Footer */}
         <div className="px-5 py-3 bg-muted/40 border-t border-border/40 text-xs text-muted-foreground flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              play('click');
-              onClose();
-              onNavigate?.('/documentacion');
-            }}
-            className="flex items-center gap-1.5 text-[11px] text-primary hover:underline font-medium cursor-pointer"
-          >
-            <BookOpen className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Documentación Oficial & Manual del Kit</span>
-          </button>
           <Button
             variant="default"
             size="sm"

@@ -152,17 +152,6 @@ export const CommandSearchModal: React.FC<CommandSearchModalProps> = ({
           onOpenShortcuts?.();
         },
       },
-      {
-        id: 'open-docs',
-        title: 'Documentación Oficial & Manual de Usuario',
-        subtitle: 'Guías de arquitectura, 5 fuentes, Sileo y manual operativo',
-        category: 'Sistema',
-        icon: BookOpen,
-        perform: () => {
-          onClose();
-          onNavigate('/documentacion');
-        },
-      },
       // Quick Navigation Presets
       {
         id: 'preset-dock',
@@ -187,50 +176,6 @@ export const CommandSearchModal: React.FC<CommandSearchModalProps> = ({
         },
       },
       // Commerce & Logistics Direct Actions
-      {
-        id: 'track-orders',
-        title: 'Seguimiento de Envíos en Vivo (Delivery Progress)',
-        subtitle: 'Trazabilidad interactiva de paquetería y estados de orden',
-        category: 'Comercio',
-        icon: Truck,
-        perform: () => {
-          onNavigate('/ecommerce');
-          onClose();
-        },
-      },
-      {
-        id: 'interactive-logs',
-        title: 'Consola de Observabilidad & Logs Interactivos',
-        subtitle: 'Filtros animados, búsqueda en tiempo real y diagnóstico JSON',
-        category: 'Acciones',
-        icon: Activity,
-        perform: () => {
-          onNavigate('/auditoria');
-          onClose();
-        },
-      },
-      {
-        id: 'user-profile',
-        title: 'Mi Perfil de Administrador',
-        subtitle: 'Credenciales, rol de seguridad y actividad reciente',
-        category: 'Acciones',
-        icon: User,
-        perform: () => {
-          onNavigate('/usuarios?tab=profile');
-          onClose();
-        },
-      },
-      {
-        id: 'security-2fa',
-        title: 'Seguridad del Sistema & 2FA',
-        subtitle: 'Autenticación de dos factores, tokens y permisos IAM',
-        category: 'Acciones',
-        icon: Shield,
-        perform: () => {
-          onNavigate('/configuracion?tab=seguridad');
-          onClose();
-        },
-      },
     ];
 
     // Append navigation items

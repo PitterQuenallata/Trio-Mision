@@ -1,166 +1,92 @@
-import React, { useState } from 'react';
-import {
-  Users,
-  UserCircle2,
-  Settings,
-} from 'lucide-react';
-import { initialUsuarios } from '../data/usuarios-data';
-import { Usuario } from '../types/usuarios.types';
-import { useUsuarios, useCreateUsuario, useDeleteUsuario } from '../hooks/use-usuarios';
-import { UsuariosDirectoryTab } from '../components/usuarios-directory-tab';
-import { UsuariosProfileTab } from '../components/usuarios-profile-tab';
-import { UsuariosAccountTab } from '../components/usuarios-account-tab';
-import { useSound } from '../../../shared/context/sound-context';
-import { cn } from '../../../shared/lib/utils';
-
-export type UsuariosSubTab = 'directory' | 'profile' | 'account';
+import React, { useMemo, useState } from 'react';
+import { DataTable } from '../../../shared/components/data-table/data-table';
+import { Button } from '../../../shared/components/ui/button';
+import type { RolStaff, UsuarioStaff } from '../../../shared/api/domains/usuarios';
+import { useUsuarios } from '../hooks/use-usuarios';
+import { usuariosColumns } from '../components/usuarios-columns';
+import { CrearCuentaModal } from '../components/crear-cuenta-modal';
+import { GestionarUsuarioModal } from '../components/gestionar-usuario-modal';
+import { Modal } from '../../../shared/components/ui/modal';
+import { PermisosMatriz } from '../components/permisos-matriz';
 
 export const UsuariosPage: React.FC = () => {
-  const { play } = useSound();
-  const { data: usuarios = initialUsuarios } = useUsuarios();
-  const createMutation = useCreateUsuario();
-  const deleteMutation = useDeleteUsuario();
+  const [rol, setRol] = useState<RolStaff | ''>('');
+  const [creando, setCreando] = useState(false);
+  const [verPermisos, setVerPermisos] = useState(false);
+  const [seleccionadoId, setSeleccionadoId] = useState<string | null>(null);
 
-  const getInitialTab = (): UsuariosSubTab => {
-    if (typeof window !== 'undefined') {
-      const hash = window.location.hash;
-      if (hash.includes('tab=profile')) return 'profile';
-      if (hash.includes('tab=account') || hash.includes('tab=security')) return 'account';
-      if (hash.includes('tab=directory')) return 'directory';
-    }
-    return 'directory';
-  };
+  const usuarios = useUsuarios(rol === '' ? undefined : rol);
 
-  const [activeTab, setActiveTab] = useState<UsuariosSubTab>(getInitialTab);
-  const [selectedUserForProfile, setSelectedUserForProfile] = useState<Usuario | null>(null);
-
-  React.useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash.includes('tab=profile')) {
-        setActiveTab('profile');
-      } else if (hash.includes('tab=account') || hash.includes('tab=security')) {
-        setActiveTab('account');
-      } else if (hash.includes('tab=directory')) {
-        setActiveTab('directory');
-      }
-    };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
-
-  const handleAddUsuario = (newUser: Usuario) => {
-    createMutation.mutate(newUser);
-  };
-
-  const handleDeleteUsuario = (id: string) => {
-    deleteMutation.mutate(id);
-  };
-
-  const handleSelectProfile = (user: Usuario) => {
-    setSelectedUserForProfile(user);
-    setActiveTab('profile');
-  };
-
-  const handleNavigateToAccount = () => {
-    setActiveTab('account');
-  };
-
-  const subTabs: {
-    id: UsuariosSubTab;
-    label: string;
-    icon: React.ComponentType<{ className?: string }>;
-    badge?: string;
-  }[] = [
-    { id: 'directory', label: 'Directorio de Usuarios', icon: Users, badge: String(usuarios.length) },
-    { id: 'profile', label: 'Perfil de Usuario', icon: UserCircle2 },
-    { id: 'account', label: 'Ajustes de Cuenta', icon: Settings },
-  ];
+  const data = useMemo(() => usuarios.data ?? [], [usuarios.data]);
+  // Se toma del listado vigente para que el modal muestre los cambios recién hechos.
+  const seleccionado: UsuarioStaff | null = data.find((u) => u.id === seleccionadoId) ?? null;
+  const columns = useMemo(() => usuariosColumns((u) => setSeleccionadoId(u.id)), []);
 
   return (
-    <div className="space-y-8 animate-fade-in pb-16">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1.5 font-mono">
-          <span>Administración Central</span>
-          <span>/</span>
-          <span className="text-foreground">Módulo de Usuarios</span>
+    <div className="space-y-6 animate-in fade-in duration-300">
+      <header className="flex flex-col gap-4 border-b border-border/40 pb-6 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Usuarios</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Cuentas staff y managers de artistas. Solo el administrador crea cuentas y asigna roles.
+          </p>
         </div>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => setVerPermisos(true)}>Permisos por rol</Button>
+          <Button onClick={() => setCreando(true)}>Crear cuenta staff</Button>
+        </div>
+      </header>
 
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Directorio, Perfiles & Cuentas
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1 max-w-3xl leading-relaxed">
-              Estructura integral adaptada de la plantilla Modernize: gestión centralizada de miembros del equipo, perfil social con timeline y galería, y panel de configuración de seguridad y facturación.
-            </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <label htmlFor="usuarios-rol" className="text-xs font-medium text-muted-foreground">Rol staff</label>
+        <select
+          id="usuarios-rol"
+          value={rol}
+          onChange={(e) => setRol(e.target.value as RolStaff | '')}
+          className="h-9 rounded-xl border border-input bg-background/50 px-3 text-sm shadow-sm"
+        >
+          <option value="">Todos</option>
+          <option value="admin">Admin</option>
+          <option value="editor">Editor</option>
+          <option value="vendedor">Vendedor</option>
+        </select>
+      </div>
+
+      {usuarios.isPending && <p className="text-sm text-muted-foreground">Cargando usuarios…</p>}
+      {usuarios.isError && (
+        <p role="alert" className="text-sm text-red-400">
+          No se pudieron cargar los usuarios: {usuarios.error instanceof Error ? usuarios.error.message : 'error'}
+        </p>
+      )}
+      {usuarios.isSuccess && (
+        <DataTable
+          columns={columns}
+          data={data}
+          searchKey="email"
+          searchPlaceholder="Buscar por correo…"
+          enableExport={false}
+        />
+      )}
+
+      <CrearCuentaModal isOpen={creando} onClose={() => setCreando(false)} />
+
+      <Modal
+        isOpen={verPermisos}
+        onClose={() => setVerPermisos(false)}
+        title="Permisos por rol"
+        description="Qué secciones ve cada rol en el panel. Se aplica en la interfaz y en la API."
+        size="xl"
+        footer={
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={() => setVerPermisos(false)}>Cerrar</Button>
           </div>
-        </div>
-      </div>
-
-      {/* Segmented Sub-Tabs Navigation */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-secondary/50 border border-border overflow-x-auto">
-        {subTabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => {
-                play('tab');
-                setActiveTab(tab.id as UsuariosSubTab);
-                window.location.hash = `#/usuarios?tab=${tab.id}`;
-              }}
-              className={cn(
-                'flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap cursor-pointer',
-                isActive
-                  ? 'bg-card text-foreground shadow-xs font-semibold'
-                  : 'text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Icon className={cn('h-3.5 w-3.5', isActive ? 'text-primary' : 'text-muted-foreground')} />
-              <span>{tab.label}</span>
-              {tab.badge && (
-                <span
-                  className={cn(
-                    'font-mono text-[10px] px-1.5 py-0.2 rounded-full tabular-nums',
-                    isActive
-                      ? 'bg-primary text-white font-bold'
-                      : 'bg-muted text-muted-foreground'
-                  )}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* SUB-TAB CONTENTS */}
-      {activeTab === 'directory' && (
-        <UsuariosDirectoryTab
-          usuarios={usuarios}
-          onAddUsuario={handleAddUsuario}
-          onSelectProfile={handleSelectProfile}
-          onDeleteUsuario={handleDeleteUsuario}
-        />
-      )}
-
-      {activeTab === 'profile' && (
-        <UsuariosProfileTab
-          selectedUser={selectedUserForProfile}
-          onNavigateToAccount={handleNavigateToAccount}
-        />
-      )}
-
-      {activeTab === 'account' && (
-        <UsuariosAccountTab />
-      )}
+        }
+      >
+        <PermisosMatriz />
+      </Modal>
+      <GestionarUsuarioModal usuario={seleccionado} onClose={() => setSeleccionadoId(null)} />
     </div>
   );
 };
+
+export default UsuariosPage;

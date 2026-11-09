@@ -40,7 +40,7 @@ const ERROR_CONFIG: Record<string, { title: string; description: string; hint: s
   '403': {
     title: 'Access Forbidden',
     description: "You don't have authorization or permission to access this secure zone.",
-    hint: 'Permisos insuficientes en las políticas RBAC.',
+    hint: 'Permisos insuficientes para esta sección.',
   },
 };
 
@@ -216,7 +216,7 @@ export const ErrorPage: React.FC<ErrorPageProps> = ({
         {/* Subtle Tech Badge Footer */}
         <div className="mt-12 flex items-center gap-2 text-[11px] font-mono text-zinc-600">
           <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" />
-          <span>Blakor OS / HTTP Status Engine</span>
+          <span>Trio Misión · Error</span>
         </div>
       </div>
     </div>

@@ -92,7 +92,7 @@ export const LayoutCustomizer: React.FC = () => {
   ];
 
   const accents: { id: AccentColor; label: string; bg: string }[] = [
-    { id: 'orange', label: 'Naranja Blakor', bg: 'bg-[#F97316]' },
+    { id: 'orange', label: 'Naranja', bg: 'bg-[#F97316]' },
     { id: 'emerald', label: 'Esmeralda', bg: 'bg-[#10B981]' },
     { id: 'violet', label: 'Violeta', bg: 'bg-[#8B5CF6]' },
     { id: 'blue', label: 'Azul Real', bg: 'bg-[#3B82F6]' },
@@ -114,7 +114,7 @@ export const LayoutCustomizer: React.FC = () => {
         <div className="flex items-center justify-between pb-4 border-b border-border/60">
           <div className="flex items-center gap-2">
             <Sliders className="h-4 w-4 text-primary" />
-            <h3 className="font-semibold text-sm">Blakor Shell Customizer</h3>
+            <h3 className="font-semibold text-sm">Personalizar diseño</h3>
           </div>
           <Button
             variant="ghost"
@@ -317,7 +317,7 @@ export const LayoutCustomizer: React.FC = () => {
           {/* Accent Color */}
           <div className="space-y-3">
             <span className="text-xs font-semibold text-foreground tracking-wide">
-              Color de Acento Blakor
+              Color de acento
             </span>
             <div className="grid grid-cols-4 gap-2">
               {accents.map((acc) => (
