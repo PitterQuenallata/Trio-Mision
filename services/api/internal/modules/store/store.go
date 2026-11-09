@@ -113,6 +113,7 @@ func ofertasAudio(ctx context.Context, db database.DB, store storage.Client) ([]
 		left join media_assets prev on prev.id = tm.media_asset_id
 		                         and prev.visibility = 'public' and prev.deleted_at is null
 		where p.product_type <> 'premium'
+		  and (p.product_type <> 'track' or exists (select 1 from artists av where av.id = p.artist_id and av.can_sell_tracks and av.is_published and av.deleted_at is null))
 		  and o.active
 		  and (o.starts_at is null or o.starts_at <= now())
 		  and (o.ends_at is null or o.ends_at > now())
@@ -233,6 +234,7 @@ func obtenerPista(db database.DB, store storage.Client) func(context.Context, *o
 			join products p on p.id = o.product_id and p.active
 			join product_items pi on pi.product_id = p.id
 			where pi.track_id = $1
+			  and (p.product_type <> 'track' or exists (select 1 from artists av where av.id = p.artist_id and av.can_sell_tracks and av.is_published and av.deleted_at is null))
 			  and o.active
 			  and (o.starts_at is null or o.starts_at <= now())
 			  and (o.ends_at is null or o.ends_at > now())
@@ -359,6 +361,7 @@ func crearOrden(db database.DB) func(context.Context, *crearOrdenInput) (*crearO
 			join products p on p.id = o.product_id and p.active
 			left join plans pl on pl.id = p.plan_id
 			where o.id = $1 and o.active
+			  and (p.product_type <> 'track' or exists (select 1 from artists av where av.id = p.artist_id and av.can_sell_tracks and av.is_published and av.deleted_at is null))
 			  and (o.starts_at is null or o.starts_at <= now())
 			  and (o.ends_at is null or o.ends_at > now())`, in.Body.OfertaID,
 		).Scan(&offerID, &amountMinor, &currency, &productID, &productType, &productTitle, &productDesc,

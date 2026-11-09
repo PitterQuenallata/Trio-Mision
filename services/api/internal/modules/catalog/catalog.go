@@ -103,7 +103,7 @@ type cancionResumen struct {
 	BPM     *int   `json:"bpm,omitempty"`
 	Autor   string `json:"autor,omitempty"`
 	Arreglo string `json:"arreglista,omitempty"`
-	Acceso  string `json:"acceso" example:"free" doc:"free | premium | purchase | creator"`
+	Acceso  string `json:"acceso" example:"free" doc:"free | premium"`
 	Orden   int    `json:"orden"`
 }
 
@@ -215,7 +215,7 @@ type obtenerCancionOutput struct {
 		BPM      *int   `json:"bpm,omitempty"`
 		Autor    string `json:"autor,omitempty"`
 		Arreglo  string `json:"arreglista,omitempty"`
-		Acceso   string `json:"acceso" doc:"free | premium | purchase | creator"`
+		Acceso   string `json:"acceso" doc:"free | premium"`
 		Orden    int    `json:"orden"`
 		Artista  string `json:"artista"`
 		Album    string `json:"album"`

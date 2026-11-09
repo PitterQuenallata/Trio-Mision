@@ -58,7 +58,7 @@ func Register(api huma.API, db database.DB, objects storage.Client) {
 		Path:        "/api/v1/mis-artistas/{artistId}/canciones/{songId}",
 		Summary:     "Canción de mi artista con ChordPro",
 		Description: "Canción publicada con su contenido ChordPro completo, con independencia de su " +
-			"nivel de acceso (free, premium o purchase): la membresía autoriza la lectura. " +
+			"nivel de acceso (free o premium): la membresía autoriza la lectura. " +
 			"Requiere ser member o manager del artista.",
 		Tags:        []string{"artistas"},
 		Security:    []map[string][]string{{"bearer": {}}},
@@ -86,7 +86,7 @@ func Register(api huma.API, db database.DB, objects storage.Client) {
 		Tags:        []string{"artistas"},
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){managers},
-	}, crearAlbum(db))
+	}, crearAlbum(db, objects))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "artistas-actualizar-album",
@@ -97,7 +97,7 @@ func Register(api huma.API, db database.DB, objects storage.Client) {
 		Tags:        []string{"artistas"},
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){managers},
-	}, actualizarAlbum(db))
+	}, actualizarAlbum(db, objects))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "artistas-crear-cancion",
@@ -126,9 +126,10 @@ func Register(api huma.API, db database.DB, objects storage.Client) {
 		OperationID: "artistas-agregar-miembro",
 		Method:      http.MethodPost,
 		Path:        "/api/v1/mis-artistas/{artistId}/miembros",
-		Summary:     "Agregar member/manager al artista (manager)",
-		Description: "Asigna un rol member o manager de este artista a un usuario con perfil " +
-			"(debe haber iniciado sesión al menos una vez). Con auditoría.",
+		Summary:     "Agregar member al artista (manager)",
+		Description: "Asigna el rol member de este artista a un usuario con perfil (debe haber " +
+			"iniciado sesión al menos una vez). Con auditoría. Asignar managers es solo de " +
+			"admin: PUT /api/v1/staff/artistas/{artistId}/managers/{userId}.",
 		Tags:        []string{"artistas"},
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){managers},
@@ -138,8 +139,9 @@ func Register(api huma.API, db database.DB, objects storage.Client) {
 		OperationID: "artistas-quitar-miembro",
 		Method:      http.MethodDelete,
 		Path:        "/api/v1/mis-artistas/{artistId}/miembros/{userId}",
-		Summary:     "Quitar member/manager del artista (manager)",
-		Description: "Revoca la membresía de un usuario en este artista. Con auditoría.",
+		Summary:     "Quitar member del artista (manager)",
+		Description: "Revoca la membresía member de un usuario en este artista. Quitar a un manager " +
+			"es solo de admin: DELETE /api/v1/staff/artistas/{artistId}/managers/{userId}. Con auditoría.",
 		Tags:        []string{"artistas"},
 		Security:    []map[string][]string{{"bearer": {}}},
 		Middlewares: []func(huma.Context, func(huma.Context)){managers},
@@ -180,7 +182,7 @@ type cancionMia struct {
 	BPM       *int   `json:"bpm,omitempty"`
 	Autor     string `json:"autor,omitempty"`
 	Arreglo   string `json:"arreglista,omitempty"`
-	Acceso    string `json:"acceso" doc:"free | premium | purchase | creator"`
+	Acceso    string `json:"acceso" doc:"free | premium"`
 	Orden     int    `json:"orden"`
 	AlbumID   string `json:"album_id"`
 	Publicada bool   `json:"publicada"`
@@ -215,7 +217,7 @@ func listarMias(db database.DB) func(context.Context, *struct{}) (*listarMiasOut
 			       coalesce(ar.cover_key, ''), ar.is_published
 			from artist_members am
 			join artists ar on ar.id = am.artist_id
-			where am.user_id = $1 and ar.deleted_at is null
+			where am.user_id = $1 and am.activo and ar.deleted_at is null
 			order by ar.name`, claims.Subject)
 		if err != nil {
 			return nil, apierr.Internal("error consultando tus artistas", err)
@@ -372,7 +374,7 @@ type obtenerCancionOutput struct {
 		BPM      *int   `json:"bpm,omitempty"`
 		Autor    string `json:"autor,omitempty"`
 		Arreglo  string `json:"arreglista,omitempty"`
-		Acceso   string `json:"acceso" doc:"free | premium | purchase | creator"`
+		Acceso   string `json:"acceso" doc:"free | premium"`
 		Orden    int    `json:"orden"`
 		AlbumID  string `json:"album_id"`
 		Album    string `json:"album"`
@@ -483,6 +485,7 @@ type crearAlbumInput struct {
 	ArtistID string `path:"artistId" format:"uuid" doc:"ID del artista"`
 	Body     struct {
 		Titulo   string  `json:"titulo" required:"true" minLength:"1" maxLength:"200"`
+		Tipo     *string `json:"tipo,omitempty" enum:"album,ep,sencillo" doc:"Tipo de lanzamiento (por defecto album)"`
 		Anio     *int    `json:"anio,omitempty" minimum:"1900" maximum:"2100"`
 		CoverKey *string `json:"cover_key,omitempty" maxLength:"300"`
 		Orden    *int    `json:"orden,omitempty" minimum:"0" maximum:"32000"`
@@ -492,6 +495,7 @@ type crearAlbumInput struct {
 type albumOut struct {
 	Body struct {
 		ID        string    `json:"id"`
+		Tipo      string    `json:"tipo" enum:"album,ep,sencillo"`
 		Titulo    string    `json:"titulo"`
 		Anio      *int      `json:"anio,omitempty"`
 		CoverKey  string    `json:"cover_key,omitempty"`
@@ -501,7 +505,7 @@ type albumOut struct {
 	}
 }
 
-func crearAlbum(db database.DB) func(context.Context, *crearAlbumInput) (*albumOut, error) {
+func crearAlbum(db database.DB, objects storage.Client) func(context.Context, *crearAlbumInput) (*albumOut, error) {
 	return func(ctx context.Context, in *crearAlbumInput) (*albumOut, error) {
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
@@ -515,12 +519,21 @@ func crearAlbum(db database.DB) func(context.Context, *crearAlbumInput) (*albumO
 		if in.Body.Orden != nil {
 			orden = *in.Body.Orden
 		}
+		tipo := "album"
+		if in.Body.Tipo != nil {
+			tipo = *in.Body.Tipo
+		}
+		if in.Body.CoverKey != nil && *in.Body.CoverKey != "" {
+			if err := verificarPortada(ctx, objects, *in.Body.CoverKey); err != nil {
+				return nil, huma.Error422UnprocessableEntity(err.Error())
+			}
+		}
 		err = tx.QueryRow(ctx, `
-			insert into albums (artist_id, title, year, cover_key, sort_order, is_published)
-			values ($1, $2, $3, $4, $5, false)
-			returning id, title, year, coalesce(cover_key, ''), sort_order, is_published, created_at`,
-			in.ArtistID, in.Body.Titulo, in.Body.Anio, in.Body.CoverKey, orden,
-		).Scan(&out.Body.ID, &out.Body.Titulo, &out.Body.Anio, &out.Body.CoverKey,
+			insert into albums (artist_id, title, year, cover_key, sort_order, is_published, tipo)
+			values ($1, $2, $3, $4, $5, false, $6)
+			returning id, tipo, title, year, coalesce(cover_key, ''), sort_order, is_published, created_at`,
+			in.ArtistID, in.Body.Titulo, in.Body.Anio, in.Body.CoverKey, orden, tipo,
+		).Scan(&out.Body.ID, &out.Body.Tipo, &out.Body.Titulo, &out.Body.Anio, &out.Body.CoverKey,
 			&out.Body.Orden, &out.Body.Publicado, &out.Body.CreadoEn)
 		if err != nil {
 			return nil, apierr.Internal("error creando el álbum", err)
@@ -541,6 +554,7 @@ type actualizarAlbumInput struct {
 	AlbumID  string `path:"albumId" format:"uuid" doc:"ID del álbum"`
 	Body     struct {
 		Titulo    *string `json:"titulo,omitempty" minLength:"1" maxLength:"200"`
+		Tipo      *string `json:"tipo,omitempty" enum:"album,ep,sencillo"`
 		Anio      *int    `json:"anio,omitempty" minimum:"1900" maximum:"2100"`
 		CoverKey  *string `json:"cover_key,omitempty" maxLength:"300"`
 		Orden     *int    `json:"orden,omitempty" minimum:"0" maximum:"32000"`
@@ -548,7 +562,7 @@ type actualizarAlbumInput struct {
 	}
 }
 
-func actualizarAlbum(db database.DB) func(context.Context, *actualizarAlbumInput) (*albumOut, error) {
+func actualizarAlbum(db database.DB, objects storage.Client) func(context.Context, *actualizarAlbumInput) (*albumOut, error) {
 	return func(ctx context.Context, in *actualizarAlbumInput) (*albumOut, error) {
 		claims, _ := auth.ClaimsFromContext(ctx)
 		tx, err := db.Begin(ctx)
@@ -558,18 +572,24 @@ func actualizarAlbum(db database.DB) func(context.Context, *actualizarAlbumInput
 		defer tx.Rollback(ctx)
 
 		out := &albumOut{}
+		if in.Body.CoverKey != nil && *in.Body.CoverKey != "" {
+			if err := verificarPortada(ctx, objects, *in.Body.CoverKey); err != nil {
+				return nil, huma.Error422UnprocessableEntity(err.Error())
+			}
+		}
 		err = tx.QueryRow(ctx, `
 			update albums set
 			  title      = coalesce($3, title),
 			  year       = coalesce($4, year),
 			  cover_key  = coalesce($5, cover_key),
 			  sort_order = coalesce($6, sort_order),
-			  is_published = coalesce($7, is_published)
+			  is_published = coalesce($7, is_published),
+			  tipo       = coalesce($8, tipo)
 			where id = $2 and artist_id = $1 and deleted_at is null
-			returning id, title, year, coalesce(cover_key, ''), sort_order, is_published, created_at`,
+			returning id, tipo, title, year, coalesce(cover_key, ''), sort_order, is_published, created_at`,
 			in.ArtistID, in.AlbumID, in.Body.Titulo, in.Body.Anio, in.Body.CoverKey,
-			in.Body.Orden, in.Body.Publicado,
-		).Scan(&out.Body.ID, &out.Body.Titulo, &out.Body.Anio, &out.Body.CoverKey,
+			in.Body.Orden, in.Body.Publicado, in.Body.Tipo,
+		).Scan(&out.Body.ID, &out.Body.Tipo, &out.Body.Titulo, &out.Body.Anio, &out.Body.CoverKey,
 			&out.Body.Orden, &out.Body.Publicado, &out.Body.CreadoEn)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error404NotFound("álbum no encontrado")
@@ -599,7 +619,7 @@ type crearCancionInput struct {
 		BPM      *int    `json:"bpm,omitempty" minimum:"20" maximum:"400"`
 		Autor    *string `json:"autor,omitempty" maxLength:"200"`
 		Arreglo  *string `json:"arreglista,omitempty" maxLength:"200"`
-		Acceso   *string `json:"acceso,omitempty" enum:"free,premium,purchase,creator"`
+		Acceso   *string `json:"acceso,omitempty" enum:"free,premium"`
 		Orden    *int    `json:"orden,omitempty" minimum:"0" maximum:"32000"`
 	}
 }
@@ -681,7 +701,7 @@ type actualizarCancionInput struct {
 		BPM       *int    `json:"bpm,omitempty" minimum:"20" maximum:"400"`
 		Autor     *string `json:"autor,omitempty" maxLength:"200"`
 		Arreglo   *string `json:"arreglista,omitempty" maxLength:"200"`
-		Acceso    *string `json:"acceso,omitempty" enum:"free,premium,purchase,creator"`
+		Acceso    *string `json:"acceso,omitempty" enum:"free,premium"`
 		Orden     *int    `json:"orden,omitempty" minimum:"0" maximum:"32000"`
 		Publicada *bool   `json:"publicada,omitempty"`
 	}
@@ -770,6 +790,16 @@ func agregarMiembro(db database.DB) func(context.Context, *agregarMiembroInput) 
 		if err := tx.QueryRow(ctx, `select id from artists where id = $1 for update`, in.ArtistID).Scan(&artistID); err != nil {
 			return nil, huma.Error404NotFound("artista no encontrado")
 		}
+		if in.Body.MemberRole == "manager" {
+			// Asignar managers es solo de admin, aunque el solicitante sea manager del artista.
+			esAdmin, err := authz.IsAdmin(ctx, tx, claims.Subject)
+			if err != nil {
+				return nil, apierr.Internal("error verificando permisos", err)
+			}
+			if !esAdmin {
+				return nil, huma.Error403Forbidden("solo un admin puede asignar managers")
+			}
+		}
 
 		// El perfil debe existir: profiles.id es el UUID de auth.users, que solo
 		// se conoce cuando el usuario inicia sesión (la API no lee auth.users).
@@ -849,6 +879,14 @@ func quitarMiembro(db database.DB) func(context.Context, *quitarMiembroInput) (*
 			return nil, apierr.Internal("error consultando la membresía", err)
 		}
 		if memberRole == "manager" {
+			// Quitar a un manager es solo de admin.
+			esAdmin, err := authz.IsAdmin(ctx, tx, claims.Subject)
+			if err != nil {
+				return nil, apierr.Internal("error verificando permisos", err)
+			}
+			if !esAdmin {
+				return nil, huma.Error403Forbidden("solo un admin puede quitar managers")
+			}
 			var managers int
 			if err := tx.QueryRow(ctx, `
 				select count(*) from artist_members where artist_id = $1 and member_role = 'manager'`,

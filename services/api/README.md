@@ -102,7 +102,23 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 
 - `GET /api/v1/health` — liveness (sin auth)
 - `GET /api/v1/ready` — readiness, pinge PostgreSQL (devuelve 503 si cae la DB)
-- `GET /api/v1/me` — identidad del usuario (requiere Bearer JWT de GoTrue).
+- `GET /api/v1/staff/usuarios` — listado de usuarios con roles y membresías (solo admin; filtros `q` y `rol`; máximo 200).
+- `GET|POST /api/v1/staff/grupos`, `GET|PATCH /api/v1/staff/grupos/{id}` — administración de grupos (solo admin): datos, portada, publicación y venta de pistas (`vende_pistas` + `comision_pct` 5 a 10 %; sin venta no hay comisión obligatoria). El admin pasa la autorización de grupo en `/mis-artistas/…` (álbumes y canciones).
+- `POST /api/v1/staff/imagenes` — subida firmada de portadas (JPEG/PNG/WebP, máx. 2 MiB); la `key` se guarda como `cover_key`.
+- `GET /api/v1/staff/artistas?q=&limite=` — buscar artistas por nombre o slug para asignar managers (solo admin; límite 1–50, por defecto 20; no lista el catálogo completo).
+- `POST /api/v1/staff/usuarios` — crear una cuenta staff (solo admin): GoTrue con correo confirmado y rol inicial. 409 si el correo existe.
+- `PUT|DELETE /api/v1/staff/usuarios/{id}/roles/{rol}` — conceder o quitar un rol staff (solo admin). No puedes quitarte tu propio admin; el último admin no se puede quitar.
+- `PUT|DELETE /api/v1/staff/artistas/{artistId}/managers/{userId}` — añadir o quitar un manager de un artista (solo admin). El artista conserva al menos un manager.
+- Migraciones 00029–00030: funciones `admin_set_staff_role` y `admin_set_artist_manager` (SECURITY DEFINER) con las validaciones. `api_app` no escribe en `staff_roles`; `artist_members` sí (permiso de diseño de 3B, para que el manager gestione a su grupo).
+- Migración 00034: canciones solo `free` o `premium`. La venta de pistas es aparte.
+- `POST|GET /api/v1/mis-artistas/{artistId}/pistas` — crear y listar pistas del grupo.
+- `PUT|DELETE /api/v1/mis-artistas/{artistId}/canciones/{songId}/pista` — vincular una pista a una canción con precio (solo si el grupo vende pistas; una pista por canción) o quitarla. La tienda solo muestra y vende pistas de grupos habilitados.
+- Migración 00033: `albums.tipo` (`album`, `ep`, `sencillo`).
+- `GET /api/v1/mis-artistas/{artistId}/discografia` — discografía completa con borradores para manager o admin (la ficha pública de `/mis-artistas/{id}` solo trae lo publicado).
+- `PUT /api/v1/mis-artistas/{artistId}/albumes/{albumId}/orden` — reordena las canciones del álbum (la lista debe incluir cada canción una sola vez).
+- Migración 00032: `artist_members.activo`. Un vínculo desactivado no da acceso al grupo ni al panel y se conserva.
+- `POST /api/v1/staff/grupos/{id}/miembros`, `PATCH …/miembros/{userId}` (rol y activo) y `DELETE …/miembros/{userId}` — gestión de vinculados (solo admin). Un grupo conserva al menos un manager activo (409).
+- `GET /api/v1/me` — identidad del usuario (requiere Bearer JWT de GoTrue). Incluye `staff_roles` y `artist_memberships` (listas, vacías si no aplican); solo informativo, la autorización se aplica en cada endpoint.
   Asegura el perfil: crea la fila en `profiles` en el primer request
   (id = `sub` del token) y devuelve `display_name` (inicial: parte local del
   correo; si el perfil existía con nombre vacío, lo completa).
@@ -133,7 +149,7 @@ Consola MinIO: <http://localhost:9001> (mismas credenciales `S3_*` del `.env`).
 - `PATCH /api/v1/mis-artistas/{artistId}` — manager: bio/país/redes/portada de su artista
 - `POST /api/v1/mis-artistas/{artistId}/albumes` · `PATCH …/albumes/{albumId}` — manager: álbumes
 - `POST /api/v1/mis-artistas/{artistId}/canciones` · `PATCH …/canciones/{songId}` — manager: canciones (crear sin publicar; PATCH publica)
-- `POST /api/v1/mis-artistas/{artistId}/miembros` · `DELETE …/miembros/{userId}` — manager: membresías (auditoría rol.asignado/rol.revocado)
+- `POST /api/v1/mis-artistas/{artistId}/miembros` · `DELETE …/miembros/{userId}` — manager: membresías de **member** (auditoría rol.asignado/rol.revocado). Asignar o quitar managers es solo de admin (ver `/staff/artistas/…/managers`).
 - `PUT /api/v1/dispositivos` — alta/refresco de instalación (install_id estable del cliente; sin tokens)
 - `GET /api/v1/dispositivos` — mis dispositivos con estado (activo|revocado)
 - `POST /api/v1/dispositivos/{installId}/heartbeat` — marca actividad (opcional app_version)

@@ -4,6 +4,7 @@
 package authz
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -43,7 +44,8 @@ func RequireStaff(api huma.API, db database.DB, roles ...string) func(huma.Conte
 
 // RequireArtistRole devuelve un middleware Huma que exige membresía en el
 // artista indicado por el parámetro de ruta artistParam, con al menos el rol
-// por-artista solicitado ("member" o "manager", según artist_members).
+// por-artista solicitado ("member" o "manager", según artist_members). Un
+// admin pasa siempre (control total de los grupos).
 //
 // Decisiones de códigos: quien no es miembro del artista recibe 404 (no se
 // revela la existencia del artista ni del recurso); quien es miembro con rol
@@ -60,10 +62,21 @@ func RequireArtistRole(api huma.API, db database.DB, artistParam, minRole string
 			huma.WriteErr(api, ctx, http.StatusNotFound, "artista no encontrado")
 			return
 		}
+		// El admin administra cualquier grupo (control total): no necesita membresía.
+		esAdmin, err := IsAdmin(ctx.Context(), db, claims.Subject)
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, "error verificando permisos")
+			return
+		}
+		if esAdmin {
+			next(ctx)
+			return
+		}
+
 		var role string
-		err := db.QueryRow(ctx.Context(), `
+		err = db.QueryRow(ctx.Context(), `
 			select member_role from artist_members
-			where artist_id = $1 and user_id = $2`, artistID, claims.Subject).Scan(&role)
+			where artist_id = $1 and user_id = $2 and activo`, artistID, claims.Subject).Scan(&role)
 		if errors.Is(err, pgx.ErrNoRows) {
 			huma.WriteErr(api, ctx, http.StatusNotFound, "artista no encontrado")
 			return
@@ -78,4 +91,14 @@ func RequireArtistRole(api huma.API, db database.DB, artistParam, minRole string
 		}
 		next(ctx)
 	}
+}
+
+// IsAdmin indica si el usuario tiene el rol staff admin. Se consulta dentro de
+// la transacción de la operación para no depender de un token desactualizado.
+func IsAdmin(ctx context.Context, q database.Querier, userID string) (bool, error) {
+	var ok bool
+	err := q.QueryRow(ctx,
+		`select exists (select 1 from staff_roles where user_id = $1 and role = 'admin')`,
+		userID).Scan(&ok)
+	return ok, err
 }

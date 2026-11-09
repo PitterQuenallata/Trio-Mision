@@ -31,6 +31,7 @@ import (
 func Register(api huma.API, db database.DB, store storage.Client, presignTTL time.Duration) {
 	staff := authz.RequireStaff(api, db, "admin", "vendedor")
 	RegisterComercial(api, db)
+	RegisterUsuarios(api, db)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "staff-listar-pagos",

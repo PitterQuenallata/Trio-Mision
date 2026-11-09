@@ -15,6 +15,7 @@ import (
 	"triomision/api/internal/auth"
 	"triomision/api/internal/config"
 	"triomision/api/internal/database"
+	"triomision/api/internal/gotrueadmin"
 	"triomision/api/internal/modules/artists"
 	"triomision/api/internal/modules/catalog"
 	"triomision/api/internal/modules/devices"
@@ -34,7 +35,7 @@ import (
 )
 
 // Version es la versión del servicio reportada por /api/v1/health.
-const Version = "0.12.0"
+const Version = "0.20.0"
 
 // New arma el handler raíz: middlewares chi, OpenAPI/Swagger de Huma y módulos.
 // identifyClient devuelve el sub del JWT verificado (vacío si la petición es
@@ -106,6 +107,10 @@ func New(cfg config.Config, db database.DB, validator *auth.Validator, objects s
 	himnario.Register(api, db)
 	catalog.Register(api, db)
 	artists.Register(api, db, objects)
+	artists.RegisterStaffGrupos(api, db, objects)
+	artists.RegisterMiembrosGrupo(api, db)
+	artists.RegisterDiscografia(api, db, objects)
+	artists.RegisterPistasVenta(api, db)
 	devices.Register(api, db)
 	licencias.Register(api, db)
 	servicios.Register(api, db, objects, cfg.S3.PresignTTL)
@@ -115,6 +120,8 @@ func New(cfg config.Config, db database.DB, validator *auth.Validator, objects s
 	push.Register(api, db, push.NewSender(cfg.FCM.ProjectID, cfg.FCM.CredentialsFile))
 	store.Register(api, db, objects, cfg.S3.PresignTTL)
 	staff.Register(api, db, objects, cfg.S3.PresignTTL)
+	staff.RegisterGestion(api, db, gotrueadmin.New(cfg.GoTrueURL, cfg.JWTSecret))
+	staff.RegisterBuscarArtistas(api, db)
 
 	return r
 }

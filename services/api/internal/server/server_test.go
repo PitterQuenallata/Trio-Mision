@@ -24,9 +24,11 @@ import (
 const testSecret = "secreto-de-prueba"
 
 type fakeRow struct {
-	displayName string
-	authorized  bool
-	err         error
+	displayName     string
+	authorized      bool
+	staffRoles      []string
+	membershipsJSON []byte
+	err             error
 }
 
 func (r fakeRow) Scan(dest ...any) error {
@@ -42,6 +44,10 @@ func (r fakeRow) Scan(dest ...any) error {
 			*p = &s
 		case *bool:
 			*p = r.authorized
+		case *[]string:
+			*p = r.staffRoles
+		case *[]byte:
+			*p = r.membershipsJSON
 		}
 	}
 	return nil
@@ -190,6 +196,10 @@ func TestMe(t *testing.T) {
 		srv := newMeServer(t,
 			fakeRow{err: pgx.ErrNoRows},
 			fakeRow{displayName: "user"},
+			fakeRow{
+				staffRoles:      []string{"admin", "vendedor"},
+				membershipsJSON: []byte(`[{"artist_id":"11111111-1111-4111-8111-111111111111","role":"manager"}]`),
+			},
 		)
 		req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/me", nil)
 		if err != nil {
@@ -206,10 +216,15 @@ func TestMe(t *testing.T) {
 			t.Fatalf("status = %d, se esperaba 200; body: %s", resp.StatusCode, body)
 		}
 		var body struct {
-			UserID      string `json:"user_id"`
-			Email       string `json:"email"`
-			Role        string `json:"role"`
-			DisplayName string `json:"display_name"`
+			UserID            string   `json:"user_id"`
+			Email             string   `json:"email"`
+			Role              string   `json:"role"`
+			DisplayName       string   `json:"display_name"`
+			StaffRoles        []string `json:"staff_roles"`
+			ArtistMemberships []struct {
+				ArtistID string `json:"artist_id"`
+				Role     string `json:"role"`
+			} `json:"artist_memberships"`
 		}
 		if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
 			t.Fatalf("decodificar body: %v", err)
@@ -219,6 +234,63 @@ func TestMe(t *testing.T) {
 			body.Role != "authenticated" ||
 			body.DisplayName != "user" {
 			t.Errorf("body inesperado: %+v", body)
+		}
+		if len(body.StaffRoles) != 2 || body.StaffRoles[0] != "admin" || body.StaffRoles[1] != "vendedor" {
+			t.Errorf("staff_roles = %v, se esperaba [admin vendedor]", body.StaffRoles)
+		}
+		if len(body.ArtistMemberships) != 1 ||
+			body.ArtistMemberships[0].ArtistID != "11111111-1111-4111-8111-111111111111" ||
+			body.ArtistMemberships[0].Role != "manager" {
+			t.Errorf("artist_memberships = %+v, se esperaba un manager", body.ArtistMemberships)
+		}
+	})
+
+	t.Run("usuario sin roles recibe listas vacías y no null", func(t *testing.T) {
+		srv := newMeServer(t,
+			fakeRow{displayName: "user"},
+			fakeRow{staffRoles: nil, membershipsJSON: []byte("[]")},
+		)
+		req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/me", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+bearerToken(t))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET /me: %v", err)
+		}
+		defer resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("status = %d, se esperaba 200", resp.StatusCode)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		if !strings.Contains(string(body), `"staff_roles":[]`) ||
+			!strings.Contains(string(body), `"artist_memberships":[]`) {
+			t.Errorf("se esperaban listas vacías, body: %s", body)
+		}
+	})
+
+	t.Run("error al leer roles devuelve 500 sin detalle interno", func(t *testing.T) {
+		srv := newMeServer(t,
+			fakeRow{displayName: "user"},
+			fakeRow{err: errors.New("relación secreta_x no existe")},
+		)
+		req, err := http.NewRequest(http.MethodGet, srv.URL+"/api/v1/me", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req.Header.Set("Authorization", "Bearer "+bearerToken(t))
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("GET /me: %v", err)
+		}
+		defer resp.Body.Close()
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Errorf("status = %d, se esperaba 500", resp.StatusCode)
+		}
+		if strings.Contains(string(body), "secreta_x") {
+			t.Errorf("el 500 filtra detalle interno: %s", body)
 		}
 	})
 

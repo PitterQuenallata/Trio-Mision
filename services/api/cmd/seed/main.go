@@ -135,7 +135,7 @@ func seedCatalog(ctx context.Context, tx pgx.Tx) error {
 
 	// UUID fijo heredado del seed de la v1: reproducible entre entornos.
 	tag, err := tx.Exec(ctx, `
-		insert into artists (id, slug, name, style_id, country, bio, social_links, is_published)
+		insert into artists (id, slug, name, style_id, country, bio, social_links, is_published, can_sell_tracks, commission_pct)
 		values (
 			'00000000-0000-4000-8000-000000000001',
 			'trio-mision', 'Trio Misión',
@@ -143,7 +143,7 @@ func seedCatalog(ctx context.Context, tx pgx.Tx) error {
 			'Bolivia',
 			'Trío vocal de música cristiana adventista.',
 			'{"youtube": "https://www.youtube.com/@TrioMision", "facebook": "https://www.facebook.com/profile.php?id=100082466843092", "spotify": "https://open.spotify.com/intl-es/artist/3IJqAzw3YMvGBZ0MvXfVOC"}',
-			true
+			true, true, 7.5
 		)
 		on conflict (slug) do nothing`)
 	if err != nil {

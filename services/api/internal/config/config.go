@@ -22,6 +22,8 @@ type Config struct {
 	JWTSecret string
 	// JWTAudience es la audiencia esperada del token (GoTrue: "authenticated").
 	JWTAudience string
+	// GoTrueURL es la URL base de GoTrue (administración de cuentas staff).
+	GoTrueURL string
 	// S3 contiene la configuración del almacenamiento compatible con S3
 	// (MinIO en desarrollo). Vacía cuando el servicio no la necesita.
 	S3 S3Config
@@ -72,6 +74,7 @@ func Load() (Config, error) {
 		DatabaseURL: os.Getenv("API_DATABASE_URL"),
 		JWTSecret:   os.Getenv("GOTRUE_JWT_SECRET"),
 		JWTAudience: getEnv("GOTRUE_JWT_AUDIENCE", "authenticated"),
+		GoTrueURL:   getEnv("GOTRUE_URL", "http://127.0.0.1:9999"),
 		S3: S3Config{
 			Endpoint:   os.Getenv("S3_ENDPOINT"),
 			Region:     getEnv("S3_REGION", "us-east-1"),
