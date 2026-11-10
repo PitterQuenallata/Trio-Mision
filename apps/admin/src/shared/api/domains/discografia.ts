@@ -101,4 +101,22 @@ export const pistasApi = {
     unwrap(api.DELETE('/api/v1/mis-artistas/{artistId}/canciones/{songId}/pista', {
       params: { path: { artistId: grupoId, songId: cancionId } },
     })),
+  /**
+   * Sube el audio master de una pista (reemplaza el anterior). La API valida el
+   * formato por contenido y el tamaño (máx. 100 MiB).
+   */
+  subirMaster: (grupoId: string, trackId: string, archivo: File) => {
+    const form = new FormData();
+    form.append('archivo', archivo);
+    // openapi-fetch envía el FormData tal cual; el tipo generado describe el campo como string.
+    return unwrap(api.POST('/api/v1/mis-artistas/{artistId}/pistas/{trackId}/master', {
+      params: { path: { artistId: grupoId, trackId } },
+      body: form as unknown as { archivo: string },
+    }));
+  },
 };
+
+/** Tamaño máximo del master, igual que la API (100 MiB). */
+export const MAX_MASTER_BYTES = 100 * 1024 * 1024;
+/** Extensiones de audio admitidas (la API valida el contenido real). */
+export const EXTENSIONES_MASTER = ['.wav', '.mp3', '.aiff', '.aif', '.ogg'];

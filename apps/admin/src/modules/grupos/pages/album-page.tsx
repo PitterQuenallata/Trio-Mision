@@ -10,8 +10,13 @@ import { CancionModal } from '../components/cancion-modal';
 import { EditarLanzamientoModal } from '../components/editar-lanzamiento-modal';
 
 /** Página de un lanzamiento: portada, datos y lista de canciones (estilo Spotify). */
-export const AlbumPage: React.FC<{ grupoId: string; albumId: string }> = ({ grupoId, albumId }) => {
+export const AlbumPage: React.FC<{ grupoId: string; albumId: string; modo?: 'admin' | 'manager' }> = ({
+  grupoId,
+  albumId,
+  modo = 'admin',
+}) => {
   const queryClient = useQueryClient();
+  const esManager = modo === 'manager';
   const [editandoDatos, setEditandoDatos] = useState(false);
   const [nuevaCancion, setNuevaCancion] = useState(false);
 
@@ -28,7 +33,11 @@ export const AlbumPage: React.FC<{ grupoId: string; albumId: string }> = ({ grup
     return (
       <div className="space-y-3">
         <p role="alert" className="text-sm text-red-400">No se encontró el lanzamiento.</p>
-        <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-sm underline">Volver al grupo</Link>
+        {esManager ? (
+          <Link to="/mi-grupo/$grupoId" params={{ grupoId }} className="text-sm underline">Volver a mi grupo</Link>
+        ) : (
+          <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-sm underline">Volver al grupo</Link>
+        )}
       </div>
     );
   }
@@ -45,9 +54,15 @@ export const AlbumPage: React.FC<{ grupoId: string; albumId: string }> = ({ grup
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
-      <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">
-        ← {discografia.data?.nombre ?? 'Grupo'}
-      </Link>
+      {esManager ? (
+        <Link to="/mi-grupo/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">
+          ← Mi grupo
+        </Link>
+      ) : (
+        <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">
+          ← {discografia.data?.nombre ?? 'Grupo'}
+        </Link>
+      )}
 
       <header className="flex flex-col gap-6 md:flex-row md:items-end">
         <div className="h-48 w-48 shrink-0 overflow-hidden rounded-2xl border border-border/50 bg-muted/40 shadow-sm">

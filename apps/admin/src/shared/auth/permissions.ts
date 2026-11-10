@@ -28,12 +28,23 @@ const ROUTE_RULES: Record<string, RouteRule> = {
   '/grupos/:id': { staff: ['admin'] },
   '/grupos/:id/albumes/:albumId': { staff: ['admin'] },
   '/grupos/:id/nuevo': { staff: ['admin'] },
+  // Vista del manager de su artista (la API valida que sea su artista).
+  '/mi-grupo/:id': { staff: ['admin'], managers: true },
+  '/mi-grupo/:id/albumes/:albumId': { staff: ['admin'], managers: true },
+  '/mi-grupo/:id/nuevo': { staff: ['admin'], managers: true },
+  // Importación de PDF de grupos: la API admite admin y vendedor.
+  '/herramientas/grupos': { staff: ['admin', 'vendedor'] },
 };
 
 /** Clave de regla para una ruta concreta (las rutas con parámetros usan su patrón). */
 export function ruleKey(pathname: string): string {
-  if (/^\/grupos\/[^/]+\/albumes\/[^/]+$/.test(pathname)) return '/grupos/:id/albumes/:albumId';
-  if (/^\/grupos\/[^/]+\/nuevo$/.test(pathname)) return '/grupos/:id/nuevo';
+  if (/^\/(grupos|mi-grupo)\/[^/]+\/albumes\/[^/]+$/.test(pathname)) {
+    return pathname.startsWith('/mi-grupo') ? '/mi-grupo/:id/albumes/:albumId' : '/grupos/:id/albumes/:albumId';
+  }
+  if (/^\/(grupos|mi-grupo)\/[^/]+\/nuevo$/.test(pathname)) {
+    return pathname.startsWith('/mi-grupo') ? '/mi-grupo/:id/nuevo' : '/grupos/:id/nuevo';
+  }
+  if (/^\/mi-grupo\/[^/]+$/.test(pathname)) return '/mi-grupo/:id';
   if (/^\/grupos\/[^/]+$/.test(pathname)) return '/grupos/:id';
   return pathname;
 }

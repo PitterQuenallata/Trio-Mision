@@ -14,8 +14,9 @@ const TIPOS: TipoLanzamiento[] = ['album', 'ep', 'sencillo'];
 const PASOS = ['Datos', 'Canciones', 'Publicar'] as const;
 
 /** Asistente para crear un lanzamiento: datos, canciones y publicación. */
-export const NuevoLanzamientoPage: React.FC<{ grupoId: string }> = ({ grupoId }) => {
+export const NuevoLanzamientoPage: React.FC<{ grupoId: string; modo?: 'admin' | 'manager' }> = ({ grupoId, modo = 'admin' }) => {
   const navigate = useNavigate();
+  const esManager = modo === 'manager';
   const queryClient = useQueryClient();
   const [paso, setPaso] = useState(0);
   const [tipo, setTipo] = useState<TipoLanzamiento>('album');
@@ -59,7 +60,11 @@ export const NuevoLanzamientoPage: React.FC<{ grupoId: string }> = ({ grupoId })
       await discografiaApi.actualizarLanzamiento(grupoId, albumId, { publicado });
       await queryClient.invalidateQueries({ queryKey: ['discografia', grupoId] });
       pillToast.success(publicado ? 'Lanzamiento publicado' : 'Guardado como borrador', titulo.trim());
-      void navigate({ to: '/grupos/$grupoId/albumes/$albumId', params: { grupoId, albumId } });
+      void navigate(
+        esManager
+          ? { to: '/mi-grupo/$grupoId/albumes/$albumId', params: { grupoId, albumId } }
+          : { to: '/grupos/$grupoId/albumes/$albumId', params: { grupoId, albumId } },
+      );
     } catch (err) {
       pillToast.error('No se pudo guardar', err instanceof Error ? err.message : undefined);
     }
@@ -67,7 +72,11 @@ export const NuevoLanzamientoPage: React.FC<{ grupoId: string }> = ({ grupoId })
 
   return (
     <div className="mx-auto max-w-4xl space-y-8 animate-in fade-in duration-300">
-      <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">← Grupo</Link>
+      {esManager ? (
+        <Link to="/mi-grupo/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">← Mi grupo</Link>
+      ) : (
+        <Link to="/grupos/$grupoId" params={{ grupoId }} className="text-xs text-muted-foreground hover:underline">← Grupo</Link>
+      )}
       <header className="space-y-4 border-b border-border/40 pb-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Nuevo lanzamiento</h1>
         <ol className="flex flex-wrap gap-2">

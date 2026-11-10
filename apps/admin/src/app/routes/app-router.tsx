@@ -44,6 +44,7 @@ const LoginPage = page(() => import('../../modules/auth/pages/login-page'), 'Log
 const AuthErrorFullscreenPage = page(() => import('../../modules/auth/pages/auth-error-fullscreen-page'), 'AuthErrorFullscreenPage');
 const DashboardPage = page(() => import('../../modules/dashboard/pages/dashboard-page'), 'DashboardPage');
 const UsuariosPage = page(() => import('../../modules/usuarios/pages/usuarios-page'), 'UsuariosPage');
+const ImportarGruposPage = page(() => import('../../modules/herramientas/pages/importar-grupos-page'), 'ImportarGruposPage');
 const MiGrupoPage = page(() => import('../../modules/mi-grupo/pages/mi-grupo-page'), 'MiGrupoPage');
 const GruposPage = page(() => import('../../modules/grupos/pages/grupos-page'), 'GruposPage');
 const GrupoPage = page(() => import('../../modules/grupos/pages/grupo-page'), 'GrupoPage');
@@ -131,6 +132,32 @@ const routeNuevoLanzamiento = createRoute({
     return <NuevoLanzamientoPage grupoId={grupoId} />;
   },
 });
+// Vista del manager: su grupo, sus lanzamientos y el asistente de nuevo lanzamiento.
+const routeMiGrupoDetalle = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mi-grupo/$grupoId',
+  component: function MiGrupoRoute() {
+    const { grupoId } = routeMiGrupoDetalle.useParams();
+    return <GrupoPage grupoId={grupoId} modo="manager" />;
+  },
+});
+const routeMiAlbum = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mi-grupo/$grupoId/albumes/$albumId',
+  component: function MiAlbumRoute() {
+    const { grupoId, albumId } = routeMiAlbum.useParams();
+    return <AlbumPage grupoId={grupoId} albumId={albumId} modo="manager" />;
+  },
+});
+const routeMiNuevoLanzamiento = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/mi-grupo/$grupoId/nuevo',
+  component: function MiNuevoRoute() {
+    const { grupoId } = routeMiNuevoLanzamiento.useParams();
+    return <NuevoLanzamientoPage grupoId={grupoId} modo="manager" />;
+  },
+});
+const routeHerramientasGrupos = createRoute({ getParentRoute: () => rootRoute, path: '/herramientas/grupos', component: ImportarGruposPage });
 const routeUsuarios = createRoute({ getParentRoute: () => rootRoute, path: '/usuarios', component: UsuariosPage });
 
 const routeTree = rootRoute.addChildren([
@@ -142,6 +169,10 @@ const routeTree = rootRoute.addChildren([
   routeGrupo,
   routeAlbum,
   routeNuevoLanzamiento,
+  routeMiGrupoDetalle,
+  routeMiAlbum,
+  routeMiNuevoLanzamiento,
+  routeHerramientasGrupos,
   routeUsuarios,
 ]);
 

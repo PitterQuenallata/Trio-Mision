@@ -6,7 +6,7 @@ import { Input } from '../../../shared/components/ui/input';
 import { AlertDialog } from '../../../shared/components/ui/alert-dialog';
 import { pillToast } from '../../../shared/components/ui/pill-toast';
 import { Spinner } from '../../../components/ui/ios-spinner';
-import { pistasApi, type CancionGestion } from '../../../shared/api/domains/discografia';
+import { pistasApi, type CancionGestion, EXTENSIONES_MASTER, MAX_MASTER_BYTES } from '../../../shared/api/domains/discografia';
 
 interface PistaVentaModalProps {
   grupoId: string;
@@ -29,6 +29,7 @@ const Contenido: React.FC<{ grupoId: string; cancion: CancionGestion; onClose: (
   const [nuevaPista, setNuevaPista] = useState('');
   const [ocupado, setOcupado] = useState(false);
   const [desvincular, setDesvincular] = useState(false);
+  const [subiendoAudio, setSubiendoAudio] = useState(false);
 
   const pistas = useQuery({
     queryKey: ['pistas', grupoId],
@@ -65,6 +66,30 @@ const Contenido: React.FC<{ grupoId: string; cancion: CancionGestion; onClose: (
       () => pistasApi.vincular(grupoId, cancion.id, seleccion, Math.round(monto * 100), 'BOB'),
       cancion.pista ? 'Pista actualizada' : 'Pista a la venta'
     );
+  };
+
+  // El audio pertenece a la pista (no a la canción): se sube a la pista elegida.
+  const subirAudio = async (archivo: File | undefined) => {
+    if (!archivo || !seleccion) return;
+    const extension = archivo.name.slice(archivo.name.lastIndexOf('.')).toLowerCase();
+    if (!EXTENSIONES_MASTER.includes(extension)) {
+      return pillToast.error('Formato no admitido', 'Usa WAV, MP3, AIFF u OGG.');
+    }
+    if (archivo.size > MAX_MASTER_BYTES) {
+      return pillToast.error('Archivo muy grande', 'El máximo es 100 MB.');
+    }
+    setSubiendoAudio(true);
+    try {
+      const respuesta = await pistasApi.subirMaster(grupoId, seleccion, archivo);
+      pillToast.success(
+        'Audio subido',
+        respuesta.master_publicado ? 'Quedó publicado para esta pista.' : 'Guardado; revisa la publicación.',
+      );
+    } catch (err) {
+      pillToast.error('No se pudo subir el audio', err instanceof Error ? err.message : undefined);
+    } finally {
+      setSubiendoAudio(false);
+    }
   };
 
   const crearYVincular = async () => {
@@ -129,12 +154,40 @@ const Contenido: React.FC<{ grupoId: string; cancion: CancionGestion; onClose: (
           </div>
 
           <div className="space-y-2 rounded-2xl border border-border/50 p-4">
+            <p className="text-xs font-medium text-muted-foreground">Audio de la pista</p>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex">
+                <input
+                  type="file"
+                  accept={EXTENSIONES_MASTER.join(',')}
+                  className="sr-only"
+                  disabled={!seleccion || subiendoAudio}
+                  onChange={(e) => {
+                    void subirAudio(e.target.files?.[0]);
+                    e.target.value = '';
+                  }}
+                />
+                <span
+                  className={
+                    'inline-flex items-center rounded-xl border border-border/60 px-3 py-1.5 text-sm font-medium ' +
+                    (!seleccion || subiendoAudio ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-muted/70')
+                  }
+                >
+                  {subiendoAudio ? <Spinner size="sm" /> : 'Subir audio'}
+                </span>
+              </label>
+              <p className="text-xs text-muted-foreground">
+                {seleccion ? 'WAV, MP3, AIFF u OGG · máx. 100 MB. Reemplaza el audio anterior de la pista.' : 'Elige una pista primero.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-border/50 p-4">
             <p className="text-xs font-medium text-muted-foreground">¿La pista no está en la lista? Créala aquí.</p>
             <div className="flex gap-2">
               <Input placeholder="Nombre de la pista" value={nuevaPista} onChange={(e) => setNuevaPista(e.target.value)} />
               <Button variant="outline" disabled={ocupado} onClick={() => void crearYVincular()}>Crear</Button>
             </div>
-            <p className="text-xs text-muted-foreground">El audio se sube después, desde la ficha de la pista.</p>
           </div>
         </div>
       </Modal>

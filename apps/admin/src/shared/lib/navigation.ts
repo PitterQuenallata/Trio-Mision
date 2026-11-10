@@ -3,10 +3,11 @@ import {
   Music,
   Library,
   Users,
+  FileUp,
   LucideIcon,
 } from 'lucide-react';
 
-export type NavigationCategoryKey = 'principal' | 'artistas' | 'operacion';
+export type NavigationCategoryKey = 'principal' | 'artistas' | 'operacion' | 'herramientas';
 
 export interface NavigationCategory {
   key: NavigationCategoryKey;
@@ -17,6 +18,7 @@ export const navigationCategories: NavigationCategory[] = [
   { key: 'principal', title: 'Principal' },
   { key: 'artistas', title: 'Artistas' },
   { key: 'operacion', title: 'Administración' },
+  { key: 'herramientas', title: 'Herramientas y automatizaciones' },
 ];
 
 export interface NavItem {
@@ -34,4 +36,5 @@ export const navItems: NavItem[] = [
   { id: 'grupos', title: 'Grupos', path: '/grupos', icon: Library, category: 'artistas' },
   { id: 'mi-grupo', title: 'Mi grupo', path: '/mi-grupo', icon: Music, category: 'artistas' },
   { id: 'usuarios', title: 'Usuarios', path: '/usuarios', icon: Users, category: 'operacion' },
+  { id: 'herramienta-grupos', title: 'Subir álbum de grupo', path: '/herramientas/grupos', icon: FileUp, category: 'herramientas' },
 ];

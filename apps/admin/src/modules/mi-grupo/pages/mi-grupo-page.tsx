@@ -11,7 +11,7 @@ export const MiGrupoPage: React.FC = () => {
       <header className="border-b border-border/40 pb-6">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Mi grupo</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Artistas que administras. Por ahora solo lectura: la edición del catálogo se conecta en la siguiente etapa.
+          Artistas que administras: edita su ficha y su discografía.
         </p>
       </header>
 

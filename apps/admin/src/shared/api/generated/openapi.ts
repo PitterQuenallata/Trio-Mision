@@ -1308,6 +1308,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/importaciones/{id}/canciones/{indice}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Corregir una canción de la revisión antes de publicarla
+         * @description Edita título, número, tono, capo, autor o el ChordPro completo de una canción del resultado. Solo con la importación en done y la canción sin publicar. La canción queda marcada como revisada (status ok, sin issues). Audita importacion.cancion_editada.
+         */
+        patch: operations["staff-importaciones-editar-cancion"];
+        trace?: never;
+    };
     "/api/v1/staff/importaciones/{id}/publicar": {
         parameters: {
             query?: never;
@@ -2353,6 +2373,12 @@ export interface components {
             tono?: string;
         };
         CancionImportada: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example //schemas/CancionImportada.json
+             */
+            readonly $schema?: string;
             autor: string | null;
             /** Format: int64 */
             capo: number | null;
@@ -2946,6 +2972,12 @@ export interface components {
             usuario_email: string;
             usuario_id: string;
         };
+        DestinoImportacion: {
+            album_id: string;
+            grupo_id: string;
+            /** @description album */
+            tipo: string;
+        };
         DestinoPublicacion: {
             album_id?: string;
             coleccion_id?: string;
@@ -3028,6 +3060,27 @@ export interface components {
             /** Format: date-time */
             revoked_at?: string;
             revoked_reason?: string;
+        };
+        EditarCancionInputBody: {
+            /**
+             * Format: uri
+             * @description A URL to the JSON Schema for this object.
+             * @example //schemas/EditarCancionInputBody.json
+             */
+            readonly $schema?: string;
+            autor?: string;
+            /** Format: int64 */
+            capo?: number;
+            /** @description Si se envía, reemplaza el ChordPro completo y no se reescriben las directivas */
+            chordpro?: string;
+            /**
+             * Format: int64
+             * @description Número de himno o de pista del álbum
+             */
+            numero?: number;
+            titulo?: string;
+            /** @description Tono original (ej. C, Am, F#m) */
+            tono?: string;
         };
         EntregaArchivo: {
             /** Format: int64 */
@@ -3856,6 +3909,8 @@ export interface components {
             /** Format: date-time */
             creado_en: string;
             creado_por: string;
+            /** @description Destino fijado al subir (álbum de un grupo) */
+            destino?: components["schemas"]["DestinoImportacion"];
             error_code: string | null;
             estado: string;
             id: string;
@@ -4313,7 +4368,8 @@ export interface components {
              * @example //schemas/PublicarImportacionInputBody.json
              */
             readonly $schema?: string;
-            destino: components["schemas"]["DestinoStruct"];
+            /** @description Si se omite, se usa el destino fijado al subir el PDF */
+            destino?: components["schemas"]["DestinoStruct"];
             /** @description Índices de canciones aprobadas del resultado */
             indices: number[] | null;
         };
@@ -7505,11 +7561,15 @@ export interface operations {
         requestBody?: {
             content: {
                 "multipart/form-data": {
+                    /** @description Álbum destino; debe pertenecer a grupo_id */
+                    album_id?: string;
                     /**
                      * Format: binary
                      * @description PDF editorial con letra y acordes (máximo 20 MiB)
                      */
                     archivo: string;
+                    /** @description Grupo dueño del álbum. Va junto con album_id y enruta la publicación a ese álbum */
+                    grupo_id?: string;
                     /** @description Clave de cliente: repetirla con el mismo archivo devuelve el mismo job */
                     idempotency_key: string;
                 };
@@ -7555,6 +7615,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ObtenerImportacionOutputBody"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ErrorModel"];
+                };
+            };
+        };
+    };
+    "staff-importaciones-editar-cancion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID de la importación */
+                id: string;
+                /** @description Índice de la canción en el resultado */
+                indice: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditarCancionInputBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CancionImportada"];
                 };
             };
             /** @description Error */

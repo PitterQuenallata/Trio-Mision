@@ -21,6 +21,12 @@ export const artistasApi = {
   /** Detalle de un artista del usuario, con sus álbumes. */
   obtenerMio: (artistId: string): Promise<ObtenerMio> =>
     unwrap(api.GET('/api/v1/mis-artistas/{artistId}', { params: { path: { artistId } } })),
+  /** Ficha del manager: bio, país, redes y portada (nombre y publicación son del staff). */
+  actualizarMio: (
+    artistId: string,
+    cambios: { bio?: string; pais?: string; redes?: Record<string, string>; cover_key?: string },
+  ) =>
+    unwrap(api.PATCH('/api/v1/mis-artistas/{artistId}', { params: { path: { artistId } }, body: cambios })),
 };
 
 export type ArtistaBusqueda = components['schemas']['ArtistaBusqueda'];

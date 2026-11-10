@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { artistasApi, type ArtistaMio } from '../../../shared/api/domains/artistas';
 import { Card } from '../../../shared/components/ui/card';
@@ -24,6 +25,15 @@ export const ArtistaCard: React.FC<{ artista: ArtistaMio }> = ({ artista }) => {
             {ROL_LABEL[artista.mi_rol] ?? artista.mi_rol}
           </span>
           <span className="text-xs text-muted-foreground">{artista.publicado ? 'Publicado' : 'Borrador'}</span>
+          {artista.mi_rol === 'manager' && (
+            <Link
+              to="/mi-grupo/$grupoId"
+              params={{ grupoId: artista.id }}
+              className="rounded-md border border-border/60 px-3 py-1 text-xs font-medium hover:bg-muted/50"
+            >
+              Administrar
+            </Link>
+          )}
         </div>
       </div>
 

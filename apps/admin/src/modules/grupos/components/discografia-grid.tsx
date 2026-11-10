@@ -4,12 +4,23 @@ import { Button } from '../../../shared/components/ui/button';
 import { etiquetaTipo, type AlbumGestion } from '../../../shared/api/domains/discografia';
 
 /** Discografía del grupo como cuadrícula de portadas (estilo Spotify). */
-export const DiscografiaGrid: React.FC<{ grupoId: string; albumes: AlbumGestion[] }> = ({ grupoId, albumes }) => {
+export const DiscografiaGrid: React.FC<{ grupoId: string; albumes: AlbumGestion[]; modo?: 'admin' | 'manager' }> = ({
+  grupoId,
+  albumes,
+  modo = 'admin',
+}) => {
   const navigate = useNavigate();
+  const esManager = modo === 'manager';
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button onClick={() => void navigate({ to: '/grupos/$grupoId/nuevo', params: { grupoId } })}>Nuevo lanzamiento</Button>
+        <Button
+          onClick={() =>
+            void navigate(esManager ? { to: '/mi-grupo/$grupoId/nuevo', params: { grupoId } } : { to: '/grupos/$grupoId/nuevo', params: { grupoId } })
+          }
+        >
+          Nuevo lanzamiento
+        </Button>
       </div>
 
       {albumes.length === 0 ? (
@@ -20,7 +31,13 @@ export const DiscografiaGrid: React.FC<{ grupoId: string; albumes: AlbumGestion[
             <button
               key={a.id}
               type="button"
-              onClick={() => void navigate({ to: '/grupos/$grupoId/albumes/$albumId', params: { grupoId, albumId: a.id } })}
+              onClick={() =>
+                void navigate(
+                  esManager
+                    ? { to: '/mi-grupo/$grupoId/albumes/$albumId', params: { grupoId, albumId: a.id } }
+                    : { to: '/grupos/$grupoId/albumes/$albumId', params: { grupoId, albumId: a.id } },
+                )
+              }
               className="group text-left"
             >
               <div className="aspect-square overflow-hidden rounded-2xl border border-border/50 bg-muted/40 transition-transform group-hover:-translate-y-0.5">
