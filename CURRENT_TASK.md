@@ -4,6 +4,19 @@
 > Última actualización: 2026-11-08
 
 > [!IMPORTANT]
+> **SIGUIENTE TAREA — Himnario (herramienta 2):** misma estructura que "Subir álbum de grupo"
+> (`/herramientas/himnario`, sección Herramientas y automatizaciones). Destino: colección del
+> himnario en vez de álbum. Pendiente antes de empezar: (1) API: listar colecciones del himnario
+> (no hay endpoint staff), (2) publicar con `destino.tipo=himnario` (la API exige número de himno
+> en cada canción), (3) decidir el rol del editor. Compra de prueba y pagos: al final.
+
+> **HERRAMIENTAS — REVISIÓN (2026-11-09, sin commit):** los álbumes con contenido nunca se
+> bloquean (la tarjeta muestra "Ya tiene contenido"). En la revisión, las canciones cuyo título ya
+> existe en el álbum se marcan "Ya existe" y no se preseleccionan (se pueden elegir a mano). Al
+> guardar una canción: SweetAlert de la plantilla (`shared/components/ui/sweet-alert.tsx`,
+> recuperado de `bde2d5d`) "¡Proceso finalizado! ¡En buena hora!" en un portal, y al aceptar el
+> flujo se reinicia desde "Elige el grupo". Verificado en Chrome.
+
 > **HERRAMIENTAS — SUBIR ÁLBUM DE GRUPO (2026-11-09):** API **0.21.0**. La subida de PDF
 > acepta `grupo_id` + `album_id` (destino fijado en el job); publicar usa ese destino por
 > defecto; `PATCH …/importaciones/{id}/canciones/{indice}` corrige una canción antes de

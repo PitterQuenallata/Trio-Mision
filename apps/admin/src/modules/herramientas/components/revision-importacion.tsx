@@ -15,8 +15,16 @@ import { EditorCancion } from './editor-cancion';
 interface RevisionProps {
   importacionId: string;
   albumTitulo: string;
+  /** Títulos de las canciones que el álbum ya tiene (normalizados). */
+  titulosExistentes: Set<string>;
   onPublicada: () => void;
+  /** Reinicia el flujo completo (se llama al cerrar el aviso de finalizado). */
+  onReiniciar: () => void;
 }
+
+/** Clave de comparación: sin mayúsculas, acentos ni espacios sobrantes. */
+export const claveTitulo = (t: string) =>
+  t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 const ESTADOS_EN_CURSO: EstadoImportacion[] = ['queued', 'running'];
 
@@ -24,7 +32,7 @@ const ESTADOS_EN_CURSO: EstadoImportacion[] = ['queued', 'running'];
  * Revisión de un PDF convertido. A la izquierda, la lista de canciones (clic para
  * abrir, casilla para publicar); a la derecha, el editor con vista previa.
  */
-export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, albumTitulo, onPublicada }) => {
+export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, albumTitulo, titulosExistentes, onPublicada, onReiniciar }) => {
   const queryClient = useQueryClient();
   const [activa, setActiva] = useState<number | null>(null);
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
@@ -39,11 +47,14 @@ export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, al
   const canciones = job.data?.canciones ?? [];
   const publicadas = new Set((job.data?.publicados ?? []).map((p) => p.indice));
   const listas = job.data?.estado === 'done';
+  // Una canción ya presente en el álbum se marca, pero nada se bloquea: el staff decide.
+  const yaEnAlbum = (c: CancionImportada) => titulosExistentes.has(claveTitulo(c.titulo));
+  const duplicadas = canciones.filter(yaEnAlbum).length;
 
   // Al terminar la conversión: se preselecciona lo "ok" sin publicar y se abre la primera que requiere revisión.
   useEffect(() => {
     if (!listas || precargada) return;
-    setSeleccion(new Set(canciones.filter((c) => c.status === 'ok' && !publicadas.has(c.indice)).map((c) => c.indice)));
+    setSeleccion(new Set(canciones.filter((c) => c.status === 'ok' && !publicadas.has(c.indice) && !yaEnAlbum(c)).map((c) => c.indice)));
     const primera = canciones.find((c) => c.status === 'revisar') ?? canciones[0];
     setActiva(primera ? primera.indice : null);
     setPrecargada(true);
@@ -87,7 +98,7 @@ export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, al
 
   const estado = job.data.estado as EstadoImportacion;
   const revisar = canciones.filter((c) => c.status === 'revisar').length;
-  const oks = canciones.filter((c) => c.status === 'ok' && !publicadas.has(c.indice)).map((c) => c.indice);
+  const oks = canciones.filter((c) => c.status === 'ok' && !publicadas.has(c.indice) && !yaEnAlbum(c)).map((c) => c.indice);
   const cancionActiva: CancionImportada | undefined = canciones.find((c) => c.indice === activa);
 
   return (
@@ -96,6 +107,7 @@ export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, al
         <p className="text-xs text-muted-foreground">
           {etiquetaEstado[estado]}
           {listas && ` · ${canciones.length} canciones · ${revisar} para revisar · ${publicadas.size} publicadas`}
+          {listas && duplicadas > 0 && ` · ${duplicadas} ya están en el álbum`}
           {job.data.pdf && (
             <>
               {' · '}
@@ -166,6 +178,8 @@ export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, al
                     <span className="min-w-0 flex-1 truncate text-sm">{c.titulo}</span>
                     {yaPublicada ? (
                       <Badge variant="default">Pub.</Badge>
+                    ) : yaEnAlbum(c) ? (
+                      <Badge variant="secondary">Ya existe</Badge>
                     ) : c.status === 'ok' ? null : (
                       <Badge variant="destructive">Revisar</Badge>
                     )}
@@ -182,9 +196,12 @@ export const RevisionImportacion: React.FC<RevisionProps> = ({ importacionId, al
                 importacionId={importacionId}
                 cancion={cancionActiva}
                 onGuardada={(indice) => {
-                  // Una canción revisada queda seleccionada para publicar.
                   setSeleccion((prev) => new Set(prev).add(indice));
                   void queryClient.invalidateQueries({ queryKey: ['importacion', importacionId] });
+                }}
+                onFinalizado={() => {
+                  setActiva(null);
+                  onReiniciar();
                 }}
               />
             ) : (

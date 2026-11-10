@@ -1,10 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { pillToast } from '../../../shared/components/ui/pill-toast';
 import { Spinner } from '../../../components/ui/ios-spinner';
 import { importacionesApi, type CancionImportada } from '../../../shared/api/domains/importaciones';
 import { ChordProVista } from './chordpro-vista';
+import { SweetAlert } from '../../../shared/components/ui/sweet-alert';
 
 interface Campos {
   titulo: string;
@@ -35,13 +37,15 @@ interface EditorProps {
   cancion: CancionImportada;
   /** Tras guardar: la canción queda revisada y lista para publicar. */
   onGuardada: (indice: number) => void;
+  /** Al cerrar el aviso de finalizado: el flujo vuelve a empezar. */
+  onFinalizado: () => void;
 }
 
 /**
  * Editor de una canción de la revisión, a la derecha de la lista: metadatos,
  * ChordPro y vista previa en vivo (como en la v1). Guardar la marca revisada.
  */
-export const EditorCancion: React.FC<EditorProps> = ({ importacionId, cancion, onGuardada }) => {
+export const EditorCancion: React.FC<EditorProps> = ({ importacionId, cancion, onGuardada, onFinalizado }) => {
   // Se monta de nuevo por canción (key en el padre): el formulario parte de sus valores.
   const [campos, setCampos] = useState<Campos>({
     titulo: cancion.titulo,
@@ -52,6 +56,7 @@ export const EditorCancion: React.FC<EditorProps> = ({ importacionId, cancion, o
   });
   const [texto, setTexto] = useState(cancion.chordpro);
   const [guardando, setGuardando] = useState(false);
+  const [finalizado, setFinalizado] = useState(false);
 
   const set = (clave: keyof Campos) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setCampos((prev) => ({ ...prev, [clave]: e.target.value }));
@@ -70,8 +75,8 @@ export const EditorCancion: React.FC<EditorProps> = ({ importacionId, cancion, o
         autor: campos.autor.trim(),
         chordpro: vista,
       });
-      pillToast.success('Canción revisada', campos.titulo.trim());
       onGuardada(cancion.indice);
+      setFinalizado(true);
     } catch (err) {
       pillToast.error('No se pudo guardar', err instanceof Error ? err.message : undefined);
     } finally {
@@ -81,6 +86,21 @@ export const EditorCancion: React.FC<EditorProps> = ({ importacionId, cancion, o
 
   return (
     <div className="space-y-4">
+      {/* En un portal: el carrusel usa transform y eso recortaría un overlay fixed. */}
+      {createPortal(
+        <SweetAlert
+          isOpen={finalizado}
+          type="success"
+          title="¡Proceso finalizado!"
+          text="¡En buena hora!"
+          confirmText="Aceptar"
+          onClose={() => {
+            setFinalizado(false);
+            onFinalizado();
+          }}
+        />,
+        document.body,
+      )}
       <div className="grid gap-3 sm:grid-cols-6">
         <Campo id="ed-titulo" etiqueta="Título" className="sm:col-span-3">
           <Input id="ed-titulo" value={campos.titulo} onChange={set('titulo')} />

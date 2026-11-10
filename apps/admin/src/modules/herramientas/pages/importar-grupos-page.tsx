@@ -10,7 +10,7 @@ import { cn } from '../../../shared/lib/utils';
 import { type GrupoItem } from '../../../shared/api/domains/grupos';
 import { discografiaApi, etiquetaTipo, type AlbumGestion, type TipoLanzamiento } from '../../../shared/api/domains/discografia';
 import { importacionesApi } from '../../../shared/api/domains/importaciones';
-import { RevisionImportacion } from '../components/revision-importacion';
+import { RevisionImportacion, claveTitulo } from '../components/revision-importacion';
 import { BuscadorGrupos } from '../components/buscador-grupos';
 
 const MAX_PDF_BYTES = 20 * 1024 * 1024;
@@ -47,6 +47,9 @@ export const ImportarGruposPage: React.FC = () => {
     enabled: grupo !== null,
   });
   const albumes = discografia.data?.albumes ?? [];
+  // Versión del álbum elegido con sus canciones al día (la discografía se refresca al publicar).
+  const albumActual = albumes.find((a) => a.id === album?.id) ?? album;
+  const titulosExistentes = new Set((albumActual?.canciones ?? []).map((c) => claveTitulo(c.titulo)));
 
   // Una vista se alcanza solo si la anterior está completa.
   const completa = [grupo !== null, album !== null, importacionId !== null];
@@ -99,6 +102,16 @@ export const ImportarGruposPage: React.FC = () => {
     }
     setArchivoNombre(archivo.name);
     subir.mutate(archivo);
+  };
+
+  // Reinicio completo del flujo: grupo, álbum y PDF vuelven a empezar.
+  const reiniciar = () => {
+    setVista(0);
+    setGrupo(null);
+    setAlbum(null);
+    setImportacionId(null);
+    setArchivoNombre('');
+    void queryClient.invalidateQueries({ queryKey: ['discografia'] });
   };
 
   // Publicado: se limpia la revisión y se vuelve a la vista del PDF, lista para el siguiente.
@@ -211,6 +224,11 @@ export const ImportarGruposPage: React.FC = () => {
                         <p className="text-xs text-muted-foreground">
                           {etiquetaTipo[a.tipo]} · {a.canciones.length} canciones
                         </p>
+                        {a.canciones.length > 0 && (
+                          <span className="mt-1 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                            Ya tiene contenido
+                          </span>
+                        )}
                       </button>
                     ))}
 
@@ -264,7 +282,9 @@ export const ImportarGruposPage: React.FC = () => {
                 <RevisionImportacion
                   importacionId={importacionId}
                   albumTitulo={album.titulo}
+                  titulosExistentes={titulosExistentes}
                   onPublicada={alPublicar}
+                  onReiniciar={reiniciar}
                 />
               </div>
             )}
