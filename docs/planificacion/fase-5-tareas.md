@@ -44,10 +44,11 @@ Estado al 2026-11-09. Orden acordado con el dueño.
 - [x] Venta de pistas (API 0.20.0 y panel): canciones solo gratis o Premium; pista vinculada a una canción con precio; solo grupos habilitados; la tienda oculta y rechaza pistas de grupos no habilitados.
 
 ### Siguiente, en orden
-- [ ] **Mi grupo del manager:** la misma discografía y ficha que el admin, sin la pestaña de configuración de ventas. Hoy sigue la pantalla anterior.
-- [ ] **Audio de la pista:** subir el master desde la ficha de la pista (la API ya tiene `POST …/pistas/{trackId}/master`; falta la pantalla).
-- [ ] **Prueba de compra de pista de punta a punta:** orden, pago manual, aprobación y descarga, con un grupo habilitado.
-- [ ] **Himnario e importación de PDF:** recuperar la experiencia de la v1 (conversión automática con marcas "revisar", revisión y edición por canción antes de publicar, subida real al servidor). Hoy la API ya convierte y publica borradores; falta la pantalla y permitir editar datos por canción antes de publicar.
+- [x] **Mi grupo del manager:** la misma discografía y ficha que el admin, sin configuración de ventas ni miembros. Rutas `/mi-grupo/:id`, `/albumes/:albumId` y `/nuevo`; ficha editable vía `PATCH /mis-artistas/{id}`. Pendiente: recorrido en navegador.
+- [x] **Audio de la pista:** subir el master desde el modal de pista (sección "Audio de la pista", reemplaza el anterior). Pendiente: prueba en navegador.
+- [ ] **(Diferida al final, con pagos) Prueba de compra de pista de punta a punta:** orden, pago manual, aprobación y descarga, con un grupo habilitado.
+- [x] **Subir álbum de grupo (herramienta de Grupos):** grupo → álbum → PDF → revisión, corrección y publicación (API 0.21.0). Pendiente: recorrido en navegador.
+- [ ] **Himnario e importación de PDF (segunda herramienta):** recuperar la experiencia de la v1 (conversión automática con marcas "revisar", revisión y edición por canción antes de publicar, subida real al servidor). Hoy la API ya convierte y publica borradores; falta la pantalla y permitir editar datos por canción antes de publicar.
 - [ ] **Servicios por encargo:** detalle de solicitud para staff (referencias, cotización, pago y proyecto), listado de proyectos y comprobantes de pagos de servicio.
 - [ ] **Soporte:** tickets por estado y categoría, detalle con mensajes y adjuntos privados, cambio de estado.
 - [ ] **Auditoría:** tabla con filtros (acción, actor, fechas) y detalle.

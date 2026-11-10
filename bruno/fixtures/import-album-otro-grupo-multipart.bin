@@ -1,0 +1,18 @@
+------triomision-enrutado
+Content-Disposition: form-data; name="idempotency_key"
+
+enrutado-album-ajeno
+------triomision-enrutado
+Content-Disposition: form-data; name="grupo_id"
+
+00000000-0000-4000-8000-000000000001
+------triomision-enrutado
+Content-Disposition: form-data; name="album_id"
+
+11111111-2222-4333-8444-555555555555
+------triomision-enrutado
+Content-Disposition: form-data; name="archivo"; filename="album.pdf"
+Content-Type: application/pdf
+
+%PDF-1.4 fixture
+------triomision-enrutado--

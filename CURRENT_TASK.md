@@ -4,6 +4,39 @@
 > Última actualización: 2026-11-08
 
 > [!IMPORTANT]
+> **HERRAMIENTAS — SUBIR ÁLBUM DE GRUPO (2026-11-09):** API **0.21.0**. La subida de PDF
+> acepta `grupo_id` + `album_id` (destino fijado en el job); publicar usa ese destino por
+> defecto; `PATCH …/importaciones/{id}/canciones/{indice}` corrige una canción antes de
+> publicar. Worker: "Himno Nro." ya no se pega al título (`{subtitle}`). Panel: sección
+> **Herramientas y automatizaciones** → **Subir álbum de grupo** (`/herramientas/grupos`):
+> grupo → álbum (existente o nuevo) → PDF → revisión, corrección y publicación. Bruno
+> 327/327 requests y 668/668 aserciones en verde. `pnpm build` en verde. Probado con
+> Vol. 01 (12 canciones, publicadas al álbum). Los 25 PDFs de `content/TRIO MISION NOTAS`
+> convierten (0 a 8 canciones "revisar" por archivo). UI en **carrusel de 4 vistas**
+> (grupo → álbum → PDF → revisión) con pestañas arriba: buscador de grupos en vivo
+> (`gruposApi.listar(q)`, enter elige el primero), álbumes como galería horizontal y, en
+> revisión, lista + editor con vista previa ChordPro (como la v1). Tras publicar, la vista se
+> limpia y vuelve a "Elegir PDF". Verificado en Chrome (Playwright): buscar, elegir álbum,
+> subir, publicar y limpiar, sin errores de consola. Recorrido
+> real en Chrome con Playwright (crear álbum, subir PDF, revisar y guardar una canción) sin
+> errores de consola. **Pendiente:** página de Himnario (segunda herramienta); decidir el rol
+> del editor; y la prueba de compra, al final.
+> **Operación:** `pkill -f cmd/worker` no mata el binario compilado por `go run`; al reiniciar
+> el worker, comprobar con `ps` que no quede un proceso viejo (compiten por los jobs).
+> Decisión abierta: la subida acepta admin y vendedor (la API no deja subir a `editor`,
+> hay una prueba `staff-importaciones-editor-403`); revisar si el editor debe importar.
+
+> **FASE 5 — AUDIO DE LA PISTA (2026-11-09):** panel con subida de master en el modal
+> de pista (`POST …/pistas/{trackId}/master`, multipart, máx. 100 MB). Sin cambios de API.
+> `pnpm build` en verde. **Pendiente:** prueba en navegador y de compra real.
+
+> **FASE 5 — MI GRUPO DEL MANAGER (2026-11-09):** panel sin cambios de API (0.20.0).
+> El manager administra su grupo desde `/mi-grupo/:id`: Datos (ficha editable por
+> `PATCH /mis-artistas/{id}`: bio, país, redes, portada) y Discografía (lanzamientos,
+> canciones, nuevo lanzamiento). Sin pestañas de Configuración ni Miembros (staff).
+> `pnpm build` en verde. **Pendiente:** recorrido en navegador con un manager real
+> y la portada actual de la ficha (la API de manager no devuelve `cover_url`).
+
 > **FASE 5 — VENTA DE PISTAS (2026-11-09):** API **0.20.0**. Canciones solo
 > gratis o Premium (migración 00034). Pista = venta aparte vinculada a una canción
 > con su precio; solo grupos habilitados (interruptor del admin). La tienda oculta y

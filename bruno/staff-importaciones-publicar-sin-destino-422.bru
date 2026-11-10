@@ -1,0 +1,33 @@
+meta {
+  name: Staff importaciones - publicar sin destino en un job sin álbum 422
+  type: http
+  seq: 262
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionSinTextoId}}/publicar
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "indices": [0]
+  }
+}
+
+tests {
+  test("sin destino enviado ni fijado al subir, no se publica", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(422);
+    expect(res.getBody().detail).to.contain("no tiene destino fijado");
+  });
+}
+
+docs {
+  Sin destino en el cuerpo, la publicación usa el álbum fijado al subir el PDF
+  (enrutado). Un job subido sin grupo ni álbum debe pedir el destino explícito.
+}

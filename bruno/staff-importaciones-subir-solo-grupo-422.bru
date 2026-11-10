@@ -1,0 +1,35 @@
+meta {
+  name: Staff importaciones - subir con grupo_id sin album_id 422
+  type: http
+  seq: 400
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=----triomision-enrutado
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:file {
+  file: @file(fixtures/import-solo-grupo-multipart.bin) @contentType(multipart/form-data;boundary=----triomision-enrutado)
+}
+
+tests {
+  test("grupo_id y album_id van juntos", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(422);
+    expect(res.getBody().detail).to.contain("se envían juntos");
+  });
+}
+
+docs {
+  Enrutado de la subida: grupo_id sin album_id se rechaza antes de leer el
+  archivo ni crear el job.
+}

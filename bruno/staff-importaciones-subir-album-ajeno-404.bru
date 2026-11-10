@@ -1,0 +1,35 @@
+meta {
+  name: Staff importaciones - subir a un álbum que no es del grupo 404
+  type: http
+  seq: 401
+}
+
+post {
+  url: {{baseUrl}}/api/v1/staff/importaciones/pdf
+  body: file
+  auth: bearer
+}
+
+headers {
+  Content-Type: multipart/form-data; boundary=----triomision-enrutado
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:file {
+  file: @file(fixtures/import-album-otro-grupo-multipart.bin) @contentType(multipart/form-data;boundary=----triomision-enrutado)
+}
+
+tests {
+  test("el álbum debe pertenecer al grupo indicado", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(404);
+    expect(res.getBody().detail).to.contain("no encontrado en este grupo");
+  });
+}
+
+docs {
+  Un álbum inexistente o de otro grupo no puede recibir la publicación: la
+  validación de pertenencia corre antes de guardar el PDF.
+}

@@ -181,3 +181,29 @@ func TestSongsFromLinesDescartaRestosVacios(t *testing.T) {
 		t.Fatalf("esperado 0 songs, got %+v", songs)
 	}
 }
+
+// Una línea "Himno Nro. N" bajo el título (misma fuente grande) es referencia
+// de himnario: no se pega al título y queda como {subtitle}.
+func TestSongsFromLinesReferenciaHimno(t *testing.T) {
+	l := func(y float64, size float64, words ...PdfToken) PdfLine {
+		return PdfLine{Y: y, Page: 1, FontSize: size, Tokens: words}
+	}
+	tok := func(x float64, s string) PdfToken { return PdfToken{X: x, Str: s, CharW: 6} }
+	lines := []PdfLine{
+		l(760, 18, tok(60, "5"), tok(80, "En"), tok(100, "el"), tok(120, "monte")),
+		l(744, 14, tok(60, "Himno"), tok(100, "Nro."), tok(130, "97"), tok(150, "NHA")),
+		l(720, 11, tok(60, "LAM"), tok(100, "REM")),
+		l(705, 11, tok(60, "En"), tok(80, "el"), tok(100, "monte")),
+	}
+	songs := SongsFromLines(lines)
+	if len(songs) != 1 {
+		t.Fatalf("esperada 1 canción, got %d", len(songs))
+	}
+	s := songs[0]
+	if s.Titulo != "En el monte" {
+		t.Errorf("título contaminado: %q", s.Titulo)
+	}
+	if !strings.Contains(s.ChordPro, "{subtitle: Himno Nro. 97 NHA}") {
+		t.Errorf("chordpro sin subtitle:\n%s", s.ChordPro)
+	}
+}

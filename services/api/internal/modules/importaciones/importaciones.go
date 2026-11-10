@@ -19,6 +19,8 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -54,6 +56,19 @@ var estadosValidos = map[string]bool{
 // /api/v1/staff/importaciones (admin/vendedor; editor → 403).
 func Register(api huma.API, db database.DB, objects storage.Client, presignTTL time.Duration) {
 	staff := authz.RequireStaff(api, db, "admin", "vendedor")
+
+	huma.Register(api, huma.Operation{
+		OperationID: "staff-importaciones-editar-cancion",
+		Method:      http.MethodPatch,
+		Path:        "/api/v1/staff/importaciones/{id}/canciones/{indice}",
+		Summary:     "Corregir una canción de la revisión antes de publicarla",
+		Description: "Edita título, número, tono, capo, autor o el ChordPro completo de una canción " +
+			"del resultado. Solo con la importación en done y la canción sin publicar. La canción queda " +
+			"marcada como revisada (status ok, sin issues). Audita importacion.cancion_editada.",
+		Tags:        []string{"staff"},
+		Security:    []map[string][]string{{"bearer": {}}},
+		Middlewares: []func(huma.Context, func(huma.Context)){staff},
+	}, editarCancion(db))
 
 	huma.Register(api, huma.Operation{
 		OperationID: "staff-importaciones-subir-pdf",
@@ -167,6 +182,13 @@ type destinoPublicacion struct {
 	ColeccionID string `json:"coleccion_id,omitempty"`
 }
 
+// destinoImportacion es el destino fijado al subir (parameters_json.destino).
+type destinoImportacion struct {
+	Tipo    string `json:"tipo" doc:"album"`
+	GrupoID string `json:"grupo_id"`
+	AlbumID string `json:"album_id"`
+}
+
 type pdfAdjunto struct {
 	AssetID  string `json:"asset_id"`
 	Mime     string `json:"mime"`
@@ -190,6 +212,8 @@ type subirPDFInput struct {
 	RawBody huma.MultipartFormFiles[struct {
 		Archivo        huma.FormFile `form:"archivo" required:"true" doc:"PDF editorial con letra y acordes (máximo 20 MiB)"`
 		IdempotencyKey string        `form:"idempotency_key" required:"true" minLength:"8" maxLength:"128" doc:"Clave de cliente: repetirla con el mismo archivo devuelve el mismo job"`
+		GrupoID        string        `form:"grupo_id" required:"false" doc:"Grupo dueño del álbum. Va junto con album_id y enruta la publicación a ese álbum"`
+		AlbumID        string        `form:"album_id" required:"false" doc:"Álbum destino; debe pertenecer a grupo_id"`
 	}]
 }
 
@@ -222,6 +246,24 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 		sum := sha256.Sum256(data)
 		checksum := fmt.Sprintf("%x", sum)
 		clave := in.RawBody.Data().IdempotencyKey
+		grupoID, albumID := in.RawBody.Data().GrupoID, in.RawBody.Data().AlbumID
+		if (grupoID == "") != (albumID == "") {
+			return nil, huma.Error422UnprocessableEntity("grupo_id y album_id se envían juntos")
+		}
+		if grupoID != "" {
+			if !uuidRe.MatchString(grupoID) || !uuidRe.MatchString(albumID) {
+				return nil, huma.Error422UnprocessableEntity("grupo_id y album_id deben ser UUID válidos")
+			}
+			var existe bool
+			if err := db.QueryRow(ctx, `
+				select exists(select 1 from albums where id = $1 and artist_id = $2 and deleted_at is null)`,
+				albumID, grupoID).Scan(&existe); err != nil {
+				return nil, apierr.Internal("error consultando el álbum", err)
+			}
+			if !existe {
+				return nil, huma.Error404NotFound("álbum no encontrado en este grupo")
+			}
+		}
 
 		// Reintento idempotente: el job ya existe para esta clave.
 		var existente importacionResumen
@@ -254,10 +296,14 @@ func subirPDF(db database.DB, objects storage.Client) func(ctx context.Context, 
 			return nil, apierr.Internal("error guardando el PDF", err)
 		}
 
-		parameters, _ := json.Marshal(map[string]any{
+		parametros := map[string]any{
 			"archivo": archivo.Filename, "mime": mimeType,
 			"bytes": len(data), "sha256": checksum,
-		})
+		}
+		if grupoID != "" {
+			parametros["destino"] = destinoImportacion{Tipo: "album", GrupoID: grupoID, AlbumID: albumID}
+		}
+		parameters, _ := json.Marshal(parametros)
 
 		tx, err := db.Begin(ctx)
 		if err != nil {
@@ -390,20 +436,21 @@ type importacionPath struct {
 
 type obtenerImportacionOutput struct {
 	Body struct {
-		ID             string             `json:"id"`
-		Tipo           string             `json:"tipo"`
-		Estado         string             `json:"estado"`
-		Progreso       int                `json:"progreso"`
-		ErrorCode      *string            `json:"error_code"`
-		ToolVersion    *string            `json:"tool_version"`
-		TotalCanciones int                `json:"total_canciones"`
-		CreadoPor      string             `json:"creado_por"`
-		CreadoEn       time.Time          `json:"creado_en"`
-		IniciadoEn     *time.Time         `json:"iniciado_en"`
-		CompletadoEn   *time.Time         `json:"completado_en"`
-		PDF            *pdfAdjunto        `json:"pdf"`
-		Canciones      []cancionImportada `json:"canciones"`
-		Publicados     []publicadoItem    `json:"publicados"`
+		ID             string              `json:"id"`
+		Tipo           string              `json:"tipo"`
+		Estado         string              `json:"estado"`
+		Progreso       int                 `json:"progreso"`
+		ErrorCode      *string             `json:"error_code"`
+		ToolVersion    *string             `json:"tool_version"`
+		TotalCanciones int                 `json:"total_canciones"`
+		CreadoPor      string              `json:"creado_por"`
+		CreadoEn       time.Time           `json:"creado_en"`
+		IniciadoEn     *time.Time          `json:"iniciado_en"`
+		CompletadoEn   *time.Time          `json:"completado_en"`
+		PDF            *pdfAdjunto         `json:"pdf"`
+		Destino        *destinoImportacion `json:"destino,omitempty" doc:"Destino fijado al subir (álbum de un grupo)"`
+		Canciones      []cancionImportada  `json:"canciones"`
+		Publicados     []publicadoItem     `json:"publicados"`
 	}
 }
 
@@ -413,16 +460,17 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 		out.Body.Canciones = []cancionImportada{}
 		out.Body.Publicados = []publicadoItem{}
 
-		var resultJSON []byte
+		var resultJSON, paramsJSON []byte
 		err := db.QueryRow(ctx, `
 			select id, job_type, status, progress, error_code, tool_version,
 			       coalesce((result_json->>'total_canciones')::int, 0),
-			       created_by, created_at, started_at, completed_at, result_json
+			       created_by, created_at, started_at, completed_at, result_json,
+			       coalesce(parameters_json, '{}'::jsonb)
 			from media_jobs where id = $1`, in.ID,
 		).Scan(&out.Body.ID, &out.Body.Tipo, &out.Body.Estado, &out.Body.Progreso,
 			&out.Body.ErrorCode, &out.Body.ToolVersion, &out.Body.TotalCanciones,
 			&out.Body.CreadoPor, &out.Body.CreadoEn, &out.Body.IniciadoEn,
-			&out.Body.CompletadoEn, &resultJSON)
+			&out.Body.CompletadoEn, &resultJSON, &paramsJSON)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error404NotFound("importación no encontrada")
 		}
@@ -449,6 +497,13 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 			out.Body.PDF = &pdfAdjunto{AssetID: assetID, Mime: mime, ByteSize: byteSize, URL: url}
 		}
 
+		var params struct {
+			Destino *destinoImportacion `json:"destino"`
+		}
+		if err := json.Unmarshal(paramsJSON, &params); err == nil {
+			out.Body.Destino = params.Destino
+		}
+
 		if len(resultJSON) > 0 {
 			var res resultadoImportacion
 			if err := json.Unmarshal(resultJSON, &res); err != nil {
@@ -465,17 +520,169 @@ func obtener(db database.DB, objects storage.Client, presignTTL time.Duration) f
 	}
 }
 
+// ── Revisión: editar una canción antes de publicarla ──────────────────────
+
+type editarCancionInput struct {
+	ID     string `path:"id" format:"uuid" doc:"ID de la importación"`
+	Indice int    `path:"indice" minimum:"0" doc:"Índice de la canción en el resultado"`
+	Body   struct {
+		Titulo   *string `json:"titulo,omitempty" minLength:"1" maxLength:"200"`
+		Numero   *int    `json:"numero,omitempty" minimum:"1" maximum:"999" doc:"Número de himno o de pista del álbum"`
+		Tono     *string `json:"tono,omitempty" maxLength:"8" doc:"Tono original (ej. C, Am, F#m)"`
+		Capo     *int    `json:"capo,omitempty" minimum:"0" maximum:"12"`
+		Autor    *string `json:"autor,omitempty" maxLength:"200"`
+		ChordPro *string `json:"chordpro,omitempty" doc:"Si se envía, reemplaza el ChordPro completo y no se reescriben las directivas"`
+	}
+}
+
+type editarCancionOutput struct {
+	Body cancionImportada
+}
+
+// editarCancion corrige una canción de la revisión. Solo antes de publicarla:
+// una canción ya publicada se edita en el catálogo. Marca la canción como
+// revisada (status ok, sin issues) y guarda el resultado en el job.
+func editarCancion(db database.DB) func(ctx context.Context, in *editarCancionInput) (*editarCancionOutput, error) {
+	return func(ctx context.Context, in *editarCancionInput) (*editarCancionOutput, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok {
+			return nil, huma.Error401Unauthorized("no autenticado")
+		}
+		b := in.Body
+		if b.Titulo == nil && b.Numero == nil && b.Tono == nil && b.Capo == nil && b.Autor == nil && b.ChordPro == nil {
+			return nil, huma.Error422UnprocessableEntity("envía al menos un campo a editar")
+		}
+
+		tx, err := db.Begin(ctx)
+		if err != nil {
+			return nil, apierr.Internal("error iniciando la transacción", err)
+		}
+		defer tx.Rollback(ctx)
+
+		var estado string
+		var resultJSON []byte
+		err = tx.QueryRow(ctx, `
+			select status, coalesce(result_json, '{}'::jsonb) from media_jobs where id = $1 for update`, in.ID,
+		).Scan(&estado, &resultJSON)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, huma.Error404NotFound("importación no encontrada")
+		}
+		if err != nil {
+			return nil, apierr.Internal("error consultando la importación", err)
+		}
+		if estado != "done" {
+			return nil, huma.Error409Conflict("la importación no está lista para revisar (estado " + estado + ")")
+		}
+
+		var res resultadoImportacion
+		if err := json.Unmarshal(resultJSON, &res); err != nil {
+			return nil, apierr.Internal("error leyendo el resultado", err)
+		}
+		if in.Indice >= len(res.Canciones) {
+			return nil, huma.Error404NotFound("canción no encontrada en la importación")
+		}
+		for _, p := range res.Publicados {
+			if p.Indice == in.Indice {
+				return nil, huma.Error409Conflict("la canción ya está publicada; edítala en el catálogo")
+			}
+		}
+
+		c := res.Canciones[in.Indice]
+		cp := c.ChordPro
+		if b.Titulo != nil {
+			c.Titulo = strings.TrimSpace(*b.Titulo)
+		}
+		if b.Numero != nil {
+			n := *b.Numero
+			c.Numero = &n
+		}
+		if b.Tono != nil {
+			t := strings.TrimSpace(*b.Tono)
+			c.Tono = nil
+			if t != "" {
+				c.Tono = &t
+			}
+		}
+		if b.Capo != nil {
+			k := *b.Capo
+			c.Capo = &k
+		}
+		if b.Autor != nil {
+			a := strings.TrimSpace(*b.Autor)
+			c.Autor = nil
+			if a != "" {
+				c.Autor = &a
+			}
+		}
+		if b.ChordPro != nil {
+			cp = *b.ChordPro
+		} else {
+			// Las directivas del ChordPro siguen a los metadatos editados.
+			cp = reemplazarDirectiva(cp, "title", c.Titulo)
+			if c.Numero != nil {
+				cp = reemplazarDirectiva(cp, "number", strconv.Itoa(*c.Numero))
+			}
+			if c.Tono != nil {
+				cp = reemplazarDirectiva(cp, "key", *c.Tono)
+			} else if b.Tono != nil {
+				cp = reemplazarDirectiva(cp, "key", "")
+			}
+			if c.Capo != nil {
+				cp = reemplazarDirectiva(cp, "capo", strconv.Itoa(*c.Capo))
+			}
+			if c.Autor != nil {
+				cp = reemplazarDirectiva(cp, "author", *c.Autor)
+			} else if b.Autor != nil {
+				cp = reemplazarDirectiva(cp, "author", "")
+			}
+		}
+		c.ChordPro = cp
+		c.Status = "ok"
+		c.Issues = []string{}
+		res.Canciones[in.Indice] = c
+
+		nuevo, err := json.Marshal(res)
+		if err != nil {
+			return nil, apierr.Internal("error guardando la revisión", err)
+		}
+		if _, err := tx.Exec(ctx, `update media_jobs set result_json = $2 where id = $1`, in.ID, nuevo); err != nil {
+			return nil, apierr.Internal("error guardando la revisión", err)
+		}
+		if err := registrarAuditoria(ctx, tx, claims.Subject, "importacion.cancion_editada", "media_job", in.ID,
+			map[string]any{"indice": in.Indice, "titulo": c.Titulo}); err != nil {
+			return nil, apierr.Internal("error registrando auditoría", err)
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return nil, apierr.Internal("error confirmando la transacción", err)
+		}
+		out := &editarCancionOutput{}
+		out.Body = c
+		return out, nil
+	}
+}
+
+// reemplazarDirectiva cambia el valor de una directiva ChordPro ({name: valor})
+// o la inserta al inicio. Un valor vacío quita la directiva.
+func reemplazarDirectiva(cp, name, valor string) string {
+	re := regexp.MustCompile(`(?m)^\{` + regexp.QuoteMeta(name) + `:[^}]*\}\r?\n?`)
+	quitada := re.ReplaceAllString(cp, "")
+	if valor == "" {
+		return quitada
+	}
+	return "{" + name + ": " + valor + "}\n" + quitada
+}
+
 // ── Publicación de borradores ──────────────────────────────────────────────
 
 type publicarImportacionInput struct {
 	ID   string `path:"id" format:"uuid" doc:"ID de la importación"`
 	Body struct {
 		Indices []int `json:"indices" minItems:"1" doc:"Índices de canciones aprobadas del resultado"`
-		Destino struct {
+		Destino *struct {
 			Tipo        string `json:"tipo" enum:"album,himnario" doc:"album: canciones de un álbum; himnario: himnos de una colección"`
 			AlbumID     string `json:"album_id,omitempty" doc:"UUID del álbum destino (obligatorio con tipo=album)"`
 			ColeccionID string `json:"coleccion_id,omitempty" doc:"UUID de la colección del himnario (obligatorio con tipo=himnario)"`
-		} `json:"destino"`
+		} `json:"destino,omitempty" doc:"Si se omite, se usa el destino fijado al subir el PDF"`
 	}
 }
 
@@ -500,8 +707,31 @@ func publicar(db database.DB) func(ctx context.Context, in *publicarImportacionI
 			return nil, huma.Error401Unauthorized("no autenticado")
 		}
 
+		// Destino: el enviado, o el fijado al subir el PDF (enrutado al álbum del grupo).
+		var destino destinoPublicacion
+		if in.Body.Destino != nil {
+			destino = destinoPublicacion{Tipo: in.Body.Destino.Tipo, AlbumID: in.Body.Destino.AlbumID, ColeccionID: in.Body.Destino.ColeccionID}
+		} else {
+			var paramsJSON []byte
+			err := db.QueryRow(ctx, `
+				select coalesce(parameters_json, '{}'::jsonb) from media_jobs where id = $1`, in.ID,
+			).Scan(&paramsJSON)
+			if errors.Is(err, pgx.ErrNoRows) {
+				return nil, huma.Error404NotFound("importación no encontrada")
+			}
+			if err != nil {
+				return nil, apierr.Internal("error consultando la importación", err)
+			}
+			var params struct {
+				Destino *destinoImportacion `json:"destino"`
+			}
+			_ = json.Unmarshal(paramsJSON, &params)
+			if params.Destino == nil || params.Destino.AlbumID == "" {
+				return nil, huma.Error422UnprocessableEntity("la importación no tiene destino fijado: envía destino")
+			}
+			destino = destinoPublicacion{Tipo: "album", AlbumID: params.Destino.AlbumID}
+		}
 		// Validación manual del destino (campos condicionales).
-		destino := destinoPublicacion{Tipo: in.Body.Destino.Tipo, AlbumID: in.Body.Destino.AlbumID, ColeccionID: in.Body.Destino.ColeccionID}
 		switch destino.Tipo {
 		case "album":
 			if destino.AlbumID == "" || !uuidRe.MatchString(destino.AlbumID) {

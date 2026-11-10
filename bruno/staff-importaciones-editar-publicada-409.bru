@@ -1,0 +1,33 @@
+meta {
+  name: Staff importaciones - editar una canción ya publicada 409
+  type: http
+  seq: 261
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/canciones/0
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "titulo": "No debería cambiar"
+  }
+}
+
+tests {
+  test("una canción publicada se edita en el catálogo, no en la revisión", function() {
+    expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(409);
+    expect(res.getBody().detail).to.contain("ya está publicada");
+  });
+}
+
+docs {
+  Corre después de la publicación (seq 258): la canción 0 ya está en el álbum y
+  la revisión ya no la modifica.
+}

@@ -1,0 +1,43 @@
+meta {
+  name: Staff importaciones - corregir título de una canción antes de publicar
+  type: http
+  seq: 257
+}
+
+patch {
+  url: {{baseUrl}}/api/v1/staff/importaciones/{{importacionDemoId}}/canciones/0
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{staffToken}}
+}
+
+body:json {
+  {
+    "titulo": "Título revisado en el panel",
+    "autor": "Revisión editorial"
+  }
+}
+
+tests {
+  test("corrige la canción o, si ya se publicó en una corrida anterior, lo informa", function() {
+    if (res.getStatus() === 409) {
+      expect(res.getBody().detail).to.contain("ya está publicada");
+    } else {
+      expect(res.getStatus(), JSON.stringify(res.getBody())).to.eq(200);
+      expect(res.getBody().titulo).to.eq("Título revisado en el panel");
+      expect(res.getBody().status).to.eq("ok");
+      expect(res.getBody().issues).to.be.empty;
+      expect(res.getBody().chordpro).to.contain("{title: Título revisado en el panel}");
+    }
+  });
+}
+
+docs {
+  Revisión humana antes de publicar: el panel corrige el título y el autor de
+  la canción 0 del job demo. La canción queda "ok" y el ChordPro se reescribe
+  con la directiva {title}. Reejecutar la colección sin reset la encuentra ya
+  publicada (409) y el test lo acepta.
+}

@@ -274,6 +274,9 @@ var capoRe = regexp.MustCompile(`(?i)^capo(?:traste)?(?:\s+en)?(?:\s+(?:la\s+)?c
 
 var headerRe = regexp.MustCompile(`^(\d{1,3})[.)-]?\s+(.+)$`)
 
+// hymnRefRe reconoce la línea de referencia de himnario bajo el título.
+var hymnRefRe = regexp.MustCompile(`(?i)^himno\s+nro\.?\s*\d+`)
+
 var spacesRe = regexp.MustCompile(`[\s ]+`)
 
 // modalFontSize devuelve el tamaño de fuente del cuerpo: el más frecuente
@@ -373,6 +376,7 @@ func SongsFromLines(allLines []PdfLine) []Cancion {
 		chordCount, lyricCount int
 		firstChord             *string
 		sectionOpen            bool
+		himno                  string // referencia de himnario ("Himno Nro. 97 NHA"), no es parte del título
 	}
 
 	var songs []Cancion
@@ -431,6 +435,9 @@ func SongsFromLines(allLines []PdfLine) []Cancion {
 		if cur.author != nil {
 			meta = append(meta, "{author: "+*cur.author+"}")
 		}
+		if cur.himno != "" {
+			meta = append(meta, "{subtitle: "+cur.himno+"}")
+		}
 
 		status := "ok"
 		if len(cur.issues) > 0 {
@@ -456,6 +463,13 @@ func SongsFromLines(allLines []PdfLine) []Cancion {
 	for i := 0; i < len(lines); i++ {
 		line := lines[i]
 		text := plainText(line)
+
+		// "Himno Nro. 97 NHA" bajo el título es una referencia del himnario (tenga
+		// o no la fuente del encabezado): se guarda aparte, no se pega al título.
+		if d != nil && len(d.body) == 0 && d.chordCount == 0 && hymnRefRe.MatchString(text) {
+			d.himno = strings.TrimSpace(text)
+			continue
+		}
 
 		if isHeader(line) {
 			m := headerRe.FindStringSubmatch(text)

@@ -35,7 +35,7 @@ import (
 )
 
 // Version es la versión del servicio reportada por /api/v1/health.
-const Version = "0.20.0"
+const Version = "0.21.0"
 
 // New arma el handler raíz: middlewares chi, OpenAPI/Swagger de Huma y módulos.
 // identifyClient devuelve el sub del JWT verificado (vacío si la petición es

@@ -1,6 +1,9 @@
 # Guía de integración — API Trio Misión
 
-> **Versión de contrato:** 0.20.0 (venta de pistas vinculadas a canciones: canciones
+> **Versión de contrato:** 0.21.0 (importación enrutada a álbumes de grupo: la subida acepta
+> `grupo_id` + `album_id` y fija el destino; `POST …/publicar` usa ese destino si se omite
+> `destino`; `PATCH /api/v1/staff/importaciones/{id}/canciones/{indice}` corrige una canción
+> antes de publicarla. El worker ya no pega la referencia "Himno Nro." al título. 0.20.0 (venta de pistas vinculadas a canciones: canciones
 > solo `free|premium`; `POST|GET /api/v1/mis-artistas/{id}/pistas`; `PUT|DELETE
 > …/canciones/{songId}/pista` con precio (solo grupos habilitados para vender); la
 > tienda oculta y rechaza pistas de grupos no habilitados). 0.19.0 (discografía: tipo de lanzamiento `album|ep|sencillo`
@@ -474,6 +477,17 @@ transacción, marca los índices en `result_json` y audita
 reportan en `ya_existentes` sin tocar el himnario versionado. El destino
 álbum/colección ajeno → 404; UUIDs de destino mal formados → 422.
 
+**Enrutado a un álbum de grupo (0.21.0)**: la subida acepta `grupo_id` y `album_id`
+juntos (si va uno sin el otro → 422; el álbum debe pertenecer al grupo → 404). El
+destino queda fijado en el job (`destino` en el detalle). Publicar sin `destino` usa
+ese álbum; un job sin destino fijado responde 422 y pide el destino explícito.
+
+**Corregir antes de publicar**: `PATCH /api/v1/staff/importaciones/{id}/canciones/{indice}`
+con cualquiera de `titulo`, `numero`, `tono`, `capo`, `autor` o `chordpro` (si se envía
+`chordpro` se usa tal cual; si no, las directivas `{title}`, `{key}`, `{author}`… siguen
+a los metadatos). La canción queda `ok` sin issues. Solo con el job en `done` y la canción
+sin publicar (si ya está publicada → 409: se edita en el catálogo).
+
 **Reintentar**: `POST /api/v1/staff/importaciones/{id}/reintentar` — solo
 jobs `failed`: vuelve a `queued` limpiando error/resultado (auditoría
 `importacion.reintentada`). Un job `running` huérfano (worker muerto) se
@@ -526,7 +540,7 @@ devuelve.
 | sync catálogo (`GET /sync/catalogo`) | — | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | descargas offline propias | — | ✓ (solo sus dispositivos; 404 ajeno) | ✓ | ✓ | ✓ | ✓ | ✓ |
 | staff descargas offline | — | — | — | — | — (403) | ✓ | ✓ |
-| staff importaciones PDF (subir, listar, detalle, publicar, reintentar) | — | — | — | — | — (403) | ✓ | ✓ |
+| staff importaciones PDF (subir, listar, detalle, corregir canción, publicar, reintentar) | — | — | — | — | — (403) | ✓ | ✓ |
 
 Los roles staff se asignan solo por SQL (`make db-staff`) y los por-artista
 desde la API por un manager (o `make db-artist-role` de arranque). Los claims
@@ -546,7 +560,7 @@ del token **nunca** autorizan por sí solos.
 | Sync | `GET /sync/catalogo`, `POST|GET /dispositivos/{installId}/descargas-offline` | autenticado (solo sus dispositivos; 404 ajeno) |
 | Servicios | `POST|GET /servicios/solicitudes`, `GET /servicios/solicitudes/{id}`, `POST /servicios/cotizaciones/{id}/aceptar|rechazar`, `POST /servicios/proyectos/{id}/pagos`, `GET /servicios/proyectos/{id}` | autenticado (solo propios; 404 ajeno) |
 | Soporte | `POST|GET /soporte/tickets`, `GET /soporte/tickets/{id}`, `POST /soporte/tickets/{id}/mensajes` | autenticado (solo propios; 404 ajeno) |
-| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado`, `POST /staff/importaciones/pdf`, `GET /staff/importaciones`, `GET /staff/importaciones/{id}`, `POST /staff/importaciones/{id}/publicar|reintentar` | staff (admin+vendedor) |
+| Staff | `GET /staff/pagos`, `GET /staff/pagos/{id}`, `POST …/aprobar|rechazar`, `GET|POST /staff/accesos…`, `GET|POST /staff/licencias…`, `GET /staff/auditoria`, `GET /staff/dispositivos`, `POST /staff/dispositivos/{id}/revocar`, `GET|POST /staff/planes`, `PATCH /staff/planes/{id}`, `GET|POST /staff/cupones`, `PATCH /staff/cupones/{id}`, `GET|POST /staff/canjes`, `GET|PATCH /staff/canjes/{id}`, `GET /staff/servicios/solicitudes`, `POST /staff/servicios/solicitudes/{id}/cotizar|estado`, `POST /staff/servicios/proyectos/{id}/entregas|estado`, `POST /staff/servicios/pagos/{id}/aprobar|rechazar`, `GET /staff/soporte/tickets`, `POST /staff/soporte/tickets/{id}/mensajes|estado`, `POST /staff/importaciones/pdf`, `GET /staff/importaciones`, `GET /staff/importaciones/{id}`, `PATCH /staff/importaciones/{id}/canciones/{indice}`, `POST /staff/importaciones/{id}/publicar|reintentar` | staff (admin+vendedor) |
 
 ## 9. Verificación y pruebas
 
